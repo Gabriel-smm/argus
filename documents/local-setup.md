@@ -140,8 +140,8 @@ To start one process at a time, from `frontend/`: `npm run dev:frontend`, `npm r
 
 In the dashboard Library:
 
-1. Open **Knowledge** and add `data/questions_20.json` from the repository root (the file picker path is the file on disk).
-2. Open **Data** and add `data/test_observations.jsonl`. A JSON list of observations works too. Each row needs `center_frequency_hz`, `bandwidth_hz`, and `modulation`.
+1. Open **Knowledge** and add `data/data-full.json` from the repository root (the file picker path is the file on disk).
+2. Open **Data** and add `data/observations-full.jsonl`. A JSON list of observations works too. Each row needs `center_frequency_hz`, `bandwidth_hz`, and `modulation`.
 3. A file that is not valid, or that was added on the wrong tab, shows an error under its name and cannot be selected.
 4. Press **Run Laya**. Only the first 100 rows are classified. Chat is paused while Laya has the GPU. On a small GPU this is often under a minute for 100 rows, plus the time to load Ollama again afterward (several seconds to half a minute). Asking the chat to analyze the remaining rows, or a different number, runs Laya on that slice and summarizes it.
 5. When the Library shows **Active**, ask the chat about the result. It answers from Laya's output. If the result does not contain the answer, it says so.
