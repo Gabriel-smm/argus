@@ -4,7 +4,7 @@ How to fine-tune Laya on the RF training data on an Apple Silicon Mac (written f
 
 ## What Laya is asked
 
-One question, in `data/questions_20.json`: which signal type is this observation? There are nine answer options. Eight are the shortwave signal types the Panoradio dataset covers, and `other` is everything else.
+One question, in `data/data-full.json`: which signal type is this observation? There are nine answer options. Eight are the shortwave signal types the Panoradio dataset covers, and `other` is everything else.
 
 | Option | Panoradio modes behind it | Training rows | Test rows |
 |---|---|---|---|
@@ -57,7 +57,7 @@ pip install -r requirements.txt
 python -m finetune.build_dataset
 ```
 
-This takes a few seconds. It should report 6,964 training rows and 774 test rows, and it writes `finetune/out/train_items.pt`, `finetune/out/train_rows.jsonl` and `data/test_observations.jsonl`. The test file is committed, and the builder rewrites it identically.
+This takes a few seconds. It should report 6,964 training rows and 774 test rows, and it writes `finetune/out/train_items.pt`, `finetune/out/train_rows.jsonl` and `data/observations-full.jsonl`. The test file is committed, and the builder rewrites it identically.
 
 ### 3. Measure the baseline
 

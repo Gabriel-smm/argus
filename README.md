@@ -181,8 +181,6 @@ pip install -r requirements-dev.txt
 python -m pytest tests
 ```
 
-The command-line run, the tests and the scripts in `finetune/` still read the sample files under their earlier names, `data/questions_20.json` and `data/test_observations.jsonl`. Those are now `data/data-full.json` and `data/observations-full.jsonl`.
-
 ## Limits
 
 - The app classifies 100 rows of a file per run; the rest are classified on request from the chat.
