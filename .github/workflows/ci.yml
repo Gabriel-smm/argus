@@ -16,7 +16,7 @@ jobs:
           python-version: "3.12"
           cache: pip
       # The tests never load Laya, so skip requirements.txt (laya pulls torch).
-      - run: pip install fastapi uvicorn pytest httpx
+      - run: pip install fastapi uvicorn pytest httpx2
       - run: python -m pytest tests
 
   frontend:
