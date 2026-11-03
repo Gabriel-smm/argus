@@ -20,7 +20,7 @@ Argus classifies a list of observed radio signals with a fine-tuned [Laya](https
 ```bash
 .venv/bin/python -m pytest tests          # Python tests
 cd frontend && npm run dev                 # app + agent + Laya service together
-cd frontend && npm run lint                # oxlint + oxfmt
+cd frontend && npx oxlint                  # lint (what CI runs; `npm run lint` also checks formatting, which fails today)
 python -m pipeline "question"              # classify from the terminal
 ```
 
@@ -39,7 +39,7 @@ python -m pipeline "question"              # classify from the terminal
 - Commit often: small, focused commits with a short imperative subject (`feat: add reclassify count`, `docs: update setup steps`).
 - Each major feature ends in one PR from its branch to `main`, opened only after the user authorizes the push.
 - Fill in [.github/pull_request_template.md](.github/pull_request_template.md) when opening a PR; its review checkboxes are optional.
-- A PR must pass the `CI` workflow ([.github/workflows/ci.yml](.github/workflows/ci.yml): pytest and frontend lint) before merging. Run the same commands locally before asking to push.
+- A PR must pass the `CI` workflow ([.github/workflows/ci.yml](.github/workflows/ci.yml): pytest and `npx oxlint`) before merging. Run the same commands locally before asking to push.
 
 ## Documentation
 
