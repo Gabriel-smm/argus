@@ -199,3 +199,5 @@ source .venv/bin/activate
 pip install -r requirements-dev.txt
 python -m pytest tests
 ```
+
+Every pull request to `main` runs the same tests, plus `npx oxlint` in `frontend/`, through [.github/workflows/ci.yml](../.github/workflows/ci.yml). Run both locally before pushing.
