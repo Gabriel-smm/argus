@@ -113,6 +113,7 @@ The pipeline and the dashboard load `models/laya-rf-modes` by default, and stop 
 |---|---|---|
 | `data/train/panoradio_hf.jsonl` | 6,238, all used | [Panoradio HF](https://panoradio-sdr.de/radio-signal-classification-dataset/) (S. Scholl, 2019). Bandwidth and duty cycle are measured from the IQ vectors of 13 shortwave modes; SNR comes from the dataset. The centre frequency is assigned from where each mode is really operated. |
 | `data/train/sigid.jsonl` | 13,346, of which 1,500 used | [Artemis-DB](https://github.com/AresValley/Artemis-DB) v74, an export of sigidwiki.com. About 300 catalogued signals. Observations are drawn from each signal's listed frequencies, bandwidths and modulations. |
+| `data/train/nist_radar.jsonl` | one row per detected burst; not used by Laya | [NIST RF Dataset of Incumbent Radar Systems in the 3.5 GHz CBRS Band](https://data.nist.gov/od/id/mds2-2116), Group 1 subset 1 only (200 simulated pulsed-radar waveforms, 105 with a radar signal). Every feature is measured from the IQ samples by `pipeline/features.py`; the centre frequency is assigned (3.55 GHz). Labelled `pulsed_radar`, for the burst classifier, not for Laya. |
 
 How the builder uses them:
 
@@ -136,6 +137,8 @@ python -m finetune.sources.sigid
 python -m finetune.sources.panoradio
 python -m finetune.build_dataset
 ```
+
+The NIST radar rows are separate: `python -m finetune.sources.nist_radar --fetch --hist` downloads one 2.5 GB subset into `data/raw/nist_radar/`, prints how the measured features compare with the label table, and writes `data/train/nist_radar.jsonl`. `pipeline/features.py` (`detect_bursts`) is the shared burst detector and feature measurer: training rows and the app's IQ files go through the same code.
 
 ## Files
 
