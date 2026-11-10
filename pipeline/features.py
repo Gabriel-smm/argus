@@ -12,8 +12,14 @@ import numpy as np
 # Envelope smoothing: half a microsecond, and never fewer than four samples.
 SMOOTH_SECONDS = 0.5e-6
 SMOOTH_MIN_SAMPLES = 4
-# A sample is on when its smoothed power is this far above the floor.
-THRESHOLD_DB = 8.0
+# Pulses are looked for at three time scales (multiples of the smoothing window),
+# so a weak long pulse is found by a long average and a short strong one by a
+# short average. A sample is on when the N-sample average exceeds the floor by
+# DETECTION_SIGMAS standard deviations of that average (std = mean / sqrt(N)).
+SCALES = (1, 3, 10, 30, 100)
+DETECTION_SIGMAS = 10.0
+# Gaps shorter than this inside a pulse are bridged (a pulse whose power dips).
+MERGE_GAP_S = 20e-6
 # Pulses closer than this belong to the same burst.
 MAX_PULSE_GAP_S = 20e-3
 FFT_SIZE = 1024
@@ -35,14 +41,17 @@ def detect_bursts(iq: np.ndarray, sample_rate_hz: float, center_frequency_hz: fl
     envelope = _moving_average(power, smooth)
 
     # The floor is whichever is lower: the median of the envelope (right when the
-    # signal is off most of the time) or the median spectral density times the
+    # signal is off most of the time; the median of an N-sample average of noise
+    # is (N - 1/3) / N of its mean) or the median spectral density times the
     # number of bins (right when a narrow signal is on all the time).
-    floor = min(np.median(envelope), np.median(_psd([iq])) * FFT_SIZE)
-    on = envelope > floor * 10 ** (THRESHOLD_DB / 10)
-    pulses = _runs(on, merge_gap=2 * smooth, min_length=smooth + 1)
+    floor = min(np.median(envelope) * smooth / (smooth - 1 / 3), np.median(_psd([iq])) * FFT_SIZE)
+    pulses = _find_pulses(power, floor, smooth, max(2 * smooth, round(MERGE_GAP_S * sample_rate_hz)))
     if not pulses:
         return []
 
+    on = np.zeros(total, dtype=bool)
+    for a, b in pulses:
+        on[a:b] = True
     off = ~on
     noise_power = float(power[off].mean()) if off.any() else float(floor)
     noise_psd = _psd(_segments(iq, _runs(off, 0, FFT_SIZE))) if off.sum() >= FFT_SIZE else None
@@ -111,6 +120,7 @@ def _measure(iq, envelope, pulses, noise_psd, noise_power, sample_rate_hz, cente
         "end_s": float(end / sample_rate_hz),
         "pulses": len(pulses),
         "peak_snr_db": float(10 * np.log10(envelope[start:end].max() / max(noise_power, 1e-30))),
+        "mean_snr_db": float(10 * np.log10(np.mean(np.concatenate([envelope[a:b] for a, b in pulses])) / max(noise_power, 1e-30))),
     }
 
 
@@ -121,6 +131,37 @@ def _moving_average(values: np.ndarray, width: int) -> np.ndarray:
     lo = np.clip(index - left, 0, len(values))
     hi = np.clip(index - left + width, 0, len(values))
     return (padded[hi] - padded[lo]) / np.maximum(hi - lo, 1)
+
+
+def _find_pulses(power: np.ndarray, floor: float, smooth: int, merge_gap: int) -> list[tuple[int, int]]:
+    """On spans found at every scale, edges refined, overlaps and short gaps merged."""
+    spans = []
+    taken = np.zeros(len(power), dtype=bool)
+    for scale in SCALES:
+        width = smooth * scale
+        if width > len(power) // 2:
+            break
+        envelope = _moving_average(power, width)
+        threshold = floor * (1 + DETECTION_SIGMAS / np.sqrt(width))
+        for a, b in _runs(envelope > threshold, 0, 1):
+            # A centred average ramps linearly over `width` samples at each edge of
+            # a pulse, so the true edges are where it crosses half its plateau.
+            # That only holds for pulses at least `width` long; shorter ones are
+            # left to the finer scales, which were searched first.
+            plateau = np.median(envelope[a:b])
+            above = np.flatnonzero(envelope[a:b] >= floor + (plateau - floor) / 2)
+            start, end = a + int(above[0]), a + int(above[-1]) + 1
+            if end - start >= width and not taken[start:end].any():
+                spans.append((start, end))
+                taken[start:end] = True
+    spans.sort()
+    merged: list[tuple[int, int]] = []
+    for a, b in spans:
+        if merged and a - merged[-1][1] < merge_gap:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], b))
+        else:
+            merged.append((a, b))
+    return [(a, b) for a, b in merged if b - a >= smooth + 1]
 
 
 def _runs(mask: np.ndarray, merge_gap: int, min_length: int) -> list[tuple[int, int]]:
