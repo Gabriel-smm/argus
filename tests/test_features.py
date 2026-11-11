@@ -86,3 +86,21 @@ def test_pulse_groups_far_apart_are_separate_bursts():
     assert len(bursts) == 2
     assert bursts[0]["start_s"] < bursts[1]["start_s"]
     assert all(b["pulse_interval_s"] == pytest.approx(1e-3, rel=0.05) for b in bursts)
+
+
+def test_real_samples_become_baseband_iq():
+    from pipeline.features import real_to_iq
+
+    fs_real = 4_000_000.0
+    t = np.arange(400_000) / fs_real
+    real = 10 * np.cos(2 * np.pi * 300_000.0 * t) + RNG.standard_normal(len(t))
+    iq, fs, offset = real_to_iq(real, fs_real)
+    assert fs == fs_real / 2
+    assert offset == fs_real / 4
+    assert iq.dtype == np.complex64
+    assert len(iq) == 200_000 - 512
+    # A 300 kHz real tone sits at 300 kHz - fs/4 = -700 kHz in the IQ.
+    bursts = detect_bursts(iq, fs, 50e6 + offset)
+    assert len(bursts) == 1
+    assert bursts[0]["center_frequency_hz"] == pytest.approx(50e6 + 300_000.0, abs=3_000.0)
+    assert bursts[0]["truncated"] is True

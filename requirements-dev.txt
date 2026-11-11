@@ -2,3 +2,4 @@
 pytest
 httpx2
 h5py
+unrar-cffi

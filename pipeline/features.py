@@ -25,6 +25,11 @@ MAX_PULSE_GAP_S = 20e-3
 FFT_SIZE = 1024
 HOP = 512
 SPECTRUM_SMOOTH_BINS = 5
+# The floor is read at this percentile of the envelope, so a signal that is on
+# up to about 90% of the time still leaves noise-only samples below it.
+FLOOR_PERCENTILE = 10
+# Samples dropped at each end of a real-to-IQ conversion (FFT edge transient).
+EDGE_TRIM = 256
 # A bin counts as signal when it is this many times above the noise spectrum.
 FLOOR_MARGIN = 3.0
 POWER_CONTAINED = 0.95
@@ -40,11 +45,16 @@ def detect_bursts(iq: np.ndarray, sample_rate_hz: float, center_frequency_hz: fl
     smooth = max(SMOOTH_MIN_SAMPLES, round(SMOOTH_SECONDS * sample_rate_hz))
     envelope = _moving_average(power, smooth)
 
-    # The floor is whichever is lower: the median of the envelope (right when the
-    # signal is off most of the time; the median of an N-sample average of noise
-    # is (N - 1/3) / N of its mean) or the median spectral density times the
-    # number of bins (right when a narrow signal is on all the time).
-    floor = min(np.median(envelope) * smooth / (smooth - 1 / 3), np.median(_psd([iq])) * FFT_SIZE)
+    # The floor is whichever is lower: a low percentile of the envelope (right
+    # when the signal is off at least a tenth of the time; the percentile of an
+    # N-sample average of noise is scaled back to the mean) or the median spectral
+    # density times the number of bins (right when a narrow signal is on all the
+    # time). Bins with no power at all, as in a one-sided spectrum, are left out.
+    spectrum = _psd([iq])
+    occupied = spectrum[spectrum > 0]
+    floor = np.percentile(envelope, FLOOR_PERCENTILE) / _noise_percentile(smooth)
+    if occupied.size:
+        floor = min(floor, np.median(occupied) * FFT_SIZE)
     pulses = _find_pulses(power, floor, smooth, max(2 * smooth, round(MERGE_GAP_S * sample_rate_hz)))
     if not pulses:
         return []
@@ -122,6 +132,39 @@ def _measure(iq, envelope, pulses, noise_psd, noise_power, sample_rate_hz, cente
         "peak_snr_db": float(10 * np.log10(envelope[start:end].max() / max(noise_power, 1e-30))),
         "mean_snr_db": float(10 * np.log10(np.mean(np.concatenate([envelope[a:b] for a, b in pulses])) / max(noise_power, 1e-30))),
     }
+
+
+def real_to_iq(samples: np.ndarray, sample_rate_hz: float) -> tuple[np.ndarray, float, float]:
+    """Turn real samples into complex baseband: (iq, new sample rate, frequency offset).
+
+    The real signal holds 0 to fs/2. Its analytic signal is shifted down by fs/4 and
+    decimated by two, so the result runs at fs/2 and is centred on what was fs/4:
+    add the returned offset (fs/4) to the real signal's band start to get the IQ
+    centre frequency. EDGE_TRIM samples are dropped at each end of the result.
+    """
+    x = np.asarray(samples, dtype=np.float64)
+    n = len(x)
+    spectrum = np.fft.fft(x)
+    gain = np.zeros(n)
+    gain[0] = 1
+    gain[1 : (n + 1) // 2] = 2
+    if n % 2 == 0:
+        gain[n // 2] = 1
+    analytic = np.fft.ifft(spectrum * gain)
+    shifted = analytic * np.exp(-2j * np.pi * 0.25 * np.arange(n))
+    iq = shifted[::2].astype(np.complex64)
+    return iq[EDGE_TRIM:-EDGE_TRIM] if len(iq) > 2 * EDGE_TRIM else iq, sample_rate_hz / 2, sample_rate_hz / 4
+
+
+_NOISE_PERCENTILE: dict[int, float] = {}
+
+
+def _noise_percentile(width: int) -> float:
+    """FLOOR_PERCENTILE of an N-sample average of unit-mean exponential noise."""
+    if width not in _NOISE_PERCENTILE:
+        draws = np.random.default_rng(0).gamma(width, 1 / width, 200_000)
+        _NOISE_PERCENTILE[width] = float(np.percentile(draws, FLOOR_PERCENTILE))
+    return _NOISE_PERCENTILE[width]
 
 
 def _moving_average(values: np.ndarray, width: int) -> np.ndarray:

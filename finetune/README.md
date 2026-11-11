@@ -114,6 +114,7 @@ The pipeline and the dashboard load `models/laya-rf-modes` by default, and stop 
 | `data/train/panoradio_hf.jsonl` | 6,238, all used | [Panoradio HF](https://panoradio-sdr.de/radio-signal-classification-dataset/) (S. Scholl, 2019). Bandwidth and duty cycle are measured from the IQ vectors of 13 shortwave modes; SNR comes from the dataset. The centre frequency is assigned from where each mode is really operated. |
 | `data/train/sigid.jsonl` | 13,346, of which 1,500 used | [Artemis-DB](https://github.com/AresValley/Artemis-DB) v74, an export of sigidwiki.com. About 300 catalogued signals. Observations are drawn from each signal's listed frequencies, bandwidths and modulations. |
 | `data/train/nist_radar.jsonl` | one row per detected burst; not used by Laya | [NIST RF Dataset of Incumbent Radar Systems in the 3.5 GHz CBRS Band](https://data.nist.gov/od/id/mds2-2116), Group 1 subset 1 only (200 simulated pulsed-radar waveforms, 105 with a radar signal). Every feature is measured from the IQ samples by `pipeline/features.py`; the centre frequency is assigned (3.55 GHz). Labelled `pulsed_radar`, for the burst classifier, not for Laya. |
+| `data/train/dronerf.jsonl` | one row per detected burst; not used by Laya | [DroneRF](https://data.mendeley.com/datasets/f4c2b4n755/1) (Al-Sa'd et al., 2019, CC BY 4.0). Real 2.4 GHz recordings of three consumer drones in several flight modes, 40 MS/s real samples turned into IQ by `pipeline.features.real_to_iq`. Labelled `drone_link`; the band start (2400 or 2440 MHz) is assigned, the position inside it is measured. The no-drone recordings are skipped. |
 
 How the builder uses them:
 
@@ -139,6 +140,8 @@ python -m finetune.build_dataset
 ```
 
 The NIST radar rows are separate: `python -m finetune.sources.nist_radar --fetch --hist` downloads one 2.5 GB subset into `data/raw/nist_radar/`, prints how the measured features compare with the label table, and writes `data/train/nist_radar.jsonl`. `pipeline/features.py` (`detect_bursts`) is the shared burst detector and feature measurer: training rows and the app's IQ files go through the same code.
+
+DroneRF: download the 23 `.rar` archives (4 GB) from Mendeley into `data/raw/dronerf/`, then `python -m finetune.sources.dronerf --hist`. The CSVs are read straight from the archives (`unrar-cffi`), about 4 s per recording.
 
 ## Files
 
