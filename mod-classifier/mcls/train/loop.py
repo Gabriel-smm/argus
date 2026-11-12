@@ -10,14 +10,14 @@ are scored on validation; the best macro-F1 is saved to checkpoint.pt and
 training stops after `early_stop_patience` epochs without improvement.
 last.pt is written every epoch so --resume continues where a job stopped.
 At the end, predictions_<split>.npz is written from checkpoint.pt for every
-split that has rows among val, test and cross_test.
+split that has rows among val, test, cross_test and generalization.
 
 Config keys read with defaults (PLAN.md 5.3): optim.name adamw, lr 1e-3,
 weight_decay 1e-2, momentum 0.9, schedule onecycle, epochs 40, batch_size 256,
-label_smoothing 0.1, grad_clip 1.0, ema_decay 0.999, early_stop_patience 8.
-Proposed keys not yet in mcls/config.py (read with .get, defaults in
-brackets): optim.loss [ce], optim.focal_gamma [2.0], optim.nesterov [true],
-optim.balanced_sampler [true], optim.aux_weight [0.5], model.aux_head [false].
+label_smoothing 0.1, grad_clip 1.0, ema_decay 0.999, early_stop_patience 8;
+and the keys added to mcls/config.py in round 3: optim.loss cross_entropy
+(or focal), optim.focal_gamma 2.0, optim.nesterov true (SGD only),
+optim.balanced_sampler true, optim.aux_weight 0.5, model.aux_head false.
 """
 
 from __future__ import annotations
@@ -42,9 +42,10 @@ from mcls.train.device import resolve_device
 from mcls.train.ema import EMA
 from mcls.train.losses import classification_loss, family_loss
 from mcls.train.optimizers import make_optimizer, make_scheduler
+from mcls.train.options import options
 from mcls.train.stopping import EarlyStopper, macro_f1
 
-PREDICTION_SPLITS = ("val", "test", "cross_test")
+PREDICTION_SPLITS = ("val", "test", "cross_test", "generalization")
 
 
 @dataclass
@@ -125,6 +126,7 @@ def fit(config: dict, run_dir: Path, resume: bool = False, data: RunData | None 
     classes = tuple(meta["classes"])
     seed = int(config["run"]["seed"])
     optim = config.get("optim", {})
+    opts = options(config)
     model_cfg = config["model"]
     seed_everything(seed)
     device = resolve_device(config["run"].get("device", "auto"))
@@ -134,21 +136,21 @@ def fit(config: dict, run_dir: Path, resume: bool = False, data: RunData | None 
         data = load_data(config, classes)
     model_kwargs = {
         "num_classes": len(classes),
-        "width": int(model_cfg.get("width", 32)),
-        "dropout": float(model_cfg.get("dropout", 0.2)),
-        "num_families": len(FAMILIES) if model_cfg.get("aux_head", False) else 0,
+        "width": opts["width"],
+        "dropout": opts["dropout"],
+        "num_families": len(FAMILIES) if opts["aux_head"] else 0,
     }
     model = build(model_cfg["name"], **model_kwargs).to(device)
-    ema = EMA(model, float(optim.get("ema_decay", 0.999)))
+    ema = EMA(model, opts["ema_decay"])
 
-    batch_size = int(optim.get("batch_size", 256))
-    train_loader, sampler = _train_loader(data, batch_size, seed, device, optim.get("balanced_sampler", True))
-    epochs = int(optim.get("epochs", 40))
+    batch_size = opts["batch_size"]
+    train_loader, sampler = _train_loader(data, batch_size, seed, device, opts["balanced_sampler"])
+    epochs = opts["epochs"]
     total_steps = max(epochs * len(train_loader), 1)
     optimizer = make_optimizer(model, optim)
     scheduler = make_scheduler(optimizer, optim, total_steps)
     scaler = _grad_scaler(amp)
-    stopper = EarlyStopper(int(optim.get("early_stop_patience", 8)))
+    stopper = EarlyStopper(opts["early_stop_patience"])
     start_epoch = 0
     finished = False
 
@@ -165,13 +167,9 @@ def fit(config: dict, run_dir: Path, resume: bool = False, data: RunData | None 
         start_epoch = int(state["epoch"]) + 1
         finished = bool(state.get("finished", False))
 
-    loss_args = {
-        "label_smoothing": float(optim.get("label_smoothing", 0.1)),
-        "kind": optim.get("loss", "ce"),
-        "focal_gamma": float(optim.get("focal_gamma", 2.0)),
-    }
-    aux_weight = float(optim.get("aux_weight", 0.5))
-    grad_clip = float(optim.get("grad_clip", 1.0))
+    loss_args = {"label_smoothing": opts["label_smoothing"], "kind": opts["loss"], "focal_gamma": opts["focal_gamma"]}
+    aux_weight = opts["aux_weight"]
+    grad_clip = opts["grad_clip"]
 
     for epoch in range(start_epoch, epochs):
         if finished:
