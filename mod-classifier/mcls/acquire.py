@@ -38,6 +38,7 @@ FETCHABLE = {"direct", "fairdata"}
 ACCESS_TYPES = FETCHABLE | {"ieee_login", "manual"}
 DATASET_KEYS = ("title", "page", "host", "access", "licence", "files_status", "files_note")
 FILE_KEYS = ("name", "size", "checksum", "url")
+ROLES = ("data", "metadata", "doc")  # optional per-file `role`; data (a recording) is the default
 FAIRDATA_AUTHORIZE = "https://etsin.fairdata.fi/api/v3/download/authorize"
 
 
@@ -83,6 +84,8 @@ def load_catalog(path: Path | None = None) -> dict:
                 fetch.parse_checksum(f["checksum"])
             except ValueError as exc:
                 problems.append(f"{name}/{f['name']}: {exc}")
+            if f.get("role", "data") not in ROLES:
+                problems.append(f"{name}/{f['name']}: role {f['role']!r} not one of {list(ROLES)}")
             base = local_name(f["name"])
             if base in bases:
                 problems.append(f"{name}: two files share the base name {base!r}")
@@ -167,7 +170,7 @@ def run(args, out=None) -> int:
 
     if args.list:
         for f in ds["files"]:
-            print(f"{f['size'] / 1e6:12.1f} MB  {f['name']}", file=out)
+            print(f"{f['size'] / 1e6:12.1f} MB  {f.get('role', 'data'):8s}  {f['name']}", file=out)
         print(f"{gb(sum(f['size'] for f in ds['files']))} in {len(ds['files'])} files "
               f"(access: {ds['access']}, files: {ds['files_status']})", file=out)
         if not ds["files"]:

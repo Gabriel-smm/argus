@@ -8,6 +8,8 @@
 #         ieee_login IEEE DataPort, files only after login (mcls.acquire refuses)
 #         manual     no machine-readable file list or checksums (mcls.acquire refuses)
 # checksum: "<algorithm>:<hex>", algorithm md5 or sha256, as the host publishes it.
+# role (per file, optional): data (default; a recording), metadata (labels, tables, calibration),
+#       doc (readers, scripts, figures, instructions). make_file_list.py skips doc.
 
 [hosts.zenodo]
 max_connections = 8
@@ -170,36 +172,42 @@ url = "https://zenodo.org/api/records/4264467/files/Yuneec_typhoon_h_5G.bin/cont
 
 [[datasets.tampere.files]]
 name = "example.m"
+role = "doc"
 size = 834
 checksum = "md5:937a41f1bf74947fbe9057bc32116932"
 url = "https://zenodo.org/api/records/4264467/files/example.m/content"
 
 [[datasets.tampere.files]]
 name = "example.py"
+role = "doc"
 size = 1009
 checksum = "md5:14259ce71abfa799fffd6b792735a669"
 url = "https://zenodo.org/api/records/4264467/files/example.py/content"
 
 [[datasets.tampere.files]]
 name = "example_spectrogram_Matlab.jpg"
+role = "doc"
 size = 63427
 checksum = "md5:b137bf32fb185dd222d047002807c31e"
 url = "https://zenodo.org/api/records/4264467/files/example_spectrogram_Matlab.jpg/content"
 
 [[datasets.tampere.files]]
 name = "example_spectrogram_Python.png"
+role = "doc"
 size = 144570
 checksum = "md5:524308d528ee7fc591a1787c4043db90"
 url = "https://zenodo.org/api/records/4264467/files/example_spectrogram_Python.png/content"
 
 [[datasets.tampere.files]]
 name = "load_bin.m"
+role = "doc"
 size = 1012
 checksum = "md5:7be757ed0e2211cd1c55e561a2cbb9e0"
 url = "https://zenodo.org/api/records/4264467/files/load_bin.m/content"
 
 [[datasets.tampere.files]]
 name = "load_bin.py"
+role = "doc"
 size = 641
 checksum = "md5:ad0066ba5022943d62572493a86d889d"
 url = "https://zenodo.org/api/records/4264467/files/load_bin.py/content"
@@ -272,18 +280,21 @@ files_note = "From the Zenodo API on 2026-11-12."
 
 [[datasets.loraiq.files]]
 name = "dataset.csv"
+role = "metadata"
 size = 18306157
 checksum = "md5:b92831a0c897154e95430e399122791c"
 url = "https://zenodo.org/api/records/17708397/files/dataset.csv/content"
 
 [[datasets.loraiq.files]]
 name = "load_and_plot_samples.py"
+role = "doc"
 size = 2831
 checksum = "md5:71ebf5d337e6a8434597b218c93cdd53"
 url = "https://zenodo.org/api/records/17708397/files/load_and_plot_samples.py/content"
 
 [[datasets.loraiq.files]]
 name = "rrh_locations.md"
+role = "metadata"
 size = 390
 checksum = "md5:f913bef452fc604247223e8003bce73d"
 url = "https://zenodo.org/api/records/17708397/files/rrh_locations.md/content"
@@ -296,6 +307,7 @@ url = "https://zenodo.org/api/records/17708397/files/sigmfs.zip/content"
 
 [[datasets.loraiq.files]]
 name = "zenodo_description_figures.png"
+role = "doc"
 size = 1369982
 checksum = "md5:e6c82e163f8fb91ce68a04c46a4e3cf1"
 url = "https://zenodo.org/api/records/17708397/files/zenodo_description_figures.png/content"
@@ -318,6 +330,7 @@ url = "https://zenodo.org/api/records/4521678/files/Group6_data.tar/content"
 
 [[datasets.drexel_cbrs_radar.files]]
 name = "RF-dataset-collection-MATLAB-scripts.tar"
+role = "doc"
 size = 26112
 checksum = "md5:4d1dc38f4dbaa90bd64f75c2876af21b"
 url = "https://zenodo.org/api/records/4521678/files/RF-dataset-collection-MATLAB-scripts.tar/content"
@@ -482,6 +495,7 @@ files_note = "From the NIST MIDAS API on 2026-11-12. The per-file .sha256 sideca
 
 [[datasets.nist_wifi_bt.files]]
 name = "2_4ghz_bluetooth.csv"
+role = "metadata"
 size = 350
 checksum = "sha256:446e74820404e2e9dc31dd5b4487a3d318b9fede8ab0e9ba895207972f335e27"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2731/2_4ghz_bluetooth.csv"
@@ -494,6 +508,7 @@ url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2731/2_4ghz_bluetooth.h5"
 
 [[datasets.nist_wifi_bt.files]]
 name = "2_4ghz_indoor.csv"
+role = "metadata"
 size = 350
 checksum = "sha256:58d802790b01e6cb5dd7c2bb241cf41c4e8c08610931c77ce23d9b238e7cfe4f"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2731/2_4ghz_indoor.csv"
@@ -506,6 +521,7 @@ url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2731/2_4ghz_indoor.h5"
 
 [[datasets.nist_wifi_bt.files]]
 name = "2_4ghz_outdoor.csv"
+role = "metadata"
 size = 350
 checksum = "sha256:fe660364f9aeb9a7a19a9df16c8d7f542c4b1375d8c912d161623e06a7d7086b"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2731/2_4ghz_outdoor.csv"
@@ -518,6 +534,7 @@ url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2731/2_4ghz_outdoor.h5"
 
 [[datasets.nist_wifi_bt.files]]
 name = "5ghz_indoor.csv"
+role = "metadata"
 size = 350
 checksum = "sha256:2d92963550789c457cdd77a818cf8e840b85249a4137cf9e8fdfcfb2332b470f"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2731/5ghz_indoor.csv"
@@ -530,6 +547,7 @@ url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2731/5ghz_indoor.h5"
 
 [[datasets.nist_wifi_bt.files]]
 name = "5ghz_outdoor.csv"
+role = "metadata"
 size = 350
 checksum = "sha256:3569900c63785a591ae00bb0b48e691e97d075b677bc110809e8ad487b119b1d"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2731/5ghz_outdoor.csv"
@@ -542,18 +560,21 @@ url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2731/5ghz_outdoor.h5"
 
 [[datasets.nist_wifi_bt.files]]
 name = "README.txt"
+role = "doc"
 size = 7419
 checksum = "sha256:d4009d9f00e2ae89f0dbe71f488435288428c79f71b1c896878e690327fbefbf"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2731/README.txt"
 
 [[datasets.nist_wifi_bt.files]]
 name = "gain_calibration_data.csv"
+role = "metadata"
 size = 508
 checksum = "sha256:aefe762b4923c2d1c2da633ea841710728359c9c0b2e09293d6324937086b880"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2731/gain_calibration_data.csv"
 
 [[datasets.nist_wifi_bt.files]]
 name = "noise_floor_data.csv"
+role = "metadata"
 size = 528
 checksum = "sha256:d3ba6a9a92b8d25a0ec308b65930a4cf43faa319b5e9b4cc205100f2bf88ab11"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2731/noise_floor_data.csv"
@@ -570,12 +591,14 @@ files_note = "From the NIST MIDAS API on 2026-11-12. The per-file .sha256 sideca
 
 [[datasets.nist_radar.files]]
 name = "Data Dictionary of 3.5 GHz Radar Waveforms.pdf"
+role = "doc"
 size = 3723368
 checksum = "sha256:4c8c4c4587d79f743e8831765aaae50c427c472ddfc9f4eb1c8fe9f7195672f6"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/Data%20Dictionary%20of%203.5%20GHz%20Radar%20Waveforms.pdf"
 
 [[datasets.nist_radar.files]]
 name = "Instructions to download the RF dataset.txt"
+role = "doc"
 size = 656
 checksum = "sha256:8015f3b90b216baeb4b1c1e9105da5d10edd40bd5047093a09f844ffc781ee22"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/Instructions%20to%20download%20the%20RF%20dataset.txt"
@@ -882,300 +905,350 @@ url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_1.csv"
+role = "metadata"
 size = 19761
 checksum = "sha256:ae77c6d221aa1bc44238f64059ecf0c3a2ad955b8c440159e861ea7b93d336f1"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_1.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_10.csv"
+role = "metadata"
 size = 19805
 checksum = "sha256:4cade3bdc7b67687e9045d045674c96bb1949455dfdee7db9698ace63192ed5c"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_10.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_11.csv"
+role = "metadata"
 size = 19890
 checksum = "sha256:f3705337e055ee779b75a10f4b6aa57093cb2a8506b945ad59458f0e96b99a23"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_11.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_12.csv"
+role = "metadata"
 size = 19268
 checksum = "sha256:4d44fa94ee86c722a982568c4b1be072ac99ff6dc7a949753c6e022f30ad0bb9"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_12.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_13.csv"
+role = "metadata"
 size = 19286
 checksum = "sha256:f2a058dfe51d62901e597c5ede4979c64fcb569ec9cd080cef77719fe68e5627"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_13.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_14.csv"
+role = "metadata"
 size = 19264
 checksum = "sha256:c49acc8cac255ee49613eeae63a3690a651a7b49ca317f0a1579bb54d53db195"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_14.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_15.csv"
+role = "metadata"
 size = 19518
 checksum = "sha256:f365c671e443f2011bdd686dc1a54bc1e571515e318c6eaf342ad7293ad8e43c"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_15.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_16.csv"
+role = "metadata"
 size = 19219
 checksum = "sha256:879f3aa10040c231a1816df62932afe1a124e4089d3d98fcf65ecd331db89157"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_16.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_17.csv"
+role = "metadata"
 size = 19574
 checksum = "sha256:dcd622dc8d0311cb4ae4b4b13423e42660dee8b909277c28001820c16f0bbb8f"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_17.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_18.csv"
+role = "metadata"
 size = 19500
 checksum = "sha256:4822aa1a190ac8bf4bee62e17d5b85dd2c0561f3d8ca2ccabfca5c13ffcb67f3"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_18.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_19.csv"
+role = "metadata"
 size = 19566
 checksum = "sha256:641786fd066360332ff5f038d8ce4cf64eb922456b654dd4963bf181f6af0e6d"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_19.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_2.csv"
+role = "metadata"
 size = 19433
 checksum = "sha256:2ff96d1c6b7f782c7c3bad6a279a7512f70b6748e3fb27ae130dc14571ddacf7"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_2.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_20.csv"
+role = "metadata"
 size = 19824
 checksum = "sha256:a60329ebcd7289f55515a5267c37ae8177c2d09ceda4b5eb98a41a4d896a2f78"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_20.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_21.csv"
+role = "metadata"
 size = 19145
 checksum = "sha256:ee1e3836f3b9bdbd93cf9f0fe826e2b0f2cde988080edfbbcef74abfd4183d0b"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_21.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_22.csv"
+role = "metadata"
 size = 19613
 checksum = "sha256:3ee4d0d522b7b051a89d758efb4f56ff4ff303aaf04740fd440b11ef7c74e4cb"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_22.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_23.csv"
+role = "metadata"
 size = 18870
 checksum = "sha256:09d41db18f956b45f850e0dc976aabf1cc6895c3c7ae251a1b5a963a1fecd1ca"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_23.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_24.csv"
+role = "metadata"
 size = 19315
 checksum = "sha256:9222c016b157884ad56d02d01c955af557a559105211d5464616963576633d49"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_24.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_25.csv"
+role = "metadata"
 size = 19016
 checksum = "sha256:1f9e6f0a230210e2caa1f936098ffa3a40152efa6ca34452b1bd5736583d2534"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_25.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_26.csv"
+role = "metadata"
 size = 19663
 checksum = "sha256:86fbbfe9023bd6ce2004f6f33832cabc5446cc806df28c4d16f3cd4cc2985164"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_26.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_27.csv"
+role = "metadata"
 size = 20227
 checksum = "sha256:1bc0bb0eab1519c844b58c723d0cfd886a62e703cdd5c90a74a4b21e01327cd6"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_27.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_28.csv"
+role = "metadata"
 size = 19498
 checksum = "sha256:f3dc8ebaf83c581e4d33fde0df316ad0c2c124c14fad2ecb2aaef29dc7e0247b"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_28.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_29.csv"
+role = "metadata"
 size = 19775
 checksum = "sha256:13470fbd2ff5bebef88ac6afbc3eafc0f9e62f50ad9589c39278b3bda3e358a7"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_29.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_3.csv"
+role = "metadata"
 size = 20037
 checksum = "sha256:002ba0987d45cf200befa6f9effc1dd8d586238ff1e09f8baa4e90d1785f1200"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_3.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_30.csv"
+role = "metadata"
 size = 19347
 checksum = "sha256:b93aeff7871ed309448038e3e9ec0ff6a799f873d03a5448a07d30183ee59992"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_30.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_31.csv"
+role = "metadata"
 size = 19226
 checksum = "sha256:09573c67ecf7bc8c887cd6aba2a9e9e25ef7ef0d1466e1a78668be3efc263ca4"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_31.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_32.csv"
+role = "metadata"
 size = 19485
 checksum = "sha256:03f543a43ab60d7d140ffae1958fb26f2efb23281534e44680128f825b94196a"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_32.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_33.csv"
+role = "metadata"
 size = 19540
 checksum = "sha256:936a7940a18133320b423b9441ccb60f89525db71fa4459fe2a4bde1c29377a2"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_33.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_34.csv"
+role = "metadata"
 size = 20055
 checksum = "sha256:9be50e2cfc92aee3058171b1460e5518a11c776bebbaf604c2ee45ad3c6a7296"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_34.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_35.csv"
+role = "metadata"
 size = 20167
 checksum = "sha256:e82bd2e26262eb34990f1f667a51ca058e70b214bd845d01bc233508f09459a5"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_35.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_36.csv"
+role = "metadata"
 size = 19384
 checksum = "sha256:c07c8055a5bcd7d9e758df9b896f16fd6a7e9f63e2e8659699f4ed7e13be62a6"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_36.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_37.csv"
+role = "metadata"
 size = 19544
 checksum = "sha256:3bfd4504e2cd3afb69bcc0f97008970b966854e409228cfe0201f3855552cadb"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_37.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_38.csv"
+role = "metadata"
 size = 19619
 checksum = "sha256:76e20a279b962990198a5fb7582a6b706ab3d620580eb14cd4497daa116367dc"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_38.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_39.csv"
+role = "metadata"
 size = 19461
 checksum = "sha256:829115a57d12ce63397bec3be805f071fa7024ab27a507d5e8dd1b7b0599dfac"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_39.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_4.csv"
+role = "metadata"
 size = 19177
 checksum = "sha256:9b93353c12b7f803a09056bf34552d979a7b79b0836bf2ca1632de425507264b"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_4.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_40.csv"
+role = "metadata"
 size = 19410
 checksum = "sha256:d44ef02d847eda2791a080dace07fbf10dcf1ad33247f9f803d9c5055c2306bd"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_40.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_41.csv"
+role = "metadata"
 size = 19762
 checksum = "sha256:93d255cedb1aeae834b00db4595c8e3e8db01b5c721b35f899aebfd26b5c57e4"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_41.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_42.csv"
+role = "metadata"
 size = 20260
 checksum = "sha256:c57523fc13449a64d730674baec06a988175e6f113bbf61a3f9efd702556a14f"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_42.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_43.csv"
+role = "metadata"
 size = 19136
 checksum = "sha256:a673dcbdb0cd6cee6fece604ad74cf1e215c382437833bde4819703c1897e206"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_43.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_44.csv"
+role = "metadata"
 size = 19486
 checksum = "sha256:958d4c8c72382cdb3d0e5e599209872a4b40dbfa19f82d5c97018d572db421a8"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_44.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_45.csv"
+role = "metadata"
 size = 19761
 checksum = "sha256:7776c4ff38bede89762dbfa575bd6c86a2ae3678068fdf872c1b51c6cf8313c4"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_45.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_46.csv"
+role = "metadata"
 size = 19498
 checksum = "sha256:301d6da768ed553ee96e41a3744e6d2e8730d7aec0b4900f4b462abd741a82f6"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_46.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_47.csv"
+role = "metadata"
 size = 19442
 checksum = "sha256:f59ca162e137c1561217075ffe8c3878fbbc9981571305ca4bd8130b2e8f44c6"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_47.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_48.csv"
+role = "metadata"
 size = 19319
 checksum = "sha256:504bcd5c44a947e0870d976c230746190d9fd444691285c4e47671529ab224af"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_48.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_49.csv"
+role = "metadata"
 size = 19284
 checksum = "sha256:59910f16693831e929251073384a4cb18f6124b32e21500b7539171cfb34799d"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_49.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_5.csv"
+role = "metadata"
 size = 20315
 checksum = "sha256:aa64f94edffa9c0d728521bc4c641bd31245320a46d9f53974a65b34b145da8e"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_5.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_50.csv"
+role = "metadata"
 size = 19902
 checksum = "sha256:702e73c61fd33cb939f784f8e8ae1e65ddf84e7695f9b3cbf705b1c447d8958c"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_50.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_6.csv"
+role = "metadata"
 size = 19804
 checksum = "sha256:a3676fa5fe4a97f3f639ecb0317281cea4e9d4b04d108a576e5b4171d5d249f8"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_6.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_7.csv"
+role = "metadata"
 size = 19335
 checksum = "sha256:f287377146958d4b7071cf5f146f3bc473160e8146a850e28d485a730a87519f"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_7.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_8.csv"
+role = "metadata"
 size = 19287
 checksum = "sha256:a4f5e67f03c2bcb4aba7942cc99e4fe4559f7277d1794536d41d7673ddeb02fa"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_8.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_9.csv"
+role = "metadata"
 size = 19131
 checksum = "sha256:211bc466f122a6b3acb938ddb32972f967c7bd45026610e1cbbe0bec258d4b85"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group1/group1_subset_CSVInfo/group1_waveformTableSubset_9.csv"
@@ -1482,300 +1555,350 @@ url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_1.csv"
+role = "metadata"
 size = 19912
 checksum = "sha256:48b1055c78370ba613ccef40c8328600adcb7e382780ad4b97d2e4e3c1ce7959"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_1.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_10.csv"
+role = "metadata"
 size = 19460
 checksum = "sha256:78bf15c84d653d4741f97b8d103e59c57ebeba3830e3fd089ffdbf401f886438"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_10.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_11.csv"
+role = "metadata"
 size = 19402
 checksum = "sha256:b53fa6eaab905d065187aa50d0f6c02b7e275d742abb718d063eccaa540451f2"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_11.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_12.csv"
+role = "metadata"
 size = 19988
 checksum = "sha256:06633798602e7fc95f2e7ce6b7e190a3263d5815ecb5f06fe6155cd8914c4988"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_12.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_13.csv"
+role = "metadata"
 size = 18888
 checksum = "sha256:a9b4e2fe4cfe6c61623c9df7c99c5a5ab31ede366df25b8988ff79f94ad4f503"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_13.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_14.csv"
+role = "metadata"
 size = 18947
 checksum = "sha256:8c57107d31f96b38d1fa09208b4112f92b21e912e69b6bb48a161e0f0ed868d3"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_14.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_15.csv"
+role = "metadata"
 size = 19195
 checksum = "sha256:a99c02352df9976efb7d184f00ad9639aa649d00a029b79f57356b53232cebb9"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_15.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_16.csv"
+role = "metadata"
 size = 19436
 checksum = "sha256:4e9ae9acb9b435acca5a4c743c9c58b96bb978caab1c17be42692e28c80990a9"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_16.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_17.csv"
+role = "metadata"
 size = 20415
 checksum = "sha256:ca027b40aad0a33087a9ce5acae993af8e9bda60abdb5edbe1a2d03866e8eddd"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_17.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_18.csv"
+role = "metadata"
 size = 19148
 checksum = "sha256:2e8e3ddf0369630e7f16ff44bfaae0b437eebc75f2f1b33201fa48a3e6e15f3f"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_18.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_19.csv"
+role = "metadata"
 size = 18884
 checksum = "sha256:13922f4e270c17fae831f7e985e5708c2331f83297654262d6e34207d253160b"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_19.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_2.csv"
+role = "metadata"
 size = 19685
 checksum = "sha256:3245c1619833a8691f1db73447e2818779d92c214dded3af4ecba71c5d12ffdf"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_2.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_20.csv"
+role = "metadata"
 size = 19355
 checksum = "sha256:b4fd27523c4db7d285ef58a0ac3711f83960e483c88d3777b6ec6883d731154f"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_20.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_21.csv"
+role = "metadata"
 size = 19561
 checksum = "sha256:9e692958ed34290b4eb0fb3a9849583325440870ec0dc3920f04a60bbf958e5b"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_21.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_22.csv"
+role = "metadata"
 size = 19517
 checksum = "sha256:9ab216516dcfc58d0f149b1fef43b210f9010f752a2ba24cbefab978261b2d0b"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_22.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_23.csv"
+role = "metadata"
 size = 19027
 checksum = "sha256:3328243588261562bcac310d5e01c16a2b17185615e3afd8a4ebceb50615fabe"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_23.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_24.csv"
+role = "metadata"
 size = 19685
 checksum = "sha256:71b5057f80991266fbb31eba6f42dfdf22c372f812d5878c8124348799b45209"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_24.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_25.csv"
+role = "metadata"
 size = 19245
 checksum = "sha256:6e0ec3ffd4fce99b5a74fc64783beb1b83dcad977d2d79c3de55d4b632c86b74"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_25.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_26.csv"
+role = "metadata"
 size = 19773
 checksum = "sha256:18562a8ee6d96798f6ae346bdbca19b1419403b32a84a9699b1e6d23fd02adbb"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_26.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_27.csv"
+role = "metadata"
 size = 19535
 checksum = "sha256:4b2e2ebac20d49ac7fd94e64a9a50fec9bb80c8abe73a621f4d45c1d5436a984"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_27.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_28.csv"
+role = "metadata"
 size = 19841
 checksum = "sha256:e5b305a12c267e701dc1ed221df6deed3d6e081f5e91c9bbfc95f10d4ba4c142"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_28.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_29.csv"
+role = "metadata"
 size = 19670
 checksum = "sha256:aa52ae5f678c543f5c1edf808f5c37ad25d35aabe07695ab62e513952d454de8"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_29.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_3.csv"
+role = "metadata"
 size = 19663
 checksum = "sha256:fd38da2ce12275e37d09b305bc19f61f5a1cab386226e2169b5c945715a161e6"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_3.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_30.csv"
+role = "metadata"
 size = 19496
 checksum = "sha256:2433719f90d693b6326db129860a977e1ad7b94b7dfe81ec1af396ae4587c674"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_30.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_31.csv"
+role = "metadata"
 size = 19371
 checksum = "sha256:306b87341b4ec68b1af4f9f198f768a57d3e1f7edc2d94dcecb8f4c295e24e4a"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_31.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_32.csv"
+role = "metadata"
 size = 19729
 checksum = "sha256:447fec326af845836818121dfd756ad3467b4c7a4699cb305ee1bbc499ee612e"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_32.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_33.csv"
+role = "metadata"
 size = 19250
 checksum = "sha256:6c5da6db3901d77709bbc30b9e75773185aab5eff373ee43bdf3e1f916980c99"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_33.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_34.csv"
+role = "metadata"
 size = 19832
 checksum = "sha256:45d86f506c8140867ee7f6bdd351da18f99c0ee960d2870f4771cb2c2972e2f7"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_34.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_35.csv"
+role = "metadata"
 size = 20022
 checksum = "sha256:b2c91cf025284462543643badd54a60e932176ccbb514cb93af582cc932c6c63"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_35.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_36.csv"
+role = "metadata"
 size = 19265
 checksum = "sha256:3001f31095c57844c9561f989ea70c3f3672f5863334caf492743d8fcd9773e2"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_36.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_37.csv"
+role = "metadata"
 size = 19547
 checksum = "sha256:7b358c879cc954b35156d8dfebe1ae3d37b7780e336dcd46150a61572f500467"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_37.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_38.csv"
+role = "metadata"
 size = 20093
 checksum = "sha256:d44fb673b4dc22208bef85e333decdf08b798f20ab040d91d98425900c34ee6c"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_38.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_39.csv"
+role = "metadata"
 size = 19476
 checksum = "sha256:7748ed9737077ece4bd307cabfecfacc315cfead98c6afc4dae5404f4ea0cfe7"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_39.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_4.csv"
+role = "metadata"
 size = 19440
 checksum = "sha256:38c016b12c9cce30b8ac8e49210931bc175cdfb8421469b5573f696d3040d020"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_4.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_40.csv"
+role = "metadata"
 size = 19718
 checksum = "sha256:7e370fb21a656b62a769d2ad2d010d86669a7e9d497bb5c9e5662ab5a4b7541d"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_40.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_41.csv"
+role = "metadata"
 size = 19694
 checksum = "sha256:ad0ce676ca492d315aa5c5a4185d11a1d800db59fdad9df89cdfb6b3b3901add"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_41.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_42.csv"
+role = "metadata"
 size = 19879
 checksum = "sha256:5a573a3c7e7e4ec7438d5ffc666fcf3283957dfc880c6b77938b1266a8ab2c07"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_42.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_43.csv"
+role = "metadata"
 size = 19270
 checksum = "sha256:9f2a2560c49e659871fd026a0a4b5517df3a1b46fc43b0e6ffa09f32bbb6f883"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_43.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_44.csv"
+role = "metadata"
 size = 19523
 checksum = "sha256:366531919f1a225fb7365f90e78152195ad54b8eb5963a8d83e2828fbff52b6f"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_44.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_45.csv"
+role = "metadata"
 size = 20156
 checksum = "sha256:beca74fbff3e25fc9d5434f198050e4c74577f6ac4c31924284ff59796869585"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_45.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_46.csv"
+role = "metadata"
 size = 19139
 checksum = "sha256:bb601e7aefa175814a0a6d7c2c6306615f2f5b760bf2fc07d41e74e1414cc78b"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_46.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_47.csv"
+role = "metadata"
 size = 19027
 checksum = "sha256:53cf4581c612c9349d559447cb6e80a57d1f948f898fe8b5c703f4cc97d78cef"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_47.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_48.csv"
+role = "metadata"
 size = 19305
 checksum = "sha256:5a3d61fd7c2070da159e51a84a1a74a05de3a84ca7de7336b4af8dd6d6fe791a"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_48.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_49.csv"
+role = "metadata"
 size = 20438
 checksum = "sha256:92be0e434820ed462a7505eed8e91299682f31b5ca4dc9b38edcefaf169514d5"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_49.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_5.csv"
+role = "metadata"
 size = 20312
 checksum = "sha256:eb30d8eb94d7135f2262e3d74e1dccea9f821fe1581bd2742c1d57391d3aa53c"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_5.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_50.csv"
+role = "metadata"
 size = 19423
 checksum = "sha256:f6547420ff3297ec3a247c46d5c09f76576c680fba6d1d49e2acf62cdf94a1d9"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_50.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_6.csv"
+role = "metadata"
 size = 19121
 checksum = "sha256:65f2f3957e8aa5514c1c1c195620a90f6d021502fef1c8eff08dd687b1860213"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_6.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_7.csv"
+role = "metadata"
 size = 19243
 checksum = "sha256:62f9ee0c3e382efc6659c5a60832ba6ba5204812988cf46c4c9d4dac830de3df"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_7.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_8.csv"
+role = "metadata"
 size = 19865
 checksum = "sha256:fc5f90ce185ff31ec0663ebc43c0ba4d7e01b7c79a4d37a7cd76a63ff2507fd4"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_8.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_9.csv"
+role = "metadata"
 size = 19244
 checksum = "sha256:27e8c49b361e6f9260d609ee7bc7d81369269557817da1559ae953c3cbd89574"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group2/group2_subset_CSVInfo/group2_waveformTableSubset_9.csv"
@@ -2082,300 +2205,350 @@ url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_1.csv"
+role = "metadata"
 size = 19913
 checksum = "sha256:c0b1b9fb7d6e5c0e93fe0cf79cb282c1fa7c2ea4a58a28225889d34534fff458"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_1.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_10.csv"
+role = "metadata"
 size = 19330
 checksum = "sha256:d06cfbed280a0a6b442b6e8269e5769a7a35ea764d8cad9ed7d362eefd2d9083"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_10.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_11.csv"
+role = "metadata"
 size = 19887
 checksum = "sha256:041f760fdfc0f24c8127184002dc918695f30901237508173efa50875866db4e"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_11.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_12.csv"
+role = "metadata"
 size = 19105
 checksum = "sha256:ea17cc1a0d476c4bbfa21c68c1ec394801a3c17dfc486e4179fd47e399504958"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_12.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_13.csv"
+role = "metadata"
 size = 20014
 checksum = "sha256:f35dbf796264477160e5fb384308df498b99008756e3ce21ba7361d0fa86e927"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_13.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_14.csv"
+role = "metadata"
 size = 19318
 checksum = "sha256:be91390d122cbc3559090762c59c62d9b75bebb05e851ab68a21b7246d0e597e"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_14.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_15.csv"
+role = "metadata"
 size = 19713
 checksum = "sha256:349728eebc1e93492a899d6975596b0e690a38987f6bde76a0ef1132a0bc78fe"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_15.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_16.csv"
+role = "metadata"
 size = 19455
 checksum = "sha256:b34227f25f0b8f7715ec454d79b3f64a9c1d0ada17ae1e6b0621aaf37a7beefa"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_16.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_17.csv"
+role = "metadata"
 size = 19659
 checksum = "sha256:8e4c7038dcda6101d107d1df420beeba2970a8606ec6eae1d114e10e6889fa03"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_17.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_18.csv"
+role = "metadata"
 size = 19318
 checksum = "sha256:ae43d43adcdcbd480d34cbdb3a54af64da96ec181fdba2a3d7b4fa29a1a33def"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_18.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_19.csv"
+role = "metadata"
 size = 19551
 checksum = "sha256:592271908f9c7d12b1a9799a9fa11fdca74c975c658de913b769622c73e66d48"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_19.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_2.csv"
+role = "metadata"
 size = 19768
 checksum = "sha256:90be8e53e94b2ff051b39982bbbd35f5041179d843cebb8c0e4eea49ca0a59d4"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_2.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_20.csv"
+role = "metadata"
 size = 19652
 checksum = "sha256:49dd04a3dc374b71b5b8564efa8ba4924494df6ba7e79a5a7767de15808ce266"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_20.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_21.csv"
+role = "metadata"
 size = 19177
 checksum = "sha256:82704bb78c3a053cccdaaebfaf929bebd5666922a966c29ee3d1487948e97d9e"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_21.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_22.csv"
+role = "metadata"
 size = 19294
 checksum = "sha256:8c912f92964b61cd3d607c502f219db29437feec48ed064b8c19f09642f58b57"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_22.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_23.csv"
+role = "metadata"
 size = 19886
 checksum = "sha256:d570ac4fe00247a595e3157ba423da73293b7d6b931a3546acbbc77bb68e6d10"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_23.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_24.csv"
+role = "metadata"
 size = 19546
 checksum = "sha256:9945b55f13d9bc0c071c8e429e6b75d160e898fc63dd7eba64ec3ec192f947f6"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_24.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_25.csv"
+role = "metadata"
 size = 19666
 checksum = "sha256:8f32c0cbab01e1e300deb8cdd83fb5ebf3ca6db7e40be748c1399b0ec5eb4d48"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_25.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_26.csv"
+role = "metadata"
 size = 20371
 checksum = "sha256:3fa722a49c9265555f03651579942292ac690e38e54214641d2c0b3dc4d7736a"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_26.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_27.csv"
+role = "metadata"
 size = 19575
 checksum = "sha256:7ca62d5c785418066ecbd21a64c2037efa734a64d6d739336be90bbc9dbc15ac"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_27.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_28.csv"
+role = "metadata"
 size = 19514
 checksum = "sha256:6b1fd44ceda327ef4263264c74a1707674c6706101a5b89572ecc6de7538d3dc"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_28.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_29.csv"
+role = "metadata"
 size = 19508
 checksum = "sha256:d1c65c75390dbc1c1bcc7a4f5d8f8cd1aa32c604afd4628fabd95fd57d371352"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_29.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_3.csv"
+role = "metadata"
 size = 19204
 checksum = "sha256:3cbe7a73cac864beedbbcb032a9c2fbeb718fddd8d42577b7c042eb98cb74709"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_3.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_30.csv"
+role = "metadata"
 size = 19360
 checksum = "sha256:00915675a2afdfe353afce8df141eba9ecfac2fb491661d978c40365e4e1dd09"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_30.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_31.csv"
+role = "metadata"
 size = 19679
 checksum = "sha256:68a922becdf8e60a64003a25cea84c8098028bc571d2768418f22f8afe86f12d"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_31.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_32.csv"
+role = "metadata"
 size = 19608
 checksum = "sha256:064a57b98436b034a984fe0007368a3b16cc9c99f4c6e097442b54e7ddd12ddf"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_32.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_33.csv"
+role = "metadata"
 size = 19968
 checksum = "sha256:634265b725b8542b91b0fffd44e0d643271ff7d116668b4bc77cf3eeece92581"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_33.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_34.csv"
+role = "metadata"
 size = 19097
 checksum = "sha256:c198abfc5a8772f00b75d9f25d4fe9c4f9111335b5a9e0001e9c1b68c06db9c9"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_34.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_35.csv"
+role = "metadata"
 size = 19621
 checksum = "sha256:de631ecaad0abc9f4f3b71daa4018499bc94ff5c20b4eb6c2d99f47a16df03d7"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_35.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_36.csv"
+role = "metadata"
 size = 19887
 checksum = "sha256:9875a15d1b72d3f45b9780f1fe664e05cf48962342b71f5ce958d678e3c124f4"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_36.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_37.csv"
+role = "metadata"
 size = 19675
 checksum = "sha256:386408f62ffaebe719c2dc585b07e184d7004da79ae3ba99e768a36682f3527e"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_37.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_38.csv"
+role = "metadata"
 size = 19234
 checksum = "sha256:642f7b3e0ce0689e783f9cf75216d832b7a1ba103f77255cf04ec1281a152053"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_38.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_39.csv"
+role = "metadata"
 size = 19302
 checksum = "sha256:65f6f729905c5e93f3c9ae694824ca7b9e720ddc086aea9e9b7e09d3655d326b"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_39.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_4.csv"
+role = "metadata"
 size = 19863
 checksum = "sha256:4857e54386e39b8583ffe7fec740925b4d32fcf6ecb6b9786d4a7e8099a2a56f"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_4.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_40.csv"
+role = "metadata"
 size = 18714
 checksum = "sha256:a47ccd0e095a8605eadeef1d82c04f75197ebdb4294003eb48456a2df93b4419"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_40.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_41.csv"
+role = "metadata"
 size = 19645
 checksum = "sha256:ae8f5b5c76d97fad69c5b081a7d678abf711f31c1c44c37a155cb8e032b91d1b"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_41.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_42.csv"
+role = "metadata"
 size = 19878
 checksum = "sha256:0f86b461c92880cd2a7f1a17f94aeade6ba71c5a4373e04b877429fc8b9e09d9"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_42.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_43.csv"
+role = "metadata"
 size = 19341
 checksum = "sha256:aa30803ddc0979fbd29eca5d64a592a09625144d8dd3b79cc284994f1d30a698"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_43.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_44.csv"
+role = "metadata"
 size = 18951
 checksum = "sha256:a84fd2a84989f75125d9d5b19624e54aea65354ad05634076e28dafa8f8bad13"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_44.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_45.csv"
+role = "metadata"
 size = 19898
 checksum = "sha256:b2b1448b10e761e670e3282d2d3bca708862f39ea7ee14b6da4df64e7e98068e"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_45.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_46.csv"
+role = "metadata"
 size = 20006
 checksum = "sha256:87fc153d40217521c4a89e31e1ce142d2fd199b291e2eba33e2efd1bc290cc6b"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_46.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_47.csv"
+role = "metadata"
 size = 19549
 checksum = "sha256:7965bbf8e6cb15f66bdf72bbcd4c61f66ae44c14354cf44d1ccc3bbc82f5d682"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_47.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_48.csv"
+role = "metadata"
 size = 19177
 checksum = "sha256:91da571d09449eea9f001dd06218d70ce7787be508843e51fcbb0cb9ab619b3a"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_48.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_49.csv"
+role = "metadata"
 size = 19948
 checksum = "sha256:08a0f7a80a49178cabffb201414fc5a01ddbe5ce4a8538ddd2303262be1ff4a3"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_49.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_5.csv"
+role = "metadata"
 size = 20212
 checksum = "sha256:c9e6731a580d58a847810dcc101df8570fb26f9ebf312a12f1db6a1e626b0a96"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_5.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_50.csv"
+role = "metadata"
 size = 19868
 checksum = "sha256:9e2d34f933236ef67061148365f9b5a8210d614c212f7d828190fa659961f1bd"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_50.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_6.csv"
+role = "metadata"
 size = 19252
 checksum = "sha256:a7db117a923ae0a0d64726579338ebb68eb828709bd25dff1c75469fea51a780"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_6.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_7.csv"
+role = "metadata"
 size = 19534
 checksum = "sha256:bbca3138953346bbe34d1588c9c369a3f947d2824d909b7fa68f4c86eee031fd"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_7.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_8.csv"
+role = "metadata"
 size = 19037
 checksum = "sha256:5bcd768d30f989c45bcb61568f84051c94afee3ca3ece98f9cbe1ab26c3062ad"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_8.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_9.csv"
+role = "metadata"
 size = 18404
 checksum = "sha256:27fa56df039daf8d46ec3389a2f3d7eb358326b934b92a98b0714c7d5569b29a"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group3/group3_subset_CSVInfo/group3_waveformTableSubset_9.csv"
@@ -2682,348 +2855,406 @@ url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_1.csv"
+role = "metadata"
 size = 19157
 checksum = "sha256:d513ae6e6f42f435d4189b8ff39e8400d72f28eef22fbfe58b7a0f438c787650"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_1.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_10.csv"
+role = "metadata"
 size = 19159
 checksum = "sha256:ec54bda1ab50a66ff5b26f4954e70fbcece465fc28f6fc79a5efee544af2a450"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_10.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_11.csv"
+role = "metadata"
 size = 19487
 checksum = "sha256:dae820a42dd6ac20d7824415256d42a3d25f74f517563d0f60497353aaf39a43"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_11.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_12.csv"
+role = "metadata"
 size = 19119
 checksum = "sha256:553cbec312abd517194f7ea227234bfafada225a68ed7789f1f9fcb04f5c2049"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_12.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_13.csv"
+role = "metadata"
 size = 19770
 checksum = "sha256:19da38fafc97f8414deec1a67e68d9ef0ca8ea727248b754dfc2d4edc1581ad9"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_13.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_14.csv"
+role = "metadata"
 size = 19240
 checksum = "sha256:c2505baa1dbe40026dcd2258d0999f9d1babc8bf35f1ed12ea4024af2988c57c"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_14.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_15.csv"
+role = "metadata"
 size = 19572
 checksum = "sha256:01d1861ce8205629a81e49185ac8e6197417ee02c170a69b2c0915d0fb5dbed4"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_15.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_16.csv"
+role = "metadata"
 size = 19307
 checksum = "sha256:28c5d0e1d904d12975ca4a9de9d601a0c55f4308f33445a8bd0e59028bbf6b4c"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_16.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_17.csv"
+role = "metadata"
 size = 19746
 checksum = "sha256:62d6b84eafa722542a611ef47fe5fa6882f6d146e8c2c8f710c48afc2b8ef764"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_17.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_18.csv"
+role = "metadata"
 size = 19810
 checksum = "sha256:8b66c1ca9e08c5e9b2df76fa891b907ec77c8e669f7a004e5ddb1718fe1b8391"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_18.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_19.csv"
+role = "metadata"
 size = 20002
 checksum = "sha256:e3448f3ccaad92bddf4f6686203957e26b10c72f7c60f78e805d0a1455f6852f"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_19.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_2.csv"
+role = "metadata"
 size = 20661
 checksum = "sha256:2de93071737d7290b32b38bb9211e2fe0189bb543142a5e81a4e6041eacd8cd7"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_2.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_20.csv"
+role = "metadata"
 size = 19330
 checksum = "sha256:b97082b244edcfc173900d1d148d759daeb009d69fce970479579dc0c45939b2"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_20.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_21.csv"
+role = "metadata"
 size = 19062
 checksum = "sha256:9cbcf03b6e89a01abacf7e40bf12d7158f6a14f5b799a2f0b8b595a2682217bf"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_21.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_22.csv"
+role = "metadata"
 size = 19783
 checksum = "sha256:2a0a436d8c48fc32914fa748004542ab79c04395cd4605a634077cfb5a0bc654"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_22.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_23.csv"
+role = "metadata"
 size = 19682
 checksum = "sha256:d25f0d70382bbac80898d206440cc4031eeb082bf6f53e3b313489750243cb42"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_23.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_24.csv"
+role = "metadata"
 size = 19834
 checksum = "sha256:cf643b89625813f6b4a4c659485fa7a023f49d45d7159ddb38de0fefd4d79d11"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_24.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_25.csv"
+role = "metadata"
 size = 19354
 checksum = "sha256:6585297bfd688ec88d2dceb13b21d1d9c01624e9cde15f055b562655c4b14fed"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_25.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_26.csv"
+role = "metadata"
 size = 18608
 checksum = "sha256:d923fed2140e8391657184645f5be337b817cc27def65fb4d5d7453bf982e936"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_26.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_27.csv"
+role = "metadata"
 size = 19365
 checksum = "sha256:c2eec254f57519cb364179a1fc297a867456322474b11891018670b4384c29bd"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_27.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_28.csv"
+role = "metadata"
 size = 19178
 checksum = "sha256:69c7409b64a791e0229eaeb1623d3abc3000c8bc5261a5a5db6b6d10a3e5d9e8"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_28.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_29.csv"
+role = "metadata"
 size = 19450
 checksum = "sha256:c840e4cfd9d24818fe4a90add0412b0a61b2fffb65c188e51f8f4c4b56e83793"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_29.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_3.csv"
+role = "metadata"
 size = 19654
 checksum = "sha256:5625e1a79e8df5e30fbd92aaebe6099e9a51d376c5bdd0a4eb5facae3ae57487"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_3.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_30.csv"
+role = "metadata"
 size = 19398
 checksum = "sha256:8750f6f89e2bf5b82f8a9a0b7438b33c2e3138adeaaefd227400432e103e1ceb"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_30.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_31.csv"
+role = "metadata"
 size = 19546
 checksum = "sha256:8440da1bd0cd604e9a4e7ed203bc3767df3dcc470cf62f595efc0c554183fed5"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_31.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_32.csv"
+role = "metadata"
 size = 19495
 checksum = "sha256:1a1a0380af829c98a423f3c3b7922bc171781ad275161df5720a4c9cdce8fcc0"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_32.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_33.csv"
+role = "metadata"
 size = 20189
 checksum = "sha256:f3bdd9d0e3db6ed41dea7e71d3240e36d8f64c33677b2bc6fbe3572683147eed"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_33.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_34.csv"
+role = "metadata"
 size = 19306
 checksum = "sha256:80534305ee96fb9fdad440fec715d7188d98748c7f8cdb087237c48236b49893"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_34.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_35.csv"
+role = "metadata"
 size = 19614
 checksum = "sha256:a1fdefa5c7401f4c3129819ac68942ba0e40f0299f006fc8c6bcd1aeebcc9f30"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_35.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_36.csv"
+role = "metadata"
 size = 19505
 checksum = "sha256:9e8db29608edb5f9ff2865128741d38b254cd1827582c3c2904058033a368482"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_36.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_37.csv"
+role = "metadata"
 size = 20164
 checksum = "sha256:a8701eeca4a6a85a0af1f986b70d7952d437765f179291e0f4eb884c11977df2"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_37.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_38.csv"
+role = "metadata"
 size = 19510
 checksum = "sha256:d716fb48744a921b8b9bd79f295339831c32c604e20a140a091c0f94b24f4c26"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_38.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_39.csv"
+role = "metadata"
 size = 19330
 checksum = "sha256:87754047b44d8fbe0c5f8b4a2575bb30fa9d534a1320cafbfe5112776314be5d"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_39.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_4.csv"
+role = "metadata"
 size = 19160
 checksum = "sha256:6f12eadb83bfc681e012af3d47742782d4f0028b774a805b04c1b5055be3e6e8"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_4.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_40.csv"
+role = "metadata"
 size = 19262
 checksum = "sha256:1b729acc470328597513d5fb850c806e18516baf47160f44bb9db28cfb50a824"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_40.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_41.csv"
+role = "metadata"
 size = 20440
 checksum = "sha256:8af2b924856da399e1c0c172e66ca81c7bdddc647cd4743cfb49efdad34b8647"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_41.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_42.csv"
+role = "metadata"
 size = 19045
 checksum = "sha256:7d5e5ac30016ef80d1e91fb596f63cfab82e03437b6212fe8516d8ecc2668a6c"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_42.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_43.csv"
+role = "metadata"
 size = 19652
 checksum = "sha256:a80b32dc466d3eace1811a57bea990c1a89b4d9099d323b053b99ce6f7c98eac"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_43.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_44.csv"
+role = "metadata"
 size = 19210
 checksum = "sha256:e989c4f1e926177ae4e7e71dd7dfee176337fbfa28d692eb568a12e360eece2f"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_44.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_45.csv"
+role = "metadata"
 size = 20415
 checksum = "sha256:46b29cb7d1ed3e499e539da47fc6991c20145cd6bacdaf595139847abfba1ad0"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_45.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_46.csv"
+role = "metadata"
 size = 19202
 checksum = "sha256:cb6cf6d2c3bfcd6ba1b9c9c990514debc09eaebe7afdcd77bf89b077f88321c6"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_46.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_47.csv"
+role = "metadata"
 size = 19570
 checksum = "sha256:7d053683fdb904154960625e63bd331779ea5ca774fd321e33fadbb8a4aaf12a"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_47.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_48.csv"
+role = "metadata"
 size = 19286
 checksum = "sha256:fc91285e43c5c40e644b890945aac39cb0c40ad1db6089e882f718fc432ba2bb"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_48.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_49.csv"
+role = "metadata"
 size = 19915
 checksum = "sha256:e47731453ff88e537b15fe8fa9f593147fc7157d56c3185a6a53061b8aff2a70"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_49.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_5.csv"
+role = "metadata"
 size = 20191
 checksum = "sha256:c5882d54d50ca86a0ff3c9a337dc60332e839b400f6074f72ed0a7b3caff847a"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_5.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_50.csv"
+role = "metadata"
 size = 19706
 checksum = "sha256:c78df1ad0a0dff9d5653dadba41623ccde6f57d707193cbfe26117166dbf8e66"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_50.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_6.csv"
+role = "metadata"
 size = 18747
 checksum = "sha256:0419731d96eabc0f1edeb5517df6f47c1cc201b6fedbaa2c3c6abd32fff7e806"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_6.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_7.csv"
+role = "metadata"
 size = 19289
 checksum = "sha256:06e7b81070f4cbb40938ae5a28064ae4a15725fcf4c6b47fc2a2082f78ca9342"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_7.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_8.csv"
+role = "metadata"
 size = 19641
 checksum = "sha256:7efc17a2e21389d2081a234b30edb66bf11cf0e22ee339edfda36f622670a33b"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_8.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_9.csv"
+role = "metadata"
 size = 19847
 checksum = "sha256:b802eed8790170c08b9f140f980ddcc511a24094a6ede441f3d7f95e68d5f834"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/Group4/group4_subset_CSVInfo/group4_waveformTableSubset_9.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/License.txt"
+role = "doc"
 size = 2282
 checksum = "sha256:5406c07ef3b62e155e4c58a10d49c6155e19e9984fcef2ad56a59cffdaf32a6d"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/License.txt"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/ReadMe.txt"
+role = "doc"
 size = 1399
 checksum = "sha256:4d74221383b28921be007ac02120b21f79c1b40efa8ea2b0e3c907c0e560e6fe"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/ReadMe.txt"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/allWaveformsTableCombined.csv"
+role = "metadata"
 size = 3864830
 checksum = "sha256:3a0a270cc515064316e2fbcc54cc15c5b10b33651c7873536f867bedad89f98f"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/allWaveformsTableCombined.csv"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/readWaveformsCodeExamples/previewWaveformsFromFolder.ipynb"
+role = "doc"
 size = 3293572
 checksum = "sha256:0fc4572865f5e338641a7240a9e3b366eb8f929930df9d594a6cc285ca5ac659"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/readWaveformsCodeExamples/previewWaveformsFromFolder.ipynb"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/readWaveformsCodeExamples/readFileExample.m"
+role = "doc"
 size = 1083
 checksum = "sha256:59ef21d09e8c229d7358995977f34ebe5c705fb91c6c75f7e1febee03017461d"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/readWaveformsCodeExamples/readFileExample.m"
 
 [[datasets.nist_radar.files]]
 name = "SimulatedRadarWaveforms/readWaveformsCodeExamples/readFileExample.py"
+role = "doc"
 size = 1241
 checksum = "sha256:664cf32d73e55771c4aa761718004bc798a814bed1cf7d320568015e3d798466"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms/readWaveformsCodeExamples/readFileExample.py"
 
 [[datasets.nist_radar.files]]
 name = "downloadDataset.m"
+role = "doc"
 size = 7687
 checksum = "sha256:7544d5f13a18574248e92d6f2c8c38ad16f878e33b625e7b1ba895a1a7081768"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/downloadDataset.m"
 
 [[datasets.nist_radar.files]]
 name = "downloadDataset.py"
+role = "doc"
 size = 10621
 checksum = "sha256:3a5592b4d0c8225b1056d368b0377b0877cfe614b3bb5639504dcf9f2a9d5f29"
 url = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/downloadDataset.py"
