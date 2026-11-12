@@ -320,3 +320,19 @@ def test_windows_skip_quiet_gaps_inside_a_burst():
     assert 4 <= len(seen) <= 24
     flat = np.std(np.abs(seen), axis=1) / np.mean(np.abs(seen), axis=1)
     assert np.median(flat) < 0.1  # most kept windows are pure tone, none of the gap
+
+
+def test_checkpoint_path_goes_to_engineer_7_loader(tmp_path, monkeypatch):
+    import mcls.models.classifier as e7
+
+    calls = []
+
+    def fake_load(path, device="cpu"):
+        calls.append((path, device))
+        return FixedLogits([0, 1, 0, 0])
+
+    monkeypatch.setattr(e7, "load_classifier", fake_load)
+    (tmp_path / "checkpoint.pt").write_bytes(b"")
+    (tmp_path / "model.pkl").write_bytes(b"")  # checkpoint.pt wins
+    clf = load_classifier(tmp_path)
+    assert clf.classes == CLASSES and calls == [(tmp_path / "checkpoint.pt", "cpu")]
