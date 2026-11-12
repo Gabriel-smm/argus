@@ -91,10 +91,14 @@ def load_data(config: dict, classes: tuple[str, ...]) -> RunData:
     data = config["data"]
     seed = config["run"]["seed"]
     path = Path(data["manifest"])
-    rows = manifest_io.read(path, classes)
-    if not data.get("use_simulated", False):
-        rows = [r for r in rows if r.is_real]
-    by_split = {split: [r for r in rows if r.split == split] for split in ("train",) + PREDICTION_SPLITS}
+    # A v2 manifest also holds v2 classes; a v1 run keeps only rows of its own classes.
+    rows = [r for r in manifest_io.read(path) if r.label in classes]
+    # Simulated rows may join training (data.use_simulated); validation and test are always real only (PLAN 6.1).
+    use_simulated = data.get("use_simulated", False)
+    by_split = {
+        split: [r for r in rows if r.split == split and (r.is_real or (use_simulated and split == "train"))]
+        for split in ("train",) + PREDICTION_SPLITS
+    }
     if data.get("max_windows_per_class"):
         by_split["train"] = cap_per_class(by_split["train"], data["max_windows_per_class"], seed)
     if not by_split["train"] or not by_split["val"]:
