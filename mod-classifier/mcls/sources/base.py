@@ -46,7 +46,7 @@ class Source(ABC):
 REGISTRY: dict[str, type[Source]] = {}
 
 #: Loader modules under mcls/sources/; importing one registers its Source(s).
-LOADERS = ("tampere", "dronerf")
+LOADERS = ("tampere", "dronerf", "nist_wifi_bt")
 
 
 def register(cls: type[Source]) -> type[Source]:
