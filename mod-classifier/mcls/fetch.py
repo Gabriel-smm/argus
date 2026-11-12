@@ -192,6 +192,8 @@ def stream_download(
     `url` is a string or a zero-argument callable returning a fresh URL; it is
     called once per attempt, so single-use download tokens (Fairdata) work.
     A broken transfer cannot resume: the next attempt starts from byte 0.
+    A checksum mismatch keeps the file as `<name>.bad` (not deleted), since
+    fetching it again costs the whole transfer.
     """
     digest = expected_digest(md5, sha256)
     output = Path(output)
@@ -226,8 +228,13 @@ def stream_download(
         algorithm, want = digest
         got = checksum(tmp, algorithm)
         if got != want:
-            tmp.unlink()
-            raise IOError(f"{output.name}: {algorithm} {got} does not match {want}; removed, rerun to fetch again")
+            # One stream, no resume: refetching costs the whole file, so keep it for inspection.
+            bad = output.with_name(output.name + ".bad")
+            tmp.replace(bad)
+            raise IOError(
+                f"{output.name}: {algorithm} {got} does not match {want}; kept as {bad} "
+                f"({size / 1e9:.1f} GB, not deleted). Check it, then delete it and rerun to fetch again"
+            )
     tmp.replace(output)
     if progress:
         print(f"got  {output.name} ({size / 1e6:.0f} MB in {seconds:.0f} s, {size / 1e6 / seconds:.2f} MB/s, one stream)")
