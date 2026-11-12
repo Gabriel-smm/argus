@@ -8,7 +8,8 @@ importable). With several runs, also writes a comparison table to
 
 Reads only the run-output contract (meta.json, predictions_<split>.npz,
 optional calibration.json from `python -m mcls.evaluate.calibrate`). The
-manifest, when given, must match the run's manifest_sha256; it supplies
+manifest is required whenever a reported split (anything but train and val)
+exists, and must match the run's manifest_sha256; it supplies
 is_real (so test numbers are real rows only), burst grouping, synthetic
 training-row counts and the split leakage check.
 """
@@ -88,7 +89,11 @@ def evaluate_run(run: Path, manifest_path: Path | None = None, plots: bool = Tru
             notes.append("meta.json has no manifest_sha256; manifest identity not checked")
         keys = burst_keys(list(rows.values()))
     else:
-        notes.append("no --manifest: is_real not verified, no burst-level results, no leakage check")
+        reported = [s for s in prediction_files(run) if s not in NOT_REPORTED]
+        if reported:
+            raise ValueError(
+                f"--manifest is required to report {', '.join(reported)}: without it is_real cannot be checked, "
+                "and reported numbers must come from real rows only (PLAN 3.4)")
     cal_path = run / "calibration.json"
     calibration = json.loads(cal_path.read_text()) if cal_path.is_file() else None
     if calibration is None:
