@@ -1,0 +1,66 @@
+# Class set and the label of every dataset's files.
+#
+# Classes are physical signal families: what IQ can show. Whether a signal is a
+# drone is decided later by the Judge, from the class, the burst pattern and the
+# site profile (PLAN.md section 2).
+#
+# Owner: engineer 1 (taxonomy and licences). Change through the orchestrator.
+
+[classes]
+v1 = ["drone_link", "wifi", "bluetooth", "background"]
+v2 = ["pulsed_radar", "gnss_jammer", "adsb", "lora", "other_ism"]
+
+# Each dataset: its licence, whether it is real, its default label, and file
+# overrides. `match` is a substring of the file name; the first match wins.
+# label_strength: "strong" = the label is certain for every window,
+# "weak" = per-file label that may not hold for every window.
+
+[datasets.tampere]
+license = "CC BY 4.0"
+is_real = true
+url = "https://zenodo.org/records/4264467"
+default_label = "drone_link"
+default_strength = "strong"
+
+# Parrot Mambo: believed to use Bluetooth LE, which would make it physically a
+# `bluetooth` signal with a drone emitter_id. Unverified: engineer 1 confirms
+# before training, then sets label and strength here.
+[[datasets.tampere.overrides]]
+match = "Parrot_mambo"
+label = "drone_link"
+strength = "weak"
+note = "protocol unverified (possibly Bluetooth LE)"
+
+# Parrot Disco: believed to be Wi-Fi based. Same rule.
+[[datasets.tampere.overrides]]
+match = "Parrot_disco"
+label = "drone_link"
+strength = "weak"
+note = "protocol unverified (possibly Wi-Fi)"
+
+# Datasets below are placeholders for engineer 1 to fill (PLAN.md section 3.1).
+[datasets.dronerf]
+license = "CC BY 4.0"
+is_real = true
+url = "https://data.mendeley.com/datasets/f4c2b4n755/1"
+default_label = "drone_link"
+default_strength = "strong"
+
+# DroneRF file names start with a 5-digit code; "00000" means no drone present.
+[[datasets.dronerf.overrides]]
+match = "00000"
+label = "background"
+strength = "strong"
+note = "no-drone recording (lab ambient)"
+
+[datasets.nist_wifi_bt]
+license = "NIST open licence"
+is_real = true
+url = "https://catalog.data.gov/dataset/wi-fi-and-bluetooth-i-q-recordings-in-the-2-4-ghz-and-5-ghz-bands-with-low-cost-software-d"
+default_label = "wifi"
+default_strength = "weak"
+
+[[datasets.nist_wifi_bt.overrides]]
+match = "bluetooth"
+label = "bluetooth"
+strength = "weak"

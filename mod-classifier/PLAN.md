@@ -11,6 +11,8 @@ Everything under `mod-classifier/` is the training side of this feature: data fe
 - **The orchestrator decides the requirements** (Python packages and versions) as part of wave 0.
 - **The earlier list of open decisions is closed**; the defaults in this plan stand.
 
+**Wave 0 (done Nov 11, orchestrator):** contracts (`mcls/contracts.py`), taxonomy (`configs/taxonomy.toml`), manifest with splits and leakage check (`mcls/manifest.py`), checked run configs (`mcls/config.py`, `configs/*.toml`), the reference Tampere loader (`mcls/sources/tampere.py`, verified identical to the dataset's own reader on the real files), the Zenodo downloader (`mcls/fetch.py`), CRC `requirements.txt`, and 42 tests. Decisions taken: configs in TOML (no extra package), manifest in JSONL, the class field is called `label`.
+
 ---
 
 ## 0. What we are building, in one paragraph
@@ -38,12 +40,12 @@ A small neural network that takes a short window of raw IQ samples and returns a
 | Task | Window-level signal classification, aggregated to burst level | Bursts are what `detect_bursts` outputs; windows give enough training examples |
 | Output | Softmax over K classes plus an "unknown" decision by confidence | One calibrated probability per class; unknown handled by thresholding, not by a fake class |
 | Learning | Cross-entropy, backpropagation, AdamW (SGD with momentum as an ablation) | Standard, stable, fits a laptop |
-| Framework | PyTorch | `laya` already depends on it, so it's in the project's stack; runs on Apple MPS and CUDA |
+| Framework | PyTorch, on CRC only | `laya` already depends on it; CRC's CUDA GPUs run it. The laptop never installs it |
 | First model | Handcrafted features into softmax regression and LightGBM | Cheap baseline. A network that cannot beat it has not earned its complexity |
 | Main model | 1D residual CNN on I/Q (about 1M parameters), with a 2D spectrogram CNN as an ablation | Small enough to train on the laptop and run on a laptop CPU |
 | Labels | Real recordings only for reported results | You asked for no more simulations; section 3.4 says how synthetic data is kept out of results |
 | Splits | By recording, never by slice | A random window split leaks near-identical signal into test and measures memory, not recognition |
-| Compute | M4 laptop first; CRC only for bulk data preparation | The network is small. Heavy lifting is reading hundreds of GB of IQ, not training |
+| Compute | Laptop builds and tests the pipeline; CRC trains and prepares bulk data | The laptop has no PyTorch and keeps under about 1 GB of raw data. All training, baselines included, runs on CRC through shell scripts |
 
 ---
 
@@ -75,7 +77,7 @@ The classes are **physical signal families first**, because that is what IQ can 
 - **Some drones are Wi-Fi or Bluetooth physically.** In DroneRF the Parrot Bebop and AR Drone are Wi-Fi-based, and the Parrot Mambo in Tampere is believed to use Bluetooth LE. At the signal level they look like `wifi` or `bluetooth`. To be verified, not assumed. If confirmed, those files get a *physical* class (`wifi`, `bluetooth`) plus an `emitter_id` field (the drone model). The classifier predicts the physical family; a second step or the Judge decides drone versus ordinary Wi-Fi from burst pattern, emitter match and site profile.
 - **Weak labels.** NIST Wi-Fi/Bluetooth labels are per *file* (environment and band), not per burst. Windows inside them are filtered by an energy detector and treated as weakly labeled.
 
-Output of this task: `configs/taxonomy.yaml` mapping every dataset file or folder to a class, an optional `emitter_id`, and a confidence flag (`strong` / `weak`).
+Output of this task: `configs/taxonomy.toml` mapping every dataset file or folder to a class, an optional `emitter_id`, and a confidence flag (`strong` / `weak`).
 
 ---
 
@@ -120,13 +122,13 @@ Every loader converts its dataset into the same thing, so the rest of the pipeli
 
 **Shard format:** `complex64` NumPy arrays, one file per recording segment, already **resampled to 20 MS/s and centred on the burst** (section 4).
 
-**Manifest** (`data/manifest.parquet`, one row per window; JSONL fallback):
+**Manifest** (`data/manifest.jsonl`, one row per window; a Parquet copy only if it outgrows JSONL):
 
 | Field | Meaning |
 | --- | --- |
 | `window_id`, `shard`, `offset`, `length` | Where the samples are |
 | `dataset`, `recording_id` | **`recording_id` is the split key** |
-| `class`, `emitter_id`, `label_strength` | From the taxonomy (`strong` or `weak`) |
+| `label`, `emitter_id`, `label_strength` | From the taxonomy (`strong` or `weak`) |
 | `native_rate_hz`, `center_freq_hz`, `band` | From metadata, kept for priors and reports |
 | `snr_db_est`, `bw_hz`, `duty_cycle` | From `pipeline/features.py` |
 | `is_real` | `false` for NIST radar and anything synthetic |
@@ -209,7 +211,7 @@ About 1 million parameters (about 4 MB), so the checkpoint fits in git and on a 
 - **Optimizer:** AdamW, learning rate 1e-3 peak, weight decay 1e-2, one-cycle schedule (warm-up then cosine decay); SGD with Nesterov momentum 0.9 and the same schedule as the ablation.
 - **Batch and length:** batch 256, 30 to 60 epochs, gradient clipping at 1.0, early stopping on validation **macro-F1**.
 - **Stabilizers:** exponential moving average of weights (decay 0.999), seeded runs, 3 seeds for any number we quote.
-- **Device:** `mps` on the M4 (fp32), `cuda` with mixed precision if run on CRC, `cpu` for tests.
+- **Device:** `cuda` with mixed precision on CRC; `cpu` only for the tiny smoke runs in tests. No training on the laptop.
 - **Reproducibility:** every run writes its config, manifest hash, git commit, seed and metrics to `runs/<name>/`.
 
 ### 5.4 Augmentation (training split only, on real windows)
@@ -231,7 +233,7 @@ Where labels exist (Panoradio), a second softmax head predicts a modulation fami
 
 ### 5.7 Band prior at inference
 
-Multiply class probabilities by a band-plausibility table built from the NTIA allocation chart (a 5.8 GHz drone link is plausible; a drone link at FM is not), then renormalize. The table is data, reviewed by Diana, kept in `configs/band_priors.yaml`. A softer prior than a hard mask, so a surprise stays visible.
+Multiply class probabilities by a band-plausibility table built from the NTIA allocation chart (a 5.8 GHz drone link is plausible; a drone link at FM is not), then renormalize. The table is data, reviewed by Diana, kept in `configs/band_priors.toml`. A softer prior than a hard mask, so a surprise stays visible.
 
 ### 5.8 Domain shift between datasets
 
@@ -280,10 +282,9 @@ mod-classifier/
   PLAN.md                    this file
   README.md                  how to run each stage (written with the first working code)
   configs/
-    taxonomy.yaml            dataset file -> class, emitter, label strength
-    band_priors.yaml         band x class plausibility
-    data.yaml                datasets, caps per class, window size, seeds
-    baseline.yaml  cnn1d.yaml  cnn2d.yaml  fused.yaml
+    taxonomy.toml            dataset file -> class, emitter, label strength (wave 0)
+    band_priors.toml         band x class plausibility
+    baseline.toml  cnn1d.toml  (wave 0)   cnn2d.toml  fused.toml
   mcls/                      the Python package
     sources/                 one loader per dataset -> canonical shards
     frontend/                resample, channelize, burst windowing, STFT, normalize
@@ -293,8 +294,8 @@ mod-classifier/
     evaluate/                metrics, calibration, unknown, SNR curves, leakage audit
     export/                  weights, TorchScript, model card
     infer/                   classify bursts coming out of pipeline.ingest
+  crc/                       shell scripts that run each stage on CRC (written on request)
   scripts/
-    fetch_<dataset>.py       resumable download with size and checksum
     build_manifest.py  preprocess.py  train.py  evaluate.py  export.py
     crc/                     Grid Engine job scripts and a merge step
   tests/                     pytest; torch tests skip when torch is absent
@@ -317,9 +318,9 @@ fetch  ->  convert  ->  channelize+window  ->  manifest+split  ->  train  ->  ev
 | --- | --- | --- |
 | Fetch | `python -m mcls.sources.fetch --dataset tampere` | `data/raw/...` with checksums |
 | Convert and window | `python -m mcls.preprocess --dataset tampere` | shards plus per-recording stats |
-| Manifest and splits | `python -m mcls.dataset.build_manifest` | `data/manifest.parquet` with a hash |
-| Baseline | `python -m mcls.train --config configs/baseline.yaml` | `runs/baseline_*` |
-| Network | `python -m mcls.train --config configs/cnn1d.yaml --seed 1` | `runs/cnn1d_*` |
+| Manifest and splits | `python -m mcls.dataset.build_manifest` | `data/manifest.jsonl` with a hash |
+| Baseline | `python -m mcls.train --config configs/baseline.toml` | `runs/baseline_*` |
+| Network | `python -m mcls.train --config configs/cnn1d.toml --seed 1` | `runs/cnn1d_*` |
 | Evaluate | `python -m mcls.evaluate --run runs/cnn1d_*` | tables, plots, JSON |
 | Calibrate | `python -m mcls.evaluate.calibrate --run ...` | temperature, unknown threshold |
 | Export | `python -m mcls.export --run ...` | weights and `reports/model_card.md` |
@@ -333,8 +334,8 @@ The orchestrator owns the contracts (shard format, manifest schema, taxonomy, co
 
 | # | Engineer | Owns | Needs from | Delivers | Done when |
 | --- | --- | --- | --- | --- | --- |
-| 1 | **Taxonomy and licences** | `taxonomy.yaml`, licence register, label ambiguity (2.3) | Dataset pages, QA log | Mapping for every dataset file; verified emitter protocols (Wi-Fi or Bluetooth or proprietary) | Every file in every chosen dataset has a class and a licence |
-| 2 | **Data acquisition** | `fetch_*` scripts, checksums, CRC download jobs, own-capture protocol | Odon's approval per download | Resumable fetchers; raw data layout | Fetch is idempotent and verified by checksum |
+| 1 | **Taxonomy and licences** | `taxonomy.toml`, licence register, label ambiguity (2.3) | Dataset pages, QA log | Mapping for every dataset file; verified emitter protocols (Wi-Fi or Bluetooth or proprietary) | Every file in every chosen dataset has a class and a licence |
+| 2 | **Data acquisition** | Per-dataset fetch lists on top of `mcls.fetch` (parallel ranges, resume, md5), CRC download jobs | Odon's approval per download | Resumable fetchers; raw data layout | Fetch is idempotent and verified by checksum |
 | 3 | **Dataset loaders** | `mcls/sources/*` | 1, 2 | Each dataset to canonical `complex64` records with metadata (Tampere `.bin`, DroneRF CSV, NIST HDF5, FGI, SigMF) | Each loader has a test on a tiny fixture and a real-file smoke test |
 | 4 | **DSP front end** | `mcls/frontend/*` | 3, `pipeline/features.py` | Channelizer, decimation, burst windowing, STFT, normalization | Round-trip tests; matches `detect_bursts` outputs on real files; resampling error bounded |
 | 5 | **Data pipeline** | manifest, splits, torch `Dataset`, samplers, augmentation | 3, 4 | Manifest, group splits, loaders, augmentations | Leakage audit passes; deterministic given a seed |
@@ -359,7 +360,7 @@ The orchestrator owns the contracts (shard format, manifest schema, taxonomy, co
 ## 10. Compute and storage
 
 - **Laptop (Apple M4, 24 GB):** writing and testing the non-PyTorch stages on small samples (under about 1 GB of raw data kept locally).
-- **CRC:** all training runs, baselines included, plus bulk data conversion. A 1M-parameter network on a few hundred thousand 4096-sample windows should take minutes to an hour per run on MPS (estimate; measure on the first run).
+- **CRC:** all training runs, baselines included, plus bulk data conversion, each started by a shell script under `crc/`. A 1M-parameter network on a few hundred thousand windows should train in well under an hour per run on one GPU (estimate; measure on the first run).
 - **PyTorch runs on CRC, not the laptop.** The orchestrator writes `mod-classifier/requirements.txt` (PyTorch and the rest, pinned to versions the CRC modules support) and keeps it out of the root `requirements-dev.txt` so the repo's CI stays light. Code that does not need PyTorch (loaders, front end, manifest) is tested on the laptop and in CI.
 - **CRC:** only for bulk reading and conversion of large datasets (NIST Wi-Fi/Bluetooth, GATEMAN, triangular jammer, LoRaIQ, occupancy, DroneDetect), streamed through node-local `/tmp` as in section 3.7. It reuses the pattern Gabriel wrote for NIST radar: UGE array job, one task per file, rows returned and the download deleted. A CRC GPU is used only if a run outgrows the laptop. **Odon has a CRC account;** its quota and GPU access are checked with `quota` and `free_gpus.sh @crc_gpu` before the first job.
 - **CRC storage (from the CRC quick start, FAQ and storage policy of June 2026):** home `/users/<netid>` is 100 GB and cannot be increased; group storage `/groups/<PI netid>` is 5 TB per faculty group, and accounts a faculty member sponsors get access automatically; `/goldfs` and `/bluefs` are paid legacy tiers that cannot be mounted for live jobs. Whether the Innovation Sprint Lab has a faculty sponsor is unknown. Check with `quota`, `quota /users/<netid>` and `df -h /tmp` on a front end. The size of `/tmp` on compute nodes is not documented.
