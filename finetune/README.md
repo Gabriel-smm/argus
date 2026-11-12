@@ -141,6 +141,22 @@ python -m finetune.build_dataset
 
 The NIST radar rows are separate: `python -m finetune.sources.nist_radar --fetch --hist` downloads one 2.5 GB subset into `data/raw/nist_radar/`, prints how the measured features compare with the label table, and writes `data/train/nist_radar.jsonl`. `pipeline/features.py` (`detect_bursts`) is the shared burst detector and feature measurer: training rows and the app's IQ files go through the same code.
 
+### Running the big sources on the CRC
+
+The NIST radar set is 200 files of 2.5 GB. On a laptop that is a day of downloading; on Notre Dame's CRC it is an array job of 200 one-core tasks, each of which downloads one file into the node's `/tmp`, measures it and deletes it. Only the rows (a few MB) come back.
+
+```bash
+ssh <netid>@crcfe01.crc.nd.edu
+git clone <repo> argus && cd argus
+module load python/3.12
+python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements-dev.txt
+qsub finetune/crc/nist_radar.sh          # or: qsub -t 1-50 finetune/crc/nist_radar.sh   (group 1 only)
+qstat -u $USER                           # watch; logs land in finetune/out/crc_logs/
+python finetune/crc/merge.py nist_radar  # when every task is done -> data/train/nist_radar.jsonl
+```
+
+`ARGUS_RAW` points the downloaders at another directory (the job sets it to `/tmp/$USER/argus_raw`). `finetune/sources/nist_radar_files.json` holds the size and sha256 of every NIST file, so a task that is re-run after a failure resumes the download and verifies it.
+
 DroneRF: download the 23 `.rar` archives (4 GB) from Mendeley into `data/raw/dronerf/`, then `python -m finetune.sources.dronerf --hist`. The CSVs are read straight from the archives (`unrar-cffi`), about 4 s per recording.
 
 ## Files

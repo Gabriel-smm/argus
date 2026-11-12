@@ -2,7 +2,7 @@
 
 The dataset is 200 files of 200 simulated radar waveforms each: pulse trains of
 five kinds (P0N#1, P0N#2, Q3N#1-3) in white noise, 80 ms at 10 MS/s, about half of
-them noise only. This script fetches a single subset and its label table, runs
+them noise only. This script fetches one subset (chosen with --group/--subset) and its label table, runs
 `pipeline.features.detect_bursts` on every waveform that holds a radar signal, and
 writes one row per detected burst. The waveforms are baseband; the centre frequency
 is assigned (the middle of the CBRS band), so `frequency_assigned` is true.
@@ -12,7 +12,9 @@ Licence: NIST data, public domain in the United States (data.nist.gov/od/id/mds2
 
 import argparse
 import csv
+import json
 import statistics
+from pathlib import Path
 
 import h5py
 import numpy as np
@@ -21,25 +23,57 @@ from finetune.sources.common import RAW, TRAIN, write_jsonl
 from finetune.sources.fetch import download, sha256
 from pipeline.features import detect_bursts
 
-GROUP = 1
-SUBSET = 1
 BASE = "https://data.nist.gov/od/ds/ark:/88434/mds2-2116/SimulatedRadarWaveforms"
-FILES = [
-    (
-        f"{BASE}/Group{GROUP}/group{GROUP}_subset_{SUBSET}.mat",
-        f"nist_radar/group{GROUP}_subset_{SUBSET}.mat",
-        2463731809,
-        "e5e3d1c76892266d484abe1670723922759c0b94d02d750dffdfcf7da330f2d5",
-    ),
-    (
-        f"{BASE}/Group{GROUP}/group{GROUP}_subset_CSVInfo/group{GROUP}_waveformTableSubset_{SUBSET}.csv",
-        f"nist_radar/group{GROUP}_waveformTableSubset_{SUBSET}.csv",
-        19761,
-        "ae77c6d221aa1bc44238f64059ecf0c3a2ad955b8c440159e861ea7b93d336f1",
-    ),
-]
-DATASET = RAW / FILES[0][1]
-TABLE = RAW / FILES[1][1]
+# Size and sha256 of every subset's .mat and .csv, from the NIST record (200 subsets).
+MANIFEST = json.loads((Path(__file__).with_name("nist_radar_files.json")).read_text())
+RAW_DIR = RAW / "nist_radar"
+
+
+class Subset:
+    """One of the 200 files: group 1-4, subset 1-50."""
+
+    def __init__(self, group: int, subset: int):
+        key = f"{group}/{subset}"
+        if key not in MANIFEST:
+            raise SystemExit(f"no such subset: group {group}, subset {subset}")
+        self.group, self.subset = group, subset
+        self.entry = MANIFEST[key]
+        stem = f"group{group}_subset_{subset}"
+        self.mat_url = f"{BASE}/Group{group}/{stem}.mat"
+        self.csv_url = f"{BASE}/Group{group}/group{group}_subset_CSVInfo/group{group}_waveformTableSubset_{subset}.csv"
+        self.mat = RAW_DIR / f"{stem}.mat"
+        self.csv = RAW_DIR / f"group{group}_waveformTableSubset_{subset}.csv"
+        self.label = f"Group{group}/{stem}.mat"
+
+    def fetch(self) -> None:
+        for url, target, kind in ((self.mat_url, self.mat, "mat"), (self.csv_url, self.csv, "csv")):
+            download(url, target, self.entry[kind]["size"])
+            if sha256(target) != self.entry[kind]["sha256"]:
+                raise SystemExit(f"{target} failed its sha256 check. Delete it and run again.")
+
+    def table(self) -> list[dict]:
+        with open(self.csv) as source:
+            return list(csv.DictReader(source))
+
+    def waveforms(self, limit: int | None = None) -> tuple[np.ndarray, np.ndarray]:
+        """The IQ matrix as complex64 (one waveform per row) and the radar-present flags.
+
+        The HDF5 chunks are (200, 20) and gzip-compressed: every chunk holds all 200
+        waveforms, so reading one waveform decompresses the whole file. Reading all
+        of them in column blocks costs the same as reading one (15 s, 1.3 GB in memory).
+        """
+        if not self.mat.exists():
+            raise SystemExit(f"{self.mat} is missing. Run with --fetch")
+        with h5py.File(self.mat, "r") as store:
+            data = store[f"group{self.group}_waveformSubset_{self.subset}"]
+            status = np.asarray(store[f"group{self.group}_radarStatusSubset_{self.subset}"]).reshape(-1).astype(bool)
+            rows = data.shape[0] if limit is None else min(limit, data.shape[0])
+            iq = np.empty((rows, data.shape[1]), dtype=np.complex64)
+            for start in range(0, data.shape[1], BLOCK):
+                iq[:, start : start + BLOCK] = as_complex(data[:rows, start : start + BLOCK])
+        return iq, status[:rows]
+
+
 OUTPUT = TRAIN / "nist_radar.jsonl"
 SOURCE = "nist_radar_mds2-2116"
 LABEL_SERVICE = "pulsed_radar"
@@ -52,37 +86,7 @@ FEATURES = (
 )
 
 
-def fetch() -> None:
-    for url, name, size, checksum in FILES:
-        target = RAW / name
-        download(url, target, size)
-        if sha256(target) != checksum:
-            raise SystemExit(f"{target} failed its sha256 check. Delete it and run again.")
-
-
-def load_table() -> list[dict]:
-    with open(TABLE) as source:
-        return list(csv.DictReader(source))
-
-
-# The HDF5 chunks are (200, 20) and gzip-compressed: every chunk holds all 200
-# waveforms, so reading one waveform decompresses the whole file. Reading all of
-# them in column blocks costs the same as reading one (about 15 s, 1.3 GB in memory).
 BLOCK = 40_000
-
-
-def waveforms(limit: int | None = None) -> tuple[np.ndarray, np.ndarray]:
-    """The IQ matrix as complex64 (one waveform per row) and the radar-present flags."""
-    if not DATASET.exists():
-        raise SystemExit(f"{DATASET} is missing. Run: python -m finetune.sources.nist_radar --fetch")
-    with h5py.File(DATASET, "r") as store:
-        data = store[f"group{GROUP}_waveformSubset_{SUBSET}"]
-        status = np.asarray(store[f"group{GROUP}_radarStatusSubset_{SUBSET}"]).reshape(-1).astype(bool)
-        rows = data.shape[0] if limit is None else min(limit, data.shape[0])
-        iq = np.empty((rows, data.shape[1]), dtype=np.complex64)
-        for start in range(0, data.shape[1], BLOCK):
-            iq[:, start : start + BLOCK] = as_complex(data[:rows, start : start + BLOCK])
-    return iq, status[:rows]
 
 
 def as_complex(block) -> np.ndarray:
@@ -134,15 +138,20 @@ def histogram(name: str, values: list[float], bins: int = 12, width: int = 40) -
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--group", type=int, default=1, help="group 1-4 (default 1)")
+    parser.add_argument("--subset", type=int, default=1, help="subset 1-50 (default 1)")
     parser.add_argument("--fetch", action="store_true", help="download the subset (2.5 GB) and its table first")
+    parser.add_argument("--delete-raw", action="store_true", help="delete the .mat after a successful run")
+    parser.add_argument("--output", type=Path, default=OUTPUT, help=f"where to write the rows (default {OUTPUT})")
     parser.add_argument("--limit", type=int, default=None, help="only process the first N waveforms")
     parser.add_argument("--hist", action="store_true", help="print text histograms of the features")
     args = parser.parse_args()
+    chosen = Subset(args.group, args.subset)
     if args.fetch:
-        fetch()
+        chosen.fetch()
 
-    table = load_table()
-    data, status = waveforms(args.limit)
+    table = chosen.table()
+    data, status = chosen.waveforms(args.limit)
     count = len(status)
     rows, checks = [], []
     skipped = missed = 0
@@ -168,7 +177,7 @@ def main() -> None:
                 label_service=LABEL_SERVICE,
                 label_signal=info["BinNo"],
                 source=SOURCE,
-                file=f"Group{GROUP}/group{GROUP}_subset_{SUBSET}.mat#{index}",
+                file=f"{chosen.label}#{index}",
                 simulated=True,
                 frequency_assigned=True,
             )
@@ -216,16 +225,19 @@ def main() -> None:
         report.append(f"hopping: {sum(r['hopping'] for r in rows)} of {len(rows)}   truncated: {sum(r['truncated'] for r in rows)} of {len(rows)}")
         text = "\n\n".join(report)
         print("\n" + text)
-        out = TRAIN.parent.parent / "finetune" / "out" / "nist_radar_hist.txt"
+        out = TRAIN.parent.parent / "finetune" / "out" / f"nist_radar_hist_{args.group}_{args.subset}.txt"
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(text + "\n")
         print(f"\nsaved {out}")
 
     if args.limit is None:
-        write_jsonl(OUTPUT, rows)
-        print(f"wrote {len(rows)} rows to {OUTPUT}")
+        write_jsonl(args.output, rows)
+        print(f"wrote {len(rows)} rows to {args.output}")
+        if args.delete_raw:
+            chosen.mat.unlink()
+            print(f"deleted {chosen.mat}")
     else:
-        print(f"--limit set: not writing {OUTPUT}")
+        print(f"--limit set: not writing {args.output}")
 
 
 if __name__ == "__main__":
