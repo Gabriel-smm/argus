@@ -3,7 +3,7 @@ import pytest
 
 from mcls.sources import get
 from mcls.sources.dronerf import DroneRF, parse_csv, parse_name
-from mcls.taxonomy import Taxonomy
+from mcls.taxonomy import Taxonomy, load
 
 N_REAL = 4096  # small fixture files instead of 10 million values
 
@@ -11,14 +11,18 @@ N_REAL = 4096  # small fixture files instead of 10 million values
 def taxonomy():
     return Taxonomy(
         {
-            "classes": {"v1": ["drone_link", "background"]},
+            "classes": {"v1": ["wifi", "background"]},
             "datasets": {
                 "dronerf": {
                     "license": "CC BY 4.0",
                     "is_real": True,
-                    "default_label": "drone_link",
-                    "default_strength": "strong",
-                    "overrides": [{"match": "00000", "label": "background", "strength": "strong"}],
+                    "default_label": "wifi",
+                    "default_strength": "weak",
+                    "overrides": [
+                        {"match": "00000", "label": "background", "strength": "strong"},
+                        {"match": "10111", "label": "wifi", "strength": "weak", "emitter_id": "from_taxonomy"},
+                        {"match": "10011", "exclude": True, "note": "test exclusion"},
+                    ],
                 }
             },
         }
@@ -41,7 +45,7 @@ def source(root):
 
 def test_parse_name():
     p = parse_name("10111H_3.csv")
-    assert (p["bui"], p["band"], p["segment"], p["drone"], p["mode"]) == ("10111", "H", 3, "Parrot_AR_Drone", "video_recording")
+    assert (p["bui"], p["band"], p["segment"], p["drone"], p["mode"]) == ("10111", "H", 3, "Parrot_AR_Drone_2", "video_recording")
     assert parse_name("00000L_12.csv")["drone_present"] is False
     assert parse_name("readme.txt") is None and parse_name("1011H_3.csv") is None
 
@@ -66,19 +70,45 @@ def test_tone_lands_at_the_right_baseband_frequency(tmp_path):
     assert abs(rec.center_frequency_hz + peak - 2405e6) < 50e3
 
 
-def test_l_and_h_share_a_group_and_labels_follow_the_taxonomy(tmp_path):
-    for name in ("10111L_3.csv", "10111H_3.csv", "10111L_4.csv", "00000H_1.csv", "00000L_1.csv"):
+def test_all_segments_of_one_bui_share_a_group_and_labels_follow_the_taxonomy(tmp_path):
+    """Segments of one BUI are likely consecutive slices of one session (see the loader), so one id."""
+    for name in ("10111L_3.csv", "10111H_3.csv", "10111L_4.csv", "10000L_0.csv", "00000H_1.csv", "00000L_1.csv"):
         write_csv(tmp_path / name, tone(3e6))
     recs = {r.source_file: r for r in source(tmp_path).recordings()}
-    assert recs["10111L_3.csv"].recording_id == recs["10111H_3.csv"].recording_id == "10111_3"
-    assert recs["10111L_4.csv"].recording_id != "10111_3"
+    assert recs["10111L_3.csv"].recording_id == recs["10111H_3.csv"].recording_id == recs["10111L_4.csv"].recording_id == "10111"
+    assert recs["10000L_0.csv"].recording_id == "10000" != recs["00000H_1.csv"].recording_id
     assert recs["10111H_3.csv"].center_frequency_hz == 2450e6
     assert recs["00000H_1.csv"].label == "background" and recs["00000H_1.csv"].emitter_id is None
-    assert recs["10111L_3.csv"].label == "drone_link" and recs["10111L_3.csv"].emitter_id == "Parrot_AR_Drone"
+    assert recs["10111L_3.csv"].label == "wifi" and recs["10111L_3.csv"].emitter_id == "from_taxonomy"
+    assert recs["10000L_0.csv"].emitter_id == "Parrot_Bebop"  # parsed fallback: no emitter_id in this taxonomy
     a = recs["10111L_3.csv"]
     np.testing.assert_array_equal(a.read(10, 5), a.read(0, 20)[10:15])
     with pytest.raises(IndexError):
         a.read(a.num_samples - 2, 5)
+
+
+def test_excluded_files_are_skipped(tmp_path):
+    write_csv(tmp_path / "10011L_0.csv", tone(3e6))
+    write_csv(tmp_path / "10000L_0.csv", tone(3e6))
+    assert [r.source_file for r in source(tmp_path).recordings()] == ["10000L_0.csv"]
+
+
+def test_real_taxonomy(tmp_path):
+    """Against configs/taxonomy.toml: names, labels and exclusions must line up with the loader."""
+    for name in ("10000L_0.csv", "10100H_2.csv", "11010L_5.csv", "00000H_1.csv", "01111L_0.csv"):
+        write_csv(tmp_path / name, tone(3e6))
+    s = DroneRF(root=tmp_path, taxonomy=load())
+    s.real_samples_per_file = N_REAL
+    recs = {r.source_file: r for r in s.recordings()}
+    assert "01111L_0.csv" not in recs  # unknown BUI: excluded by default
+    assert {(f, recs[f].label, recs[f].emitter_id) for f in recs} == {
+        ("10000L_0.csv", "wifi", "Parrot_Bebop"),
+        ("10100H_2.csv", "wifi", "Parrot_AR_Drone_2"),
+        ("11010L_5.csv", "wifi", "DJI_Phantom_3_Standard"),
+        ("00000H_1.csv", "background", None),
+    }
+    for f in ("10000L_0.csv", "10100H_2.csv", "11010L_5.csv"):  # parsed names agree with the taxonomy
+        assert parse_name(f)["drone"] == recs[f].emitter_id
 
 
 def test_wrong_length_is_refused(tmp_path):

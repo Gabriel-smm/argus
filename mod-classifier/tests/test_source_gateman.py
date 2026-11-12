@@ -3,7 +3,7 @@ import pytest
 
 from mcls.sources import get
 from mcls.sources.gateman import SCENARIOS, Gateman, parse
-from mcls.taxonomy import Taxonomy
+from mcls.taxonomy import Taxonomy, load
 
 
 def taxonomy():
@@ -114,3 +114,32 @@ def test_check_hints_at_unextracted_zip(tmp_path):
 
 def test_registered(tmp_path):
     assert type(get("gateman", root=tmp_path, taxonomy=taxonomy())) is Gateman
+
+
+def test_real_taxonomy_skips_gnss_only_files(tmp_path):
+    for scenario in SCENARIOS:
+        write_scenario(tmp_path, scenario)
+    recs = list(Gateman(root=tmp_path, taxonomy=load()).recordings())
+    assert len(recs) == 9 and {r.meta["role"] for r in recs} == {"jammer"}
+    assert {(r.label, r.label_strength) for r in recs} == {("gnss_jammer", "strong")}
+    assert len({r.recording_id for r in recs}) == 9
+
+
+def test_excluded_files_are_skipped(tmp_path):
+    write_scenario(tmp_path, "GPSL1+AMtone")
+    t = Taxonomy(
+        {
+            "classes": {"v1": ["gnss_jammer"]},
+            "datasets": {
+                "gateman": {
+                    "license": "CC BY 4.0",
+                    "is_real": True,
+                    "default_exclude": True,
+                    "note": "unknown",
+                    "overrides": [{"match": "/AMtone@", "label": "gnss_jammer", "strength": "strong", "emitter_id": "vst"}],
+                }
+            },
+        }
+    )
+    recs = list(Gateman(root=tmp_path, taxonomy=t).recordings())
+    assert [(r.source_file, r.emitter_id) for r in recs] == [("rawdata/GPSL1+AMtone/AMtone@20MSps.bin", "vst")]

@@ -28,6 +28,12 @@ Assumed (not checked against a file):
 Leakage: the indoor and outdoor files of one band were recorded simultaneously
 (the same transmissions seen by two receivers), so captures with the same
 timestamp in `<band>_indoor` and `<band>_outdoor` share one recording_id.
+That grouping is only as good as the keys: it assumes the two receivers wrote
+identical timestamp keys for one moment (not verified against a file). If their
+clocks differ, simultaneous captures get different ids and could be split apart.
+`check()` therefore reports any key found in only one file of an indoor/outdoor
+pair; resolve those (e.g. by matching nearest timestamps) before NIST windows
+feed a reported split.
 """
 
 from __future__ import annotations
@@ -91,6 +97,28 @@ def read_metadata(csv_path: Path, keys: list[str]) -> dict[str, dict]:
     return {"*": rows[0]} if len(rows) == 1 else {}
 
 
+def grouping_problems(keys_by_file: dict[str, list[str]]) -> list[str]:
+    """Keys of an indoor/outdoor pair that do not match: their captures would not share a recording_id."""
+    by_group: dict[str, dict[str, set[str]]] = {}
+    for name, keys in keys_by_file.items():
+        parsed = parse_name(name)
+        if parsed and parsed["setup"] in ("indoor", "outdoor"):
+            by_group.setdefault(parsed["group"], {})[name] = set(keys)
+    problems = []
+    for group, files in sorted(by_group.items()):
+        if len(files) != 2:
+            continue  # only one of the pair present: nothing to pair
+        (a, ka), (b, kb) = sorted(files.items())
+        for here, there, only in ((a, b, ka - kb), (b, a, kb - ka)):
+            if only:
+                sample = ", ".join(sorted(only)[:3])
+                problems.append(
+                    f"{here}: {len(only)} capture keys have no twin in {there} (e.g. {sample}); "
+                    "the indoor/outdoor recording_id grouping does not hold for them"
+                )
+    return problems
+
+
 @register
 class NistWifiBt(Source):
     name = "nist_wifi_bt"
@@ -129,6 +157,8 @@ class NistWifiBt(Source):
         for path in self.files():
             parsed = parse_name(path.name)
             label = self.taxonomy.label_for(self.name, path.name)
+            if label.excluded:
+                continue
             with h5py.File(path, "r") as handle:
                 keys = self._capture_keys(handle)
                 shapes = {k: (handle[self.key_group][k].shape, handle[self.key_group][k].dtype) for k in keys}
@@ -150,6 +180,7 @@ class NistWifiBt(Source):
                     is_real=info.is_real,
                     license=info.license,
                     read=self._make_reader(path, key, num_samples),
+                    emitter_id=label.emitter_id,
                     meta={
                         "setup": parsed["setup"],
                         "capture_key": key,
@@ -167,12 +198,14 @@ class NistWifiBt(Source):
         h5py = require_h5py()
         if not self.files():
             return [f"no NIST .h5 files in {self.root}"]
+        keys_by_file: dict[str, list[str]] = {}
         for path in self.files():
             if not path.with_suffix(".csv").exists():
                 problems.append(f"{path.name}: metadata {path.with_suffix('.csv').name} missing")
             try:
                 with h5py.File(path, "r") as handle:
                     keys = self._capture_keys(handle)
+                    keys_by_file[path.name] = keys
                     short = [k for k in keys if handle[self.key_group][k].shape != (self.expected_components,)]
             except OSError as err:
                 problems.append(f"{path.name}: cannot open as HDF5 ({err}); partial download?")
@@ -181,6 +214,7 @@ class NistWifiBt(Source):
                 problems.append(f"{path.name}: {len(keys)} captures, expected {CAPTURES_PER_FILE}")
             if short:
                 problems.append(f"{path.name}: {len(short)} captures are not {self.expected_components} int16 values long")
+        problems += grouping_problems(keys_by_file)
         return problems
 
 

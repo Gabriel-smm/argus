@@ -29,7 +29,9 @@ INFERRED, not stated by the record:
 Split key: the GNSS and jamming files of one scenario were recorded at the same
 time, so both share `recording_id` = the scenario folder name (e.g.
 `GPSL1+AMtone`). Labels come from the taxonomy, matched against the path below
-root (e.g. `rawdata/GPSL1+AMtone/AMtone@20MSps.bin`).
+root (e.g. `rawdata/GPSL1+AMtone/AMtone@20MSps.bin`). Files the taxonomy
+excludes (at present the GNSS-only files) are skipped; `check()` still expects
+both files of every scenario, since a missing one means a partial extract.
 """
 
 from __future__ import annotations
@@ -90,6 +92,8 @@ class Gateman(Source):
             num_samples = size // BYTES_PER_SAMPLE
             relative = path.relative_to(self.root).as_posix()
             label = self.taxonomy.label_for(self.name, relative)
+            if label.excluded:
+                continue
             recording = Recording(
                 dataset=self.name,
                 recording_id=parsed["scenario"],
@@ -102,7 +106,7 @@ class Gateman(Source):
                 is_real=info.is_real,
                 license=info.license,
                 read=interleaved_reader(path, COMPONENT, num_samples),
-                emitter_id=None,
+                emitter_id=label.emitter_id,
                 meta={
                     "scenario": parsed["scenario"],
                     "gnss_band": parsed["gnss"],

@@ -5,7 +5,7 @@ import pytest
 
 from mcls.sources import get
 from mcls.sources.sigmf import LoRaIQ, Occupancy, component_dtype
-from mcls.taxonomy import Taxonomy
+from mcls.taxonomy import Taxonomy, load
 
 
 def taxonomy():
@@ -121,3 +121,22 @@ def test_check_reports_partial_data(tmp_path):
 def test_registered():
     assert type(get("loraiq", root=".", taxonomy=taxonomy())) is LoRaIQ
     assert type(get("occupancy", root=".", taxonomy=taxonomy())) is Occupancy
+
+
+def test_real_taxonomy(tmp_path):
+    write_sigmf(tmp_path / "loraiq" / "sigmfs" / "2025-01-01_10-00" / "RRH1", "1", "ci16_le", interleave(IQ, "<i2"))
+    write_sigmf(tmp_path / "occ" / "Home" / "iq", "ISM_2400_t01_wifi0_20260822T004844_s0000", "ci16_le", interleave(IQ, "<i2"),
+                captures=[{"core:sample_start": 0, "core:frequency": 2.44e9}])
+    lora = next(LoRaIQ(root=tmp_path / "loraiq", taxonomy=load()).recordings())
+    occ = next(Occupancy(root=tmp_path / "occ", taxonomy=load()).recordings())
+    assert (lora.label, occ.label) == ("lora", "background")
+    assert lora.emitter_id is None and occ.emitter_id is None
+
+
+def test_excluded_files_are_skipped(tmp_path):
+    write_sigmf(tmp_path, "keep", "ci16_le", interleave(IQ, "<i2"))
+    write_sigmf(tmp_path, "drop", "ci16_le", interleave(IQ, "<i2"))
+    entry = {"license": "CC BY 4.0", "is_real": True, "default_label": "lora", "default_strength": "weak",
+             "overrides": [{"match": "drop", "exclude": True, "note": "test"}]}
+    t = Taxonomy({"classes": {"v1": ["lora"]}, "datasets": {"loraiq": entry}})
+    assert [r.source_file for r in LoRaIQ(root=tmp_path, taxonomy=t).recordings()] == ["keep.sigmf-meta#0"]
