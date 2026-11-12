@@ -1,0 +1,125 @@
+import numpy as np
+import pytest
+
+from mcls.sources import get
+from mcls.sources.dronerf import DroneRF, parse_csv, parse_name
+from mcls.taxonomy import Taxonomy
+
+N_REAL = 4096  # small fixture files instead of 10 million values
+
+
+def taxonomy():
+    return Taxonomy(
+        {
+            "classes": {"v1": ["drone_link", "background"]},
+            "datasets": {
+                "dronerf": {
+                    "license": "CC BY 4.0",
+                    "is_real": True,
+                    "default_label": "drone_link",
+                    "default_strength": "strong",
+                    "overrides": [{"match": "00000", "label": "background", "strength": "strong"}],
+                }
+            },
+        }
+    )
+
+
+def write_csv(path, values):
+    path.write_text(",".join(f"{v:.7g}" for v in values))
+
+
+def tone(freq_hz, n=N_REAL, rate=40e6):
+    return 0.5 * np.cos(2 * np.pi * freq_hz / rate * np.arange(n))
+
+
+def source(root):
+    s = DroneRF(root=root, taxonomy=taxonomy())
+    s.real_samples_per_file = N_REAL
+    return s
+
+
+def test_parse_name():
+    p = parse_name("10111H_3.csv")
+    assert (p["bui"], p["band"], p["segment"], p["drone"], p["mode"]) == ("10111", "H", 3, "Parrot_AR_Drone", "video_recording")
+    assert parse_name("00000L_12.csv")["drone_present"] is False
+    assert parse_name("readme.txt") is None and parse_name("1011H_3.csv") is None
+
+
+def test_parse_csv_keeps_order_across_lines():
+    assert parse_csv(b"1,-2.5,3\r\n4,5\n").tolist() == [1, -2.5, 3, 4, 5]
+
+
+def test_tone_lands_at_the_right_baseband_frequency(tmp_path):
+    """A 5 MHz real tone in the L file is 2405 MHz RF: baseband -5 MHz around a 2410 MHz centre.
+
+    A sign error in the real-to-IQ step (or reading I/Q backwards) puts it at +5 MHz.
+    """
+    write_csv(tmp_path / "10000L_0.csv", tone(5e6))
+    rec = next(source(tmp_path).recordings())
+    assert rec.sample_rate_hz == 20e6 and rec.center_frequency_hz == 2410e6
+    iq = rec.read(0, rec.num_samples)
+    assert iq.dtype == np.complex64 and len(iq) == rec.num_samples
+    freqs = np.fft.fftfreq(len(iq), 1 / rec.sample_rate_hz)
+    peak = freqs[np.argmax(np.abs(np.fft.fft(iq)))]
+    assert abs(peak - -5e6) < 50e3
+    assert abs(rec.center_frequency_hz + peak - 2405e6) < 50e3
+
+
+def test_l_and_h_share_a_group_and_labels_follow_the_taxonomy(tmp_path):
+    for name in ("10111L_3.csv", "10111H_3.csv", "10111L_4.csv", "00000H_1.csv", "00000L_1.csv"):
+        write_csv(tmp_path / name, tone(3e6))
+    recs = {r.source_file: r for r in source(tmp_path).recordings()}
+    assert recs["10111L_3.csv"].recording_id == recs["10111H_3.csv"].recording_id == "10111_3"
+    assert recs["10111L_4.csv"].recording_id != "10111_3"
+    assert recs["10111H_3.csv"].center_frequency_hz == 2450e6
+    assert recs["00000H_1.csv"].label == "background" and recs["00000H_1.csv"].emitter_id is None
+    assert recs["10111L_3.csv"].label == "drone_link" and recs["10111L_3.csv"].emitter_id == "Parrot_AR_Drone"
+    a = recs["10111L_3.csv"]
+    np.testing.assert_array_equal(a.read(10, 5), a.read(0, 20)[10:15])
+    with pytest.raises(IndexError):
+        a.read(a.num_samples - 2, 5)
+
+
+def test_wrong_length_is_refused(tmp_path):
+    write_csv(tmp_path / "10000L_0.csv", tone(5e6, n=N_REAL - 10))
+    rec = next(source(tmp_path).recordings())
+    with pytest.raises(ValueError, match="real samples"):
+        rec.read(0, 4)
+
+
+class FakeRar:
+    """Stands in for unrar.cffi.RarFile: no RAR writer is available to build fixtures."""
+
+    def __init__(self, members):
+        self.members = members
+
+    def infolist(self):
+        return [type("Info", (), {"filename": name, "file_size": len(data)}) for name, data in self.members.items()]
+
+    def read(self, name):
+        return self.members[name]
+
+
+def test_reads_members_inside_archives(tmp_path):
+    payload = ",".join(f"{v:.7g}" for v in tone(5e6)).encode()
+    archives = {"DroneRF_part1.rar": FakeRar({"Bebop/10000L_0.csv": payload, "Bebop/10000H_0.csv": payload, "Bebop/notes.txt": b""})}
+    for name in archives:
+        (tmp_path / name).write_bytes(b"Rar!")
+    s = source(tmp_path)
+    s.open_archive = lambda path: archives[path.name]
+    recs = list(s.recordings())
+    assert [r.source_file for r in recs] == ["DroneRF_part1.rar/Bebop/10000H_0.csv", "DroneRF_part1.rar/Bebop/10000L_0.csv"]
+    assert recs[0].read(0, 8).dtype == np.complex64
+    problems = s.check()
+    assert any("expected 23" in p for p in problems)
+    assert not any("missing" in p for p in problems)
+
+
+def test_check_reports_a_missing_half(tmp_path):
+    write_csv(tmp_path / "10000L_0.csv", tone(5e6))
+    assert any("10000H_0.csv is missing" in p for p in source(tmp_path).check())
+
+
+def test_registered():
+    assert type(get("dronerf", root=".", taxonomy=taxonomy())) is DroneRF
