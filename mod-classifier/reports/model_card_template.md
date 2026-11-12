@@ -38,7 +38,7 @@ All from `{{run_dir}}/metrics.json` unless stated. Test and cross-test rows are 
 | generalization (held-out drone model) | {{n}} | {{f1}} | {{f1_burst}} | {{f1_recording}} |
 | cross_test (dataset held out) | {{n}} | {{f1}} | {{f1_burst}} | {{f1_recording}} |
 
-Per-class precision and recall, the confusion matrix and accuracy versus estimated SNR: `metrics.json` `splits.<split>`. Burst results group windows by inferred burst (see `mcls/evaluate/runio.py`, `burst_keys`).
+Per-class precision and recall, the confusion matrix and accuracy versus estimated SNR: `metrics.json` `splits.<split>`. Burst results group windows by `burst_id` (see `mcls/evaluate/runio.py`, `burst_keys`); results after the unknown threshold: `splits.<split>.burst.after_unknown_threshold`.
 
 ### Baselines on the same splits
 
@@ -70,4 +70,5 @@ From `check_gates` in `metrics.json`. "Not measured" is not a pass.
 
 - {{limits}}
 - One 20 MHz slice per recording: hopping emitters outside it are not seen.
-- Burst grouping is inferred from manifest rows, not stored by the front end.
+- Bursts are grouped by `burst_id`; {{windows_by_fallback}} windows had none and were grouped by the equal-stats fallback (`metrics.json` `splits.<split>.burst.grouping`).
+- Burst results after the unknown threshold skip the band prior, which lives in `mcls.infer`.
