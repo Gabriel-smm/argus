@@ -12,6 +12,8 @@ There are no training jobs here yet; they are written later, on request.
 | `check_node.sh`, `check_node.job` | Compute node, read-only: `/tmp` size, CPUs, RAM, `nvidia-smi`, torch sees CUDA |
 | `prepare_array.job` | Template array job: one raw file per task, fetch to node `/tmp`, preprocess, keep outputs, delete raw |
 | `CI_PROPOSAL.md` | Draft: how the repo CI could also run `mod-classifier/tests` (needs Gabriel's agreement) |
+| `../scripts/make_file_list.py` | Writes `runs/file_lists/files_<dataset>.txt` from `configs/catalog.toml`; prints the array size |
+| `../scripts/merge_shards.py` | Gathers the finished per-file outputs into one shards dir for `build_manifest` |
 
 ## Settings
 
@@ -46,7 +48,26 @@ cat runs/crc_logs/check_node.o*
 
 Run step 1 before step 2: if home is nearly full, set `MCLS_VENV` to a path on group storage first.
 
-Step 4, `prepare_array.job`, waits until `mcls.acquire` (Engineer 2) and `mcls.preprocess` (front end, not written yet) exist and Odon approves the download. Until then it stops at once with exit code 3 and the message "python module mcls.acquire (or mcls.preprocess) does not exist yet", before it downloads anything.
+Step 4 prepares one dataset. It needs `mcls.acquire` (Engineer 2) and `mcls.preprocess` (Engineer 4) on the branch, and Odon's approval for that dataset's download (file names, source and total size first: `python -m mcls.acquire --dataset tampere --list`). If a module is missing, or `mcls.sources.get(<dataset>)` fails (no loader, or no taxonomy entry for it), the job stops at once with exit code 3, before it downloads anything.
+
+```bash
+# 4a. File list from the catalog; the number printed is the array size
+N=$(python scripts/make_file_list.py tampere)           # -> runs/file_lists/files_tampere.txt
+
+# 4b. One task per file (at most 8 at once, 1 connection each)
+qsub -t 1-$N -v MCLS_DATASET=tampere,MCLS_FILE_LIST=$PWD/runs/file_lists/files_tampere.txt crc/prepare_array.job
+qstat -u $USER                                          # wait until all tasks are gone
+
+# 4c. Merge the finished files; lists any file without output
+python scripts/merge_shards.py --prepared ~/mcls_data/prepared/tampere \
+    --file-list runs/file_lists/files_tampere.txt --dest ~/mcls_data/shards
+#     missing files? rerun 4b unchanged: tasks whose output has DONE are skipped
+
+# 4d. Manifest and splits (Engineer 5), over every merged dataset
+python -m mcls.dataset.build_manifest --shards ~/mcls_data/shards --out data/manifest.jsonl --seed 1
+```
+
+Repeat 4a to 4c per dataset into the same `--dest`, then run 4d once.
 
 ## What each prints and how to read it
 
@@ -70,19 +91,26 @@ Step 4, `prepare_array.job`, waits until `mcls.acquire` (Engineer 2) and `mcls.p
 
 ## `prepare_array.job` (template)
 
-One task per raw file. Task N reads line N of a file list (blank lines and `#` comments skipped). For a Zenodo dataset the names come from `python -m mcls.fetch --zenodo <record> --list`. Each task then:
+One task per raw file. Task N reads line N of a file list (blank lines and `#` comments skipped). The names are the catalog's `name` fields, written by `scripts/make_file_list.py`; it refuses a dataset that `mcls.acquire` cannot fetch unattended (`ieee_login`, `manual`) or whose file list is unknown in the catalog. It leaves out the documentation files datasets ship (`example.py`, `load_bin.m`, figures, notes: a catalog `role = "doc"`, else the file suffix) and names each one on stderr; `--keep-all` keeps them. `--match TEXT` keeps a subset, for example one NIST radar group. Check the list before submitting: a few non-recording files pass the suffix rule (LoRaIQ's `dataset.csv`, Drexel's MATLAB-scripts `.tar`), and their task would fail with "no recordings"; pick the data with `--match`, e.g. `--match sigmfs.zip`. Each task then:
 
-1. `python -m mcls.acquire --dataset D --only NAME --connections N` with `MCLS_RAW=/tmp/$USER/mcls_raw/<job>.<task>`
-2. `python -m mcls.preprocess --dataset D --raw $MCLS_RAW --out <node scratch>` (placeholder interface, to align with the front end when it exists)
-3. copies only the outputs to `$MCLS_OUT/<file name>/` and writes a `DONE` marker there
+1. `python -m mcls.acquire --dataset D --only NAME --connections N`, which writes `$MCLS_RAW/<base name of NAME>` with `MCLS_RAW=/tmp/$USER/mcls_raw/<job>.<task>`
+2. `python -m mcls.preprocess --dataset D --raw $MCLS_RAW --out <node scratch>`
+3. copies only the outputs to `$MCLS_OUT/<key>/` and writes a `DONE` marker there; `<key>` is the file's base name, which `mcls.acquire` keeps unique per dataset
 4. deletes the raw file and the scratch, also when the task fails
 
+`merge_shards.py` then hard-links each finished `<key>/` folder, unchanged, into `<dest>/<dataset>/<key>/`, so the relative shard paths in its `.jsonl` rows stay valid. It skips the hidden `.<key>.partial.*` folders of killed tasks, which `build_manifest`'s recursive search would otherwise read. `--move` renames instead of linking.
+
+`MCLS_OUT` defaults to `$HOME/mcls_data/prepared/<dataset>`; `MCLS_CONNECTIONS` defaults to 1. `#$ -tc 8` lets at most 8 tasks run (and download from Zenodo) at once, so about 8 connections in total, the cap in PLAN.md. Keep tasks x connections near 8: if you raise `MCLS_CONNECTIONS`, lower `-tc` (for example `MCLS_CONNECTIONS=4` with `qsub -tc 2`). The job refuses `MCLS_CONNECTIONS` above 8, and `mcls.acquire` also applies each host's own cap (1 for Fairdata). Set `MCLS_MAX_GB` to make a task refuse a file larger than the node's free `/tmp`. Set `MCLS_UNPACK=1` for a dataset whose loader reads extracted files only (GATEMAN: its loader asks for `rawdata.zip` to be extracted first): the task unpacks the `.zip` or `.tar` with Python's own modules and deletes the archive before preprocessing, so the node needs room for the archive and its contents at once. A rerun skips files whose output has a `DONE` marker. Set `MCLS_KEEP_FAILED=1` to keep a failed task's files in `/tmp` for debugging.
+
+## Trained weights: never in git
+
+A checkpoint is about 4 MB (PLAN.md section 10). Weights never go into the git history, not even small ones: once committed they stay in every clone for good. Put each released checkpoint in a GitHub release asset or in the team's Drive, and record its SHA-256 in the model card next to the run folder and manifest hash it came from:
+
 ```bash
-N=$(grep -cv -e '^#' -e '^[[:space:]]*$' files_tampere.txt)
-qsub -t 1-$N -v MCLS_DATASET=tampere,MCLS_FILE_LIST=$PWD/files_tampere.txt crc/prepare_array.job
+shasum -a 256 runs/<name>/model.pt       # macOS; on Linux: sha256sum runs/<name>/model.pt
 ```
 
-`MCLS_OUT` defaults to `$HOME/mcls_data/prepared/<dataset>`; `MCLS_CONNECTIONS` defaults to 1. `#$ -tc 8` lets at most 8 tasks run (and download from Zenodo) at once, so about 8 connections in total, the cap in PLAN.md. Keep tasks x connections near 8: if you raise `MCLS_CONNECTIONS`, lower `-tc` (for example `MCLS_CONNECTIONS=4` with `qsub -tc 2`). A rerun skips files whose output has a `DONE` marker. Set `MCLS_KEEP_FAILED=1` to keep a failed task's files in `/tmp` for debugging.
+`runs/` is git-ignored, so checkpoints written there are not committed by accident. Which of the two stores to use is still for the team to agree.
 
 ## What to send back to the orchestrator
 

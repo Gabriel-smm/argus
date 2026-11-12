@@ -7,7 +7,8 @@
 #   2. fetches that ONE file with `python -m mcls.acquire` into node-local
 #      /tmp/$USER/mcls_raw/<job>.<task> (exported as $MCLS_RAW),
 #   3. runs `python -m mcls.preprocess` on it into node-local scratch,
-#   4. copies only the outputs to $MCLS_OUT/<file name>/,
+#   4. copies only the outputs to $MCLS_OUT/<base name>/ (mcls.acquire keeps
+#      base names unique per dataset),
 #   5. deletes the raw file and the scratch (also on failure).
 # A file whose output folder already holds a DONE marker is skipped, so a
 # rerun only does what is missing.
@@ -16,21 +17,35 @@
 # the package):
 #
 #   cd argus/mod-classifier && mkdir -p runs/crc_logs
-#   N=$(grep -cv -e '^#' -e '^[[:space:]]*$' files_tampere.txt)
-#   qsub -t 1-$N -v MCLS_DATASET=tampere,MCLS_FILE_LIST=$PWD/files_tampere.txt crc/prepare_array.job
+#   N=$(python scripts/make_file_list.py tampere)    # writes runs/file_lists/files_tampere.txt
+#   qsub -t 1-$N -v MCLS_DATASET=tampere,MCLS_FILE_LIST=$PWD/runs/file_lists/files_tampere.txt crc/prepare_array.job
 #   qstat -u $USER
+#   # when every task is gone:
+#   python scripts/merge_shards.py --prepared ~/mcls_data/prepared/tampere \
+#       --file-list runs/file_lists/files_tampere.txt --dest ~/mcls_data/shards
 #
 # Settings (pass with qsub -v NAME=value,NAME=value):
 #   MCLS_DATASET       required. Dataset name, as mcls.acquire and mcls.preprocess know it
-#   MCLS_FILE_LIST     required. Absolute path of a text file, one raw file name per line
+#   MCLS_FILE_LIST     required. Absolute path of a text file, one catalog file name per line
+#                      (scripts/make_file_list.py writes it from configs/catalog.toml)
 #   MCLS_OUT           output dir  (default $HOME/mcls_data/prepared/$MCLS_DATASET)
-#   MCLS_CONNECTIONS   parallel byte ranges per file for mcls.acquire (default 1)
+#   MCLS_CONNECTIONS   parallel byte ranges per file for mcls.acquire (default 1, at most 8;
+#                      mcls.acquire also applies the host's own cap, 1 for fairdata)
+#   MCLS_MAX_GB        if set, passed as --max-gb: the task refuses a file larger than this,
+#                      e.g. the node's free /tmp in GB
 #   MCLS_VENV          venv built by setup_env.sh (default $HOME/venvs/mcls)
+#   MCLS_UNPACK=1      unpack a fetched .zip / .tar / .tar.gz into $MCLS_RAW (Python's own
+#                      zipfile / tarfile, tar with the "data" filter) and delete the archive
+#                      before preprocess. Needed where a loader reads extracted files only
+#                      (GATEMAN's rawdata.zip). Peak /tmp use is then archive + contents.
 #   MCLS_KEEP_FAILED=1 keep raw and scratch of a failed task in /tmp for debugging
+#   MCLS_NODE_TMP      node-local scratch (default /tmp/$USER); only tests change it
 #
 # Interfaces this relies on (owned by other engineers; check before first use):
-#   python -m mcls.acquire --dataset D --only NAME --connections N   (writes into $MCLS_RAW)
-#   python -m mcls.preprocess --dataset D --raw DIR --out DIR         (placeholder: not written yet)
+#   python -m mcls.acquire --dataset D --only NAME --connections N [--max-gb X]
+#       (Engineer 2: writes $MCLS_RAW/<base name of NAME> directly, no subfolders)
+#   python -m mcls.preprocess --dataset D --raw DIR --out DIR
+#       (Engineer 4: reads the raw files under DIR, writes shards and *.jsonl rows under DIR)
 #
 # -tc 8 caps running tasks at 8 and MCLS_CONNECTIONS defaults to 1, so about 8
 # connections hit the same host at once (the plan's cap). Keep tasks x connections
@@ -64,6 +79,11 @@ JOB="${JOB_ID:-local}"
 DATASET="${MCLS_DATASET:-}"
 LIST="${MCLS_FILE_LIST:-}"
 CONNECTIONS="${MCLS_CONNECTIONS:-1}"
+MAX_GB="${MCLS_MAX_GB:-}"
+case "$CONNECTIONS" in
+    '' | 0 | *[!0-9]*) die "MCLS_CONNECTIONS='$CONNECTIONS' must be a whole number from 1 to 8" ;;
+esac
+[ "$CONNECTIONS" -le 8 ] || die "MCLS_CONNECTIONS=$CONNECTIONS is over the cap of 8 per host (PLAN 3.7)"
 [ -n "$DATASET" ] || die "MCLS_DATASET is not set (qsub -v MCLS_DATASET=name,...)"
 [ -n "$LIST" ] || die "MCLS_FILE_LIST is not set (qsub -v MCLS_FILE_LIST=/abs/path/list.txt,...)"
 [ -r "$LIST" ] || die "cannot read MCLS_FILE_LIST=$LIST (use an absolute path)"
@@ -71,8 +91,11 @@ OUT="${MCLS_OUT:-$HOME/mcls_data/prepared/$DATASET}"
 
 NAME="$(grep -v -e '^#' -e '^[[:space:]]*$' "$LIST" | sed -n "${TASK}p" | tr -d '\r')"
 [ -n "$NAME" ] || die "task $TASK: no line $TASK in $LIST (only $(grep -cv -e '^#' -e '^[[:space:]]*$' "$LIST") files)"
-STEM="$(basename "$NAME")"
-DEST="$OUT/$STEM"
+case "/$NAME/" in
+    *'/../'* | *'/./'* | //*) die "task $TASK: unsafe file name '$NAME' in $LIST" ;;
+esac
+KEY="${NAME##*/}"   # base name: where mcls.acquire puts the file; must match key_for() in scripts/merge_shards.py
+DEST="$OUT/$KEY"
 
 echo "task $TASK of job $JOB on $(hostname) at $(date)"
 echo "dataset=$DATASET file=$NAME connections=$CONNECTIONS"
@@ -98,8 +121,9 @@ for mod in mcls.acquire mcls.preprocess; do
 done
 
 # ---- node-local scratch ----------------------------------------------------
-export MCLS_RAW="/tmp/$USER/mcls_raw/$JOB.$TASK"
-WORK="/tmp/$USER/mcls_work/$JOB.$TASK"
+NODE_TMP="${MCLS_NODE_TMP:-/tmp/$USER}"
+export MCLS_RAW="$NODE_TMP/mcls_raw/$JOB.$TASK"
+WORK="$NODE_TMP/mcls_work/$JOB.$TASK"
 cleanup() {
     local rc=$?
     if [ "$rc" != 0 ] && [ "${MCLS_KEEP_FAILED:-0}" = "1" ]; then
@@ -110,15 +134,37 @@ cleanup() {
 }
 trap cleanup EXIT
 mkdir -p "$MCLS_RAW" "$WORK"
+
+# The dataset needs a loader and a taxonomy entry; find out before downloading.
+# mcls.sources.get only builds the Source here, it reads no files.
+if ! python -c 'import sys; from mcls.sources import get; get(sys.argv[1], root=sys.argv[2])' "$DATASET" "$MCLS_RAW"; then
+    echo "ERROR: mcls.sources.get('$DATASET') failed (no loader or no taxonomy entry); nothing was downloaded." >&2
+    exit 3
+fi
 echo "node /tmp:"
 df -h /tmp || true
 
 # ---- 1. fetch one file -----------------------------------------------------
 echo "[$(date +%T)] acquire"
-python -m mcls.acquire --dataset "$DATASET" --only "$NAME" --connections "$CONNECTIONS"
+ACQUIRE=(python -m mcls.acquire --dataset "$DATASET" --only "$NAME" --connections "$CONNECTIONS")
+if [ -n "$MAX_GB" ]; then ACQUIRE+=(--max-gb "$MAX_GB"); fi
+"${ACQUIRE[@]}"
+RAWFILE="$MCLS_RAW/$KEY"
+[ -f "$RAWFILE" ] || die "mcls.acquire exited 0 but $RAWFILE does not exist"
 du -sh "$MCLS_RAW" || true
 
-# ---- 2. preprocess (placeholder interface) ---------------------------------
+if [ "${MCLS_UNPACK:-0}" = "1" ]; then
+    ARCHIVE="$RAWFILE"
+    case "$KEY" in
+        *.zip) echo "[$(date +%T)] unzip"; python -m zipfile -e "$ARCHIVE" "$MCLS_RAW" ;;
+        *.tar | *.tar.gz | *.tgz) echo "[$(date +%T)] untar"; python -m tarfile --filter data -e "$ARCHIVE" "$MCLS_RAW" ;;
+        *) die "MCLS_UNPACK=1 but $NAME is not a .zip or .tar archive" ;;
+    esac
+    rm -f "$ARCHIVE"
+    du -sh "$MCLS_RAW" || true
+fi
+
+# ---- 2. preprocess ---------------------------------------------------------
 echo "[$(date +%T)] preprocess"
 python -m mcls.preprocess --dataset "$DATASET" --raw "$MCLS_RAW" --out "$WORK"
 
@@ -128,7 +174,7 @@ if [ -z "$(ls -A "$WORK")" ]; then
 fi
 echo "[$(date +%T)] copy outputs"
 mkdir -p "$OUT"
-STAGE="$OUT/.$STEM.partial.$JOB.$TASK"
+STAGE="$OUT/.$KEY.partial.$JOB.$TASK"
 rm -rf "$STAGE"
 mkdir -p "$STAGE"
 cp -R "$WORK/." "$STAGE/"

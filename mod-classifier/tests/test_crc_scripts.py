@@ -52,7 +52,7 @@ def test_shebang_and_strict_mode(script):
 def test_array_job_caps_concurrent_downloads():
     text = (ROOT / "crc" / "prepare_array.job").read_text()
     assert "#$ -tc 8" in text
-    assert "/tmp/$USER/mcls_raw" in text
+    assert "${MCLS_NODE_TMP:-/tmp/$USER}" in text and "/mcls_raw/" in text
     assert "--only" in text and "--connections" in text
 
 
