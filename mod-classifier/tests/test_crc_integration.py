@@ -45,6 +45,27 @@ name = "Group2/x.mat"
 url = "https://example.invalid/g2x"
 size = 10
 checksum = "md5:00"
+[[datasets.demo.files]]
+name = "load_bin.py"
+url = "https://example.invalid/l"
+size = 1
+checksum = "md5:00"
+
+[datasets.roles]
+access = "direct"
+files_status = "complete"
+[[datasets.roles.files]]
+name = "notes.txt"
+role = "data"
+url = "https://example.invalid/n"
+size = 1
+checksum = "md5:00"
+[[datasets.roles.files]]
+name = "raw.bin"
+role = "doc"
+url = "https://example.invalid/r"
+size = 1
+checksum = "md5:00"
 
 [datasets.login]
 access = "ieee_login"
@@ -148,6 +169,21 @@ def test_file_list_written_in_catalog_order(catalog, tmp_path, capsys):
     assert make_file_list.main(["demo", "--catalog", str(catalog), "--out", str(out)]) == 0
     assert out.read_text() == "a.bin\nGroup1/x.mat\nGroup2/x.mat\n"
     assert capsys.readouterr().out.strip() == "3"
+
+
+def test_doc_files_left_out_unless_keep_all(catalog, tmp_path, capsys):
+    out = tmp_path / "l.txt"
+    assert make_file_list.main(["demo", "--catalog", str(catalog), "--out", str(out)]) == 0
+    assert "load_bin.py" not in out.read_text()
+    assert "left out (documentation): load_bin.py" in capsys.readouterr().err
+    assert make_file_list.main(["demo", "--catalog", str(catalog), "--out", str(out), "--keep-all"]) == 0
+    assert out.read_text().splitlines()[-1] == "load_bin.py"
+
+
+def test_catalog_role_overrides_the_suffix_rule(catalog, tmp_path):
+    out = tmp_path / "l.txt"
+    assert make_file_list.main(["roles", "--catalog", str(catalog), "--out", str(out)]) == 0
+    assert out.read_text() == "notes.txt\n"
 
 
 def test_file_list_match(catalog, tmp_path):
@@ -262,6 +298,14 @@ for name in a.only:
     dest.write_bytes(b"raw")
 '''
 
+FAKE_SOURCES = '''
+import os
+def get(name, root=None):
+    if name != "demo":
+        raise KeyError(name)
+    assert not any(os.scandir(root)), "loader check must run before the download"
+'''
+
 FAKE_PREPROCESS = '''
 import argparse, json, pathlib
 p = argparse.ArgumentParser()
@@ -275,32 +319,46 @@ assert raws, "no raw file"
 '''
 
 
-@needs_bash
-def test_job_then_merge_end_to_end(tmp_path):
+STUB = "module() { return 0; }; export -f module; exec bash crc/prepare_array.job"
+
+
+def _sandbox(tmp_path, names, acquire=FAKE_ACQUIRE):
+    """A copy of the job with stand-in modules, a fake venv and module command. Returns (cwd, env)."""
     work = tmp_path / "mc"
     (work / "crc").mkdir(parents=True)
     shutil.copy(JOB, work / "crc")
     shutil.copy(ROOT / "crc" / "common.sh", work / "crc")
-    (work / "mcls").mkdir()
+    (work / "mcls" / "sources").mkdir(parents=True)
     (work / "mcls" / "__init__.py").write_text("")
-    (work / "mcls" / "acquire.py").write_text(FAKE_ACQUIRE)
+    (work / "mcls" / "sources" / "__init__.py").write_text(FAKE_SOURCES)
+    (work / "mcls" / "acquire.py").write_text(acquire)
     (work / "mcls" / "preprocess.py").write_text(FAKE_PREPROCESS)
     venv = tmp_path / "venv"
     (venv / "bin").mkdir(parents=True)
     (venv / "bin" / "activate").write_text(f'export PATH="{venv / "bin"}:$PATH"\n')
     (venv / "bin" / "python").symlink_to(sys.executable)
     lst = tmp_path / "files.txt"
-    lst.write_text("a.bin\nGroup1/x.mat\nGroup2/x.mat\n")
-    out = tmp_path / "prepared" / "demo"
-    node = tmp_path / "node"
-
+    lst.write_text("".join(f"{n}\n" for n in names))
     env = {k: v for k, v in os.environ.items() if not k.startswith(("MCLS_", "SGE_", "JOB_"))}
-    env.update(MCLS_DATASET="demo", MCLS_FILE_LIST=str(lst), MCLS_OUT=str(out), MCLS_VENV=str(venv),
-               MCLS_PYTHON_MODULE="python/3.12", MCLS_NODE_TMP=str(node), JOB_ID="7", USER="tester")
-    stub = "module() { return 0; }; export -f module; exec bash crc/prepare_array.job"
+    env.update(MCLS_DATASET="demo", MCLS_FILE_LIST=str(lst), MCLS_OUT=str(tmp_path / "prepared" / "demo"),
+               MCLS_VENV=str(venv), MCLS_PYTHON_MODULE="python/3.12", MCLS_NODE_TMP=str(tmp_path / "node"),
+               JOB_ID="7", USER="tester")
+    return work, env
+
+
+def _task(work, env, task):
+    env = dict(env, SGE_TASK_ID=str(task))
+    return subprocess.run([BASH, "-c", STUB], cwd=work, env=env, capture_output=True, text=True, timeout=60)
+
+
+@needs_bash
+def test_job_then_merge_end_to_end(tmp_path):
+    work, env = _sandbox(tmp_path, ["a.bin", "Group1/x.mat", "Group2/x.mat"])
+    lst = Path(env["MCLS_FILE_LIST"])
+    out = Path(env["MCLS_OUT"])
+    node = Path(env["MCLS_NODE_TMP"])
     for task in (1, 2, 3, 2):  # the repeated task must be skipped
-        env["SGE_TASK_ID"] = str(task)
-        result = subprocess.run([BASH, "-c", stub], cwd=work, env=env, capture_output=True, text=True, timeout=60)
+        result = _task(work, env, task)
         assert result.returncode == 0, result.stdout + result.stderr
     assert "already done" in result.stdout
     assert sorted(p.name for p in out.iterdir()) == ["Group1__x.mat", "Group2__x.mat", "a.bin"]
@@ -313,6 +371,32 @@ def test_job_then_merge_end_to_end(tmp_path):
     assert len(list(dest.rglob("*.jsonl"))) == 3
 
     # a task past the end of the list fails clearly
-    env["SGE_TASK_ID"] = "4"
-    result = subprocess.run([BASH, "-c", stub], cwd=work, env=env, capture_output=True, text=True, timeout=60)
+    result = _task(work, env, 4)
     assert result.returncode != 0 and "no line 4" in result.stderr
+
+
+@needs_bash
+def test_job_stops_before_download_without_a_loader(tmp_path):
+    work, env = _sandbox(tmp_path, ["a.bin"], acquire="raise SystemExit('acquire must not run')")
+    result = _task(work, dict(env, MCLS_DATASET="nope"), 1)
+    assert result.returncode == 3 and "nothing was downloaded" in result.stderr
+
+
+ZIP_ACQUIRE = '''
+import argparse, os, pathlib, zipfile
+p = argparse.ArgumentParser()
+p.add_argument("--dataset"); p.add_argument("--only", action="append")
+p.add_argument("--connections", type=int); p.add_argument("--max-gb", type=float)
+a = p.parse_args()
+with zipfile.ZipFile(pathlib.Path(os.environ["MCLS_RAW"]) / a.only[0], "w") as z:
+    z.writestr("rawdata/GPSL1@20MSps.bin", b"iq")
+'''
+
+
+@needs_bash
+def test_job_unpacks_an_archive_on_request(tmp_path):
+    work, env = _sandbox(tmp_path, ["rawdata.zip"], acquire=ZIP_ACQUIRE)
+    result = _task(work, dict(env, MCLS_UNPACK="1"), 1)
+    assert result.returncode == 0, result.stdout + result.stderr
+    rows = (Path(env["MCLS_OUT"]) / "rawdata.zip" / "rows.jsonl").read_text()
+    assert '"src": "rawdata/GPSL1@20MSps.bin"' in rows  # preprocess saw the contents, not the zip
