@@ -29,7 +29,8 @@ STAMP="$MCLS_VENV/mcls_requirements.sha256"
 [ -r "$REQUIREMENTS" ] || mcls_die "cannot read $REQUIREMENTS"
 
 mcls_heading "Python module"
-MODULE="$(mcls_load_python)"
+mcls_load_python
+MODULE="$MCLS_LOADED_MODULE"
 echo "loaded: $MODULE"
 mcls_have python3 || mcls_die "python3 not on PATH after module load $MODULE"
 PY_VERSION="$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])')"
@@ -45,7 +46,7 @@ else
     echo "created"
 fi
 echo "$MODULE" > "$MCLS_MODULE_FILE"
-mcls_activate_venv
+mcls_relaxed mcls_activate_venv
 
 mcls_heading "requirements"
 if mcls_have sha256sum; then

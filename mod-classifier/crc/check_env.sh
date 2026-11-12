@@ -76,7 +76,7 @@ try df -h /tmp
 for name in python cuda pytorch; do
     mcls_heading "module avail $name"
     if mcls_init_modules; then
-        module avail "$name" 2>&1 || echo "(module avail $name failed)"
+        mcls_relaxed module avail "$name" 2>&1 || echo "(module avail $name failed)"
     else
         echo "(the 'module' command is not available)"
     fi
