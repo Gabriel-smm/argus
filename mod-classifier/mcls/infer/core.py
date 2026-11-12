@@ -2,13 +2,16 @@
 
 Order of operations, per burst (PLAN 5.5 and 5.7):
 
-1. Take the burst's samples, widened to at least one window when the burst is
-   shorter, and bring them to 20 MS/s with Engineer 4's front end
-   (`mcls.frontend.channelize.to_20msps`), centred on the burst when the
-   recording is wider than 20 MHz. A 20 MS/s recording is used as it is.
-2. Cut 4096-sample windows with a 2048-sample hop (the training windowing),
-   keep at most `max_windows` spread evenly over the burst, normalise each to
-   unit RMS.
+1. Take the burst's samples plus one window of context each side and bring
+   them to 20 MS/s with Engineer 4's `Channelizer`, centred on the burst when
+   the recording is wider than 20 MHz (narrower ones are only resampled, as in
+   training). The resampler's start-up lag is taken into account when mapping
+   the burst's times to 20 MS/s sample indices.
+2. Cut windows with Engineer 4's `burst_windows` (4096 samples, hop 2048, the
+   activity test, at most `max_windows` spread over the burst) and normalise
+   them to unit RMS (`cut`). The activity test's floor comes from the excerpt,
+   not from a 0.21 s block as in training; when it rejects every window, the
+   burst's windows are used unfiltered so every burst gets a class.
 3. Logits per window (`classifier.logits` when it has one, else
    log(`classifier.classify`)), divided by the temperature.
 4. Average the windows' logits (as Engineer 8's burst-level evaluation does,
@@ -38,10 +41,11 @@ from mcls.infer.priors import BandPriors
 UNKNOWN = "unknown"
 #: Training windows overlap by half (Engineer 4, e4.md).
 HOP = WINDOW_SAMPLES // 2
-#: Training cut at most 8 windows per burst (e4.md, --max-windows-per-burst default).
+#: Windows per burst at inference, for latency (PLAN 6.2: 50 ms per burst). Training keeps
+#: up to 64 (e4's default); burst-level evaluation should use the same cap as here.
 MAX_WINDOWS = 8
 
-#: to_20msps(iq, sample_rate_hz, offset_hz) -> complex64 at SAMPLE_RATE_HZ
+#: For tests: resample(iq, sample_rate_hz, offset_hz) -> complex64 at SAMPLE_RATE_HZ, assumed lag-free.
 Resampler = Callable[[np.ndarray, float, float | None], np.ndarray]
 
 
@@ -61,19 +65,32 @@ class BurstClass:
         }
 
 
-def _default_resampler(iq: np.ndarray, sample_rate_hz: float, offset_hz: float | None) -> np.ndarray:
-    from mcls.frontend.channelize import to_20msps  # Engineer 4
+def to_rate(iq: np.ndarray, sample_rate_hz: float, offset_hz: float,
+            resample: Resampler | None = None) -> tuple[np.ndarray, Callable[[float], float]]:
+    """(samples at 20 MS/s, map from an input sample index to the matching 20 MS/s index).
 
-    return to_20msps(iq, sample_rate_hz, offset_hz)
-
-
-def to_rate(iq: np.ndarray, sample_rate_hz: float, offset_hz: float, resample: Resampler | None) -> np.ndarray:
-    """Samples at 20 MS/s. Wider recordings are centred on `offset_hz` (the burst); narrower ones only resampled."""
+    Wider recordings are centred on `offset_hz` (the burst); narrower ones only
+    resampled, as Engineer 4's front end does in training.
+    """
+    ratio = SAMPLE_RATE_HZ / sample_rate_hz
     if sample_rate_hz == SAMPLE_RATE_HZ:
-        return np.ascontiguousarray(iq, dtype=SAMPLE_DTYPE)
-    resample = resample or _default_resampler
-    offset = offset_hz if sample_rate_hz > SAMPLE_RATE_HZ else None
-    return np.ascontiguousarray(resample(iq, sample_rate_hz, offset), dtype=SAMPLE_DTYPE)
+        return np.ascontiguousarray(iq, dtype=SAMPLE_DTYPE), lambda s: float(s)
+    offset = offset_hz if sample_rate_hz > SAMPLE_RATE_HZ else 0.0
+    if resample is not None:
+        return np.ascontiguousarray(resample(iq, sample_rate_hz, offset or None), dtype=SAMPLE_DTYPE), lambda s: s * ratio
+    from mcls.frontend.channelize import Channelizer  # Engineer 4
+
+    ch = Channelizer(sample_rate_hz, offset)
+    out = np.concatenate([ch.process(np.asarray(iq, dtype=SAMPLE_DTYPE)), ch.flush()])
+    r = ch.resampler
+    if r is None:
+        return out, lambda s: s * ratio
+    # Output m sits at upsampled index first_j + m * down, i.e. input sample (first_j + m * down - delay) / up
+    # (mcls.frontend.resample.RationalResampler); the start-up transient is dropped.
+    ntaps = len(r.taps)
+    first_j = -(-(ntaps - 1) // r.down) * r.down
+    delay = (ntaps - 1) / 2
+    return out, lambda s: (s * r.up + delay - first_j) / r.down
 
 
 def normalize(windows: np.ndarray) -> np.ndarray:
@@ -82,8 +99,15 @@ def normalize(windows: np.ndarray) -> np.ndarray:
     return (windows / np.where(rms > 0, rms, 1.0)).astype(SAMPLE_DTYPE)
 
 
-def burst_windows(iq20: np.ndarray, max_windows: int = MAX_WINDOWS) -> np.ndarray:
-    """(n, 4096) unit-RMS windows over a 20 MS/s stretch; one zero-padded window when it is shorter."""
+def burst_windows(iq20: np.ndarray, start: int | None = None, end: int | None = None,
+                  max_windows: int = MAX_WINDOWS) -> np.ndarray:
+    """(n, 4096) unit-RMS windows of the burst iq20[start:end], cut as Engineer 4 cuts training windows.
+
+    Falls back to the unfiltered windows when the activity test rejects all, and
+    to one zero-padded window when iq20 is shorter than a window.
+    """
+    from mcls.frontend import windows as W  # Engineer 4
+
     n = len(iq20)
     if n == 0:
         return np.zeros((0, WINDOW_SAMPLES), dtype=SAMPLE_DTYPE)
@@ -91,10 +115,16 @@ def burst_windows(iq20: np.ndarray, max_windows: int = MAX_WINDOWS) -> np.ndarra
         padded = np.zeros(WINDOW_SAMPLES, dtype=SAMPLE_DTYPE)
         padded[:n] = iq20
         return normalize(padded[None, :])
-    starts = np.arange(0, n - WINDOW_SAMPLES + 1, HOP)
-    if len(starts) > max_windows:
-        starts = starts[np.round(np.linspace(0, len(starts) - 1, max_windows)).astype(int)]
-    return normalize(np.stack([iq20[s : s + WINDOW_SAMPLES] for s in starts]))
+    start = 0 if start is None else int(min(max(start, 0), n))
+    end = n if end is None else int(min(max(end, start), n))
+    burst = {"start": start, "end": end}
+    wins, _ = W.burst_windows(iq20, [burst], max_windows)
+    if not wins:
+        starts = W.burst_starts(start, end, n, n)
+        if len(starts) > max_windows:
+            starts = [starts[i] for i in np.unique(np.linspace(0, len(starts) - 1, max_windows).round().astype(int))]
+        wins = [W.Window(s, burst) for s in starts]
+    return W.cut(iq20, wins)
 
 
 def window_logits(classifier: Classifier, windows: np.ndarray) -> np.ndarray:
@@ -134,8 +164,8 @@ def aggregate(logits: np.ndarray, classes: Sequence[str], *, temperature: float 
 
 
 def _span(burst: dict, sample_rate_hz: float, total: int) -> tuple[int, int]:
-    """Native-rate sample range of a burst, widened around its middle to cover at least one window."""
-    start = max(0, int(math.floor(burst.get("start_s", 0.0) * sample_rate_hz)))
+    """Native-rate sample range [start, end) of a burst."""
+    start = min(total, max(0, int(math.floor(burst.get("start_s", 0.0) * sample_rate_hz))))
     end_s = burst.get("end_s")
     if end_s is None and burst.get("burst_duration_s") is not None:
         end_s = burst.get("start_s", 0.0) + burst["burst_duration_s"]
@@ -144,15 +174,7 @@ def _span(burst: dict, sample_rate_hz: float, total: int) -> tuple[int, int]:
         end = start + int(math.ceil((WINDOW_SAMPLES + (MAX_WINDOWS - 1) * HOP) * sample_rate_hz / SAMPLE_RATE_HZ))
     else:
         end = int(math.ceil(end_s * sample_rate_hz))
-    end = min(total, max(end, start + 1))
-    # One window at 20 MS/s, plus a little for the resampler's edges.
-    need = int(math.ceil(WINDOW_SAMPLES * sample_rate_hz / SAMPLE_RATE_HZ)) + 64
-    if end - start < need:
-        middle = (start + end) // 2
-        start = max(0, middle - need // 2)
-        end = min(total, start + need)
-        start = max(0, end - need)
-    return start, end
+    return start, min(total, max(end, start + 1))
 
 
 def classify_bursts(iq: np.ndarray, sample_rate_hz: float, center_frequency_hz: float, bursts: Sequence[dict],
@@ -169,11 +191,16 @@ def classify_bursts(iq: np.ndarray, sample_rate_hz: float, center_frequency_hz: 
     calibration = calibration or Calibration()
     classes = tuple(classifier.classes)
     results = []
+    # Context each side: one window at 20 MS/s plus room for the resampler's start-up transient.
+    pad = int(math.ceil(WINDOW_SAMPLES * sample_rate_hz / SAMPLE_RATE_HZ)) + 256
     for burst in bursts:
         lo, hi = _span(burst, sample_rate_hz, len(iq))
+        ctx_lo, ctx_hi = max(0, lo - pad), min(len(iq), hi + pad)
         burst_hz = float(burst.get("center_frequency_hz", center_frequency_hz))
-        iq20 = to_rate(iq[lo:hi], sample_rate_hz, burst_hz - center_frequency_hz, resample)
-        windows = burst_windows(iq20, max_windows)
+        iq20, index = to_rate(iq[ctx_lo:ctx_hi], sample_rate_hz, burst_hz - center_frequency_hz, resample)
+        start20 = int(math.floor(index(lo - ctx_lo)))
+        end20 = int(math.ceil(index(hi - ctx_lo)))
+        windows = burst_windows(iq20, start20, end20, max_windows)
         logits = window_logits(classifier, windows) if len(windows) else np.zeros((0, len(classes)))
         prior = priors.for_frequency(burst_hz, classes) if priors is not None else None
         results.append(aggregate(logits, classes, temperature=calibration.temperature, prior=prior,

@@ -163,6 +163,16 @@ def test_classify_refusals(tmp_path, capsys):
     assert "calibration" in capsys.readouterr().err
 
 
+def test_classify_at_another_rate_and_sigmf(tmp_path):
+    """2 MS/s raw and a two-capture SigMF go through Engineer 4's resampler; every burst gets a class."""
+    model = baseline_run(tmp_path / "run")
+    raw = run([str(raw_file(tmp_path)), "--sample-rate", "2M", "--center-freq", "433.92M", "--classify", "--model", str(model)],
+              tmp_path, "raw.jsonl")
+    sig = run([str(sigmf_file(tmp_path)), "--classify", "--model", str(model)], tmp_path, "sig.jsonl")
+    for text in (raw, sig):
+        rows = [json.loads(line) for line in text.decode().splitlines()]
+        assert rows and all(r["signal_class"] in (*CLASSES, "unknown") for r in rows)
+
 def test_import_of_ingest_does_not_import_mcls_or_torch():
     import subprocess
 

@@ -292,3 +292,31 @@ def test_reads_calibration_written_by_the_evaluator(tmp_path):
     cal = load_calibration(tmp_path)
     assert cal.temperature == written["temperature"]
     assert cal.unknown_threshold == written["unknown_threshold"]["value"]
+
+
+@pytest.mark.parametrize("rate, offset", [(10e6, 0.0), (40e6, 0.0), (30e6, 2e6)])
+def test_index_map_accounts_for_resampler_lag(rate, offset):
+    from mcls.infer.core import to_rate
+
+    n, s0 = 60_000, 31_000
+    x = np.zeros(n, np.complex64)
+    x[s0:] = 1.0  # a step at input sample s0 (DC: survives the slice shift's low-pass for offset 0)
+    if offset:
+        x[s0:] = np.exp(2j * np.pi * offset * np.arange(n - s0) / rate).astype(np.complex64)
+    y, index = to_rate(x, rate, offset)
+    step = int(np.argmax(np.abs(y) > 0.5))
+    assert abs(step - index(s0)) <= 2
+
+
+def test_windows_skip_quiet_gaps_inside_a_burst():
+    rng = np.random.default_rng(4)
+    iq = (0.001 * (rng.standard_normal(200_000) + 1j * rng.standard_normal(200_000))).astype(np.complex64)
+    iq[20_000:40_000] = tone(20_000)       # on
+    iq[140_000:160_000] = tone(20_000)     # on again; 100k-sample gap between
+    clf = FixedLogits([1, 0, 0, 0])
+    classify_bursts(iq, FS, 2.4e9, [{"start_s": 20_000 / FS, "end_s": 160_000 / FS}], clf, max_windows=64)
+    seen = clf.seen[0]
+    # 67 hop positions span the burst; only the ~20 touching the two tones pass e4's activity test.
+    assert 4 <= len(seen) <= 24
+    flat = np.std(np.abs(seen), axis=1) / np.mean(np.abs(seen), axis=1)
+    assert np.median(flat) < 0.1  # most kept windows are pure tone, none of the gap
