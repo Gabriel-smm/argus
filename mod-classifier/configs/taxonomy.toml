@@ -40,14 +40,13 @@ default_strength = "strong"
 # DJI Mavic Mini (2019): "Video Transmission System: Enhanced Wi-Fi"; remote
 # controller MR1SD25 2.400-2.4835 / 5.725-5.850 GHz.
 # https://www.dji.com/support/product/mavic-mini (also /ph/support/product/mavic-mini)
-# Strong: the manufacturer names the link Wi-Fi and the chamber holds only the
-# drone and its controller. Open point: no filing opened confirms 802.11
-# framing (the FCC grant for the 5.8 GHz controller lists 5/20/40 MHz modes,
-# https://fccid.io/SS3-MR1SS51905, but names no standard).
+# Weak: the manufacturer names the link Wi-Fi, but no filing opened confirms
+# 802.11 framing (the FCC grant for the 5.8 GHz controller lists 5/20/40 MHz
+# modes, https://fccid.io/SS3-MR1SS51905, but names no standard).
 [[datasets.tampere.overrides]]
 match = "DJI_mavic_mini"
 label = "wifi"
-strength = "strong"
+strength = "weak"
 emitter_id = "DJI_mavic_mini"
 note = "DJI 'Enhanced Wi-Fi' link; 802.11 conformance not confirmed by a filing"
 
