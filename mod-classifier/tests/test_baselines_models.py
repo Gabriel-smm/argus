@@ -93,6 +93,22 @@ def test_build_rejects_unknown_models():
         models.build("cnn1d", 2)
 
 
+def test_balanced_subsample_is_equal_per_class_and_seeded():
+    y = np.array([0] * 10 + [1] * 3 + [2] * 5)
+    keep = models.balanced_subsample(y, seed=1)
+    assert np.bincount(y[keep]).tolist() == [3, 3, 3]
+    assert np.array_equal(keep, models.balanced_subsample(y, seed=1))
+    assert np.all(np.diff(keep) > 0)
+
+
+def test_knn_balanced_option_fits_on_equal_classes():
+    pytest.importorskip("sklearn")
+    X, y = blobs(seed=10, n=40)
+    X, y = X[: 25], y[: 25]  # 13 of class 0, 12 of class 1
+    model = models.KNN(2, seed=0, params={"balanced_sampler": True}).fit(X, y)
+    assert model.model.n_samples_fit_ == 24
+
+
 def test_knn_picks_k_and_covers_absent_classes():
     pytest.importorskip("sklearn")
     X, y = blobs(seed=6)
