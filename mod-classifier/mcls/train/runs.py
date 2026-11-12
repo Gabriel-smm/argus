@@ -59,15 +59,16 @@ def sha256_file(path: Path) -> str:
 
 
 def git_commit(cwd: Path | None = None) -> str:
-    """HEAD's hash, with "-dirty" when tracked files differ; "unknown" outside a git checkout."""
+    """HEAD's hash, or "unknown" outside a git checkout.
+
+    Same rule as mcls.baselines.run.git_commit, so meta.json is identical
+    whichever of the two writes it (Engineer 6 checks an existing meta.json).
+    """
     try:
-        head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=cwd, capture_output=True, text=True, check=True)
-        dirty = subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"], cwd=cwd,
-                               capture_output=True, text=True, check=True)
-    except (OSError, subprocess.CalledProcessError):
+        head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=cwd, capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.SubprocessError):
         return "unknown"
-    commit = head.stdout.strip()
-    return f"{commit}-dirty" if dirty.stdout.strip() else commit
+    return head.stdout.strip() if head.returncode == 0 else "unknown"
 
 
 def class_list(config: dict) -> list[str]:
@@ -83,7 +84,7 @@ def build_meta(config: dict, classes: list[str]) -> dict:
     return {
         "git_commit": git_commit(Path(__file__).resolve().parent),
         "manifest_sha256": sha256_file(manifest),
-        "seed": config["run"]["seed"],
+        "seed": int(config["run"]["seed"]),
         "classes": list(classes),
         "model": config["model"]["name"],
         "created": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),

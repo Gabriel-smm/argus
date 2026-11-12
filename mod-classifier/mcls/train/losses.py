@@ -13,7 +13,7 @@ from __future__ import annotations
 import torch
 import torch.nn.functional as F
 
-LOSSES = ("ce", "focal")
+LOSSES = ("cross_entropy", "focal")  # the names mcls.config.LOSSES accepts
 
 
 def _weighted_mean(values: torch.Tensor, weight: torch.Tensor | None) -> torch.Tensor:
@@ -24,11 +24,11 @@ def _weighted_mean(values: torch.Tensor, weight: torch.Tensor | None) -> torch.T
 
 
 def classification_loss(logits: torch.Tensor, target: torch.Tensor, weight: torch.Tensor | None = None,
-                        label_smoothing: float = 0.1, kind: str = "ce", focal_gamma: float = 2.0) -> torch.Tensor:
+                        label_smoothing: float = 0.1, kind: str = "cross_entropy", focal_gamma: float = 2.0) -> torch.Tensor:
     if kind not in LOSSES:
         raise ValueError(f"unknown loss {kind!r}; expected one of {LOSSES}")
     logits = logits.float()
-    if kind == "ce":
+    if kind == "cross_entropy":
         per_row = F.cross_entropy(logits, target, reduction="none", label_smoothing=label_smoothing)
         return _weighted_mean(per_row, weight)
     log_p = F.log_softmax(logits, dim=1)
