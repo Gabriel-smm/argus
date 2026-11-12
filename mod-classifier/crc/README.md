@@ -82,7 +82,7 @@ N=$(grep -cv -e '^#' -e '^[[:space:]]*$' files_tampere.txt)
 qsub -t 1-$N -v MCLS_DATASET=tampere,MCLS_FILE_LIST=$PWD/files_tampere.txt crc/prepare_array.job
 ```
 
-`MCLS_OUT` defaults to `$HOME/mcls_data/prepared/<dataset>`; `MCLS_CONNECTIONS` defaults to 4. `#$ -tc 8` lets at most 8 tasks run (and download from Zenodo) at once, so 32 connections at the default; lower it with `qsub -tc 4 ...` if Zenodo starts refusing. A rerun skips files whose output has a `DONE` marker. Set `MCLS_KEEP_FAILED=1` to keep a failed task's files in `/tmp` for debugging.
+`MCLS_OUT` defaults to `$HOME/mcls_data/prepared/<dataset>`; `MCLS_CONNECTIONS` defaults to 1. `#$ -tc 8` lets at most 8 tasks run (and download from Zenodo) at once, so about 8 connections in total, the cap in PLAN.md. Keep tasks x connections near 8: if you raise `MCLS_CONNECTIONS`, lower `-tc` (for example `MCLS_CONNECTIONS=4` with `qsub -tc 2`). A rerun skips files whose output has a `DONE` marker. Set `MCLS_KEEP_FAILED=1` to keep a failed task's files in `/tmp` for debugging.
 
 ## What to send back to the orchestrator
 

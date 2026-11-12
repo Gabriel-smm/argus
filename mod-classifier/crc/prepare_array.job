@@ -24,7 +24,7 @@
 #   MCLS_DATASET       required. Dataset name, as mcls.acquire and mcls.preprocess know it
 #   MCLS_FILE_LIST     required. Absolute path of a text file, one raw file name per line
 #   MCLS_OUT           output dir  (default $HOME/mcls_data/prepared/$MCLS_DATASET)
-#   MCLS_CONNECTIONS   parallel byte ranges per file for mcls.acquire (default 4)
+#   MCLS_CONNECTIONS   parallel byte ranges per file for mcls.acquire (default 1)
 #   MCLS_VENV          venv built by setup_env.sh (default $HOME/venvs/mcls)
 #   MCLS_KEEP_FAILED=1 keep raw and scratch of a failed task in /tmp for debugging
 #
@@ -32,8 +32,9 @@
 #   python -m mcls.acquire --dataset D --only NAME --connections N   (writes into $MCLS_RAW)
 #   python -m mcls.preprocess --dataset D --raw DIR --out DIR         (placeholder: not written yet)
 #
-# -tc 8 caps running tasks at 8, so at most 8 files download from the same host
-# at once (8 x MCLS_CONNECTIONS connections in total). Lower it with qsub -tc.
+# -tc 8 caps running tasks at 8 and MCLS_CONNECTIONS defaults to 1, so about 8
+# connections hit the same host at once (the plan's cap). Keep tasks x connections
+# near 8: if you raise MCLS_CONNECTIONS, lower qsub -tc to match.
 #
 #$ -N mcls_prepare
 #$ -q long
@@ -62,7 +63,7 @@ esac
 JOB="${JOB_ID:-local}"
 DATASET="${MCLS_DATASET:-}"
 LIST="${MCLS_FILE_LIST:-}"
-CONNECTIONS="${MCLS_CONNECTIONS:-4}"
+CONNECTIONS="${MCLS_CONNECTIONS:-1}"
 [ -n "$DATASET" ] || die "MCLS_DATASET is not set (qsub -v MCLS_DATASET=name,...)"
 [ -n "$LIST" ] || die "MCLS_FILE_LIST is not set (qsub -v MCLS_FILE_LIST=/abs/path/list.txt,...)"
 [ -r "$LIST" ] || die "cannot read MCLS_FILE_LIST=$LIST (use an absolute path)"
