@@ -273,3 +273,22 @@ def test_load_classifier_errors_are_clear(tmp_path):
     (tmp_path / "x.onnx").write_bytes(b"")
     with pytest.raises(ValueError):
         load_classifier(tmp_path / "x.onnx")
+
+
+def test_reads_calibration_written_by_the_evaluator(tmp_path):
+    from mcls.evaluate import calibrate
+
+    rng = np.random.default_rng(3)
+    labels = rng.integers(0, 4, 400)
+    logits = rng.normal(0, 1, (400, 4))
+    logits[np.arange(400), labels] += 2.5
+    meta = {"classes": list(CLASSES), "manifest_sha256": "0" * 64, "git_commit": "x", "seed": 0, "model": "fake",
+            "created": "2026-11-12T00:00:00+00:00"}
+    (tmp_path / "meta.json").write_text(json.dumps(meta))
+    np.savez(tmp_path / "predictions_val.npz", window_id=np.array([f"w{i}" for i in range(400)]),
+             recording_id=np.array([f"r{i % 20}" for i in range(400)]), label=labels.astype(np.int64),
+             logits=logits.astype(np.float32), snr_db_est=np.full(400, np.nan, np.float32))
+    written = calibrate.run(tmp_path)
+    cal = load_calibration(tmp_path)
+    assert cal.temperature == written["temperature"]
+    assert cal.unknown_threshold == written["unknown_threshold"]["value"]
