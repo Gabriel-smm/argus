@@ -66,9 +66,14 @@ def test_existing_good_file_is_kept(url, tmp_path):
 def test_stream_download_sha256(url, tmp_path, monkeypatch):
     monkeypatch.setattr(fetch.time, "sleep", lambda s: None)
     assert fetch.stream_download(url, tmp_path / "f", len(PAYLOAD), sha256=GOOD, progress=False).read_bytes() == PAYLOAD
-    with pytest.raises(IOError, match="sha256"):
+
+
+def test_stream_download_mismatch_keeps_bad_file(url, tmp_path):
+    """No resume on single-stream hosts: a mismatched download is kept as <name>.bad, not deleted."""
+    with pytest.raises(IOError, match=r"sha256 .* kept as .*g\.bad .*not deleted"):
         fetch.stream_download(url, tmp_path / "g", len(PAYLOAD), sha256="2" * 64, progress=False)
     assert not (tmp_path / "g").exists() and not (tmp_path / "g.tmp").exists()
+    assert (tmp_path / "g.bad").read_bytes() == PAYLOAD
 
 
 @pytest.mark.parametrize(

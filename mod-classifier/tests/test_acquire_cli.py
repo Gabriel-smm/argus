@@ -99,6 +99,7 @@ url = "{base_url}/a.bin"
 
 [[datasets.demo.files]]
 name = "b.bin"
+role = "metadata"
 size = {len(PAYLOAD_B)}
 checksum = "md5:{md5_b}"
 url = "{base_url}/b.bin"
@@ -153,6 +154,8 @@ def test_list_prints_files_and_sizes(env, capsys):
     assert run(catalog, "--dataset", "demo", "--list") == 0
     out = capsys.readouterr().out
     assert "sub/dir/a.bin" in out and "b.bin" in out and "in 2 files" in out
+    lines = {line.split()[-1]: line.split()[2] for line in out.splitlines() if " MB " in line}
+    assert lines == {"sub/dir/a.bin": "data", "b.bin": "metadata"}
     assert handler.requests == [] and not raw.exists()
 
 

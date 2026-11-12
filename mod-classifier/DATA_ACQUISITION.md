@@ -24,7 +24,9 @@ python -m mcls.acquire --dataset nist_wifi_bt --only 2_4ghz_indoor.h5 --max-gb 2
 
 **Where files land:** in `$MCLS_RAW` itself when that variable is set (a CRC task's node `/tmp`, see `crc/prepare_array.job`), otherwise in `data/raw/<dataset>/`. Only the file's base name is kept, so NIST radar's `SimulatedRadarWaveforms/Group1/group1_subset_2.mat` lands as `group1_subset_2.mat` (base names are unique within each dataset; a test checks this).
 
-**Checks:** each file must match the catalog's size and checksum (md5 for Zenodo, sha256 for NIST, Mendeley and Fairdata) or it is deleted. A file already present and verified is not fetched again. An interrupted ranged download resumes from its part files.
+**Roles:** each catalog file has an optional `role`: `data` (a recording, the default), `metadata` (label tables, calibration and noise-floor CSVs, LoRaIQ's `dataset.csv`) or `doc` (readers, scripts, figures, instructions). `--list` prints it. `scripts/make_file_list.py` leaves out `doc` files.
+
+**Checks:** each file must match the catalog's size and checksum (md5 for Zenodo, sha256 for NIST, Mendeley and Fairdata). A ranged download that fails is deleted and refetched from its parts. A single-stream download (Fairdata) that fails is kept as `<name>.bad` with a message, not deleted, because it cannot resume and fetching it again costs the whole file (up to 72 GB). A file already present and verified is not fetched again. An interrupted ranged download resumes from its part files.
 
 **Exit codes:** 0 done; 1 download or checksum failed; 2 refused (unknown dataset or file, access not direct, file list unknown, over `--max-gb`).
 
