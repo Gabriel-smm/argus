@@ -21,6 +21,7 @@ BASH = shutil.which("bash")
 sys.path.insert(0, str(ROOT / "scripts"))
 import make_file_list  # noqa: E402
 import merge_shards  # noqa: E402
+import space_needed  # noqa: E402
 
 sys.path.pop(0)
 
@@ -43,7 +44,7 @@ def _dataset(name, files, access="direct", status="complete", **extra):
 CATALOG = "\n".join([
     "[hosts.zenodo]\nmax_connections = 8\nsupports_range = true\nnote = \"\"\n",
     _dataset("demo", [("a.bin",), ("Group1/x.mat",), ("Group2/y.mat",), ("load_bin.py",)]),
-    _dataset("roles", [("notes.txt", "data"), ("raw.bin", "doc")]),
+    _dataset("roles", [("notes.txt", "data"), ("raw.bin", "doc"), ("labels.csv", "metadata"), ("plain.bin",)]),
     _dataset("login", [("b.bin",)], access="ieee_login"),
     _dataset("partial", [], status="unknown"),
 ])
@@ -136,15 +137,44 @@ def test_doc_files_left_out_unless_keep_all(catalog, tmp_path, capsys):
     out = tmp_path / "l.txt"
     assert make_file_list.main(["demo", "--catalog", str(catalog), "--out", str(out)]) == 0
     assert "load_bin.py" not in out.read_text()
-    assert "left out (documentation): load_bin.py" in capsys.readouterr().err
+    assert "left out (no role, documentation suffix): load_bin.py" in capsys.readouterr().err
     assert make_file_list.main(["demo", "--catalog", str(catalog), "--out", str(out), "--keep-all"]) == 0
     assert out.read_text().splitlines()[-1] == "load_bin.py"
 
 
-def test_catalog_role_overrides_the_suffix_rule(catalog, tmp_path):
+def test_only_data_role_is_listed(catalog, tmp_path, capsys):
     out = tmp_path / "l.txt"
     assert make_file_list.main(["roles", "--catalog", str(catalog), "--out", str(out)]) == 0
-    assert out.read_text() == "notes.txt\n"
+    assert out.read_text() == "notes.txt\nplain.bin\n"  # role data wins over the suffix; no role = data
+    err = capsys.readouterr().err
+    assert "left out (role=doc): raw.bin" in err and "left out (role=metadata): labels.csv" in err
+
+
+def test_real_catalog_needs_no_match_for_loraiq_and_drexel():
+    catalog = make_file_list.load_catalog(make_file_list.DEFAULT_CATALOG)
+    for dataset in ("loraiq", "drexel_cbrs_radar"):
+        names = make_file_list.file_names(catalog, dataset)
+        roles = {f["name"]: f.get("role", "data") for f in catalog["datasets"][dataset]["files"]}
+        assert names and all(roles[n] == "data" for n in names), (dataset, names)
+
+
+# ---- space_needed ----------------------------------------------------------
+
+SPACE_CATALOG = {"datasets": {"g": {"files": [
+    {"name": "rawdata.zip", "size": 100},
+    {"name": "sub/sized.zip", "size": 100, "unpacked_size": 250},
+]}}}
+
+
+def test_space_needed_counts_the_file_and_extracted_size():
+    need = space_needed.needed_bytes
+    assert need(SPACE_CATALOG, "g", "rawdata.zip") == 100
+    assert need(SPACE_CATALOG, "g", "sized.zip", unpack=True) == 350  # base name accepted, as by acquire --only
+    assert need(SPACE_CATALOG, "g", "rawdata.zip", unpack=True, unpacked_gb=1) == 100 + 10**9
+    with pytest.raises(ValueError, match="unpacked_size"):
+        need(SPACE_CATALOG, "g", "rawdata.zip", unpack=True)
+    with pytest.raises(ValueError):
+        need(SPACE_CATALOG, "g", "nope.zip")
 
 
 def test_file_list_match(catalog, tmp_path):
@@ -245,16 +275,39 @@ def test_key_matches_the_job():
 
 # ---- the whole chain, locally, with stand-in modules -----------------------
 
-FAKE_ACQUIRE = '''
-import argparse, os, pathlib
-p = argparse.ArgumentParser()
-p.add_argument("--dataset"); p.add_argument("--only", action="append")
-p.add_argument("--connections", type=int); p.add_argument("--max-gb", type=float)
-a = p.parse_args()
+ACQUIRE_HEAD = '''
+import argparse, os, pathlib, tomllib, zipfile
+def load_catalog(path=None):
+    path = path or pathlib.Path(__file__).resolve().parents[1] / "configs" / "catalog.toml"
+    return tomllib.loads(pathlib.Path(path).read_text())
+def args():
+    p = argparse.ArgumentParser()
+    p.add_argument("--dataset"); p.add_argument("--only", action="append")
+    p.add_argument("--connections", type=int); p.add_argument("--max-gb", type=float)
+    return p.parse_args()
+'''
+
+
+def _acquire(body):
+    return ACQUIRE_HEAD + "if __name__ == '__main__':\n" + "".join(f"    {line}\n" for line in body.splitlines())
+
+
+FAKE_ACQUIRE = _acquire('''a = args()
 assert a.connections == 1, a.connections
 for name in a.only:
-    (pathlib.Path(os.environ["MCLS_RAW"]) / pathlib.PurePosixPath(name).name).write_bytes(b"raw")  # base name, as e2
+    (pathlib.Path(os.environ["MCLS_RAW"]) / pathlib.PurePosixPath(name).name).write_bytes(b"raw")''')
+
+FAKE_DF = '''#!/bin/bash
+echo "Filesystem 1024-blocks Used Available Capacity Mounted on"
+echo "fake 999999999 1 ${FAKE_DF_AVAIL_KB:-999999999} 1% /tmp"
 '''
+
+
+def _sandbox_catalog(unpacked_size=None):
+    extra = f"unpacked_size = {unpacked_size}\n" if unpacked_size else ""
+    files = "".join(f'[[datasets.demo.files]]\nname = "{n}"\nsize = 1000000\n' + (extra if n.endswith(".zip") else "")
+                    for n in ("a.bin", "Group1/x.mat", "Group2/y.mat", "rawdata.zip"))
+    return "[datasets.demo]\n" + files
 
 FAKE_SOURCES = '''
 import os
@@ -280,12 +333,16 @@ assert raws, "no raw file"
 STUB = "module() { return 0; }; export -f module; exec bash crc/prepare_array.job"
 
 
-def _sandbox(tmp_path, names, acquire=FAKE_ACQUIRE):
+def _sandbox(tmp_path, names, acquire=FAKE_ACQUIRE, unpacked_size=None):
     """A copy of the job with stand-in modules, a fake venv and module command. Returns (cwd, env)."""
     work = tmp_path / "mc"
     (work / "crc").mkdir(parents=True)
     shutil.copy(JOB, work / "crc")
     shutil.copy(ROOT / "crc" / "common.sh", work / "crc")
+    (work / "scripts").mkdir()
+    shutil.copy(ROOT / "scripts" / "space_needed.py", work / "scripts")
+    (work / "configs").mkdir()
+    (work / "configs" / "catalog.toml").write_text(_sandbox_catalog(unpacked_size))
     (work / "mcls" / "sources").mkdir(parents=True)
     (work / "mcls" / "__init__.py").write_text("")
     (work / "mcls" / "sources" / "__init__.py").write_text(FAKE_SOURCES)
@@ -295,6 +352,8 @@ def _sandbox(tmp_path, names, acquire=FAKE_ACQUIRE):
     (venv / "bin").mkdir(parents=True)
     (venv / "bin" / "activate").write_text(f'export PATH="{venv / "bin"}:$PATH"\n')
     (venv / "bin" / "python").symlink_to(sys.executable)
+    (venv / "bin" / "df").write_text(FAKE_DF)
+    (venv / "bin" / "df").chmod(0o755)
     lst = tmp_path / "files.txt"
     lst.write_text("".join(f"{n}\n" for n in names))
     env = {k: v for k, v in os.environ.items() if not k.startswith(("MCLS_", "SGE_", "JOB_"))}
@@ -335,26 +394,43 @@ def test_job_then_merge_end_to_end(tmp_path):
 
 @needs_bash
 def test_job_stops_before_download_without_a_loader(tmp_path):
-    work, env = _sandbox(tmp_path, ["a.bin"], acquire="raise SystemExit('acquire must not run')")
+    work, env = _sandbox(tmp_path, ["a.bin"], acquire=_acquire("raise SystemExit('acquire must not run')"))
     result = _task(work, dict(env, MCLS_DATASET="nope"), 1)
     assert result.returncode == 3 and "nothing was downloaded" in result.stderr
 
 
-ZIP_ACQUIRE = '''
-import argparse, os, pathlib, zipfile
-p = argparse.ArgumentParser()
-p.add_argument("--dataset"); p.add_argument("--only", action="append")
-p.add_argument("--connections", type=int); p.add_argument("--max-gb", type=float)
-a = p.parse_args()
+ZIP_ACQUIRE = _acquire('''a = args()
 with zipfile.ZipFile(pathlib.Path(os.environ["MCLS_RAW"]) / a.only[0], "w") as z:
-    z.writestr("rawdata/GPSL1@20MSps.bin", b"iq")
-'''
+    z.writestr("rawdata/GPSL1@20MSps.bin", b"iq")''')
+NO_ACQUIRE = _acquire("raise SystemExit('acquire must not run')")
 
 
 @needs_bash
 def test_job_unpacks_an_archive_on_request(tmp_path):
-    work, env = _sandbox(tmp_path, ["rawdata.zip"], acquire=ZIP_ACQUIRE)
+    work, env = _sandbox(tmp_path, ["rawdata.zip"], acquire=ZIP_ACQUIRE, unpacked_size=2000000)
     result = _task(work, dict(env, MCLS_UNPACK="1"), 1)
     assert result.returncode == 0, result.stdout + result.stderr
     rows = (Path(env["MCLS_OUT"]) / "rawdata.zip" / "rows.jsonl").read_text()
     assert '"src": "rawdata/GPSL1@20MSps.bin"' in rows  # preprocess saw the contents, not the zip
+
+
+@needs_bash
+def test_job_stops_when_node_tmp_is_too_small(tmp_path):
+    # 1 MB file + 2 MB unpacked = 3 MB needed; fake df reports 2 MB free
+    work, env = _sandbox(tmp_path, ["rawdata.zip"], acquire=NO_ACQUIRE, unpacked_size=2000000)
+    result = _task(work, dict(env, MCLS_UNPACK="1", FAKE_DF_AVAIL_KB="2000"), 1)
+    assert result.returncode == 3, result.stdout + result.stderr
+    assert "needs 0.0 GB" in result.stderr and "(file + extracted contents)" in result.stderr
+    assert "need 3 MB, free 2 MB" in result.stdout and "nothing was downloaded" in result.stderr
+    # without unpacking, the same node has room for the archive alone (acquire then runs)
+    result = _task(work, dict(env, FAKE_DF_AVAIL_KB="2000"), 1)
+    assert "acquire must not run" in result.stderr
+
+
+@needs_bash
+def test_job_unpack_needs_a_known_extracted_size(tmp_path):
+    work, env = _sandbox(tmp_path, ["rawdata.zip"], acquire=NO_ACQUIRE)  # catalog without unpacked_size
+    result = _task(work, dict(env, MCLS_UNPACK="1"), 1)
+    assert result.returncode == 3 and "MCLS_UNPACKED_GB" in result.stderr
+    result = _task(work, dict(env, MCLS_UNPACK="1", MCLS_UNPACKED_GB="0.002", FAKE_DF_AVAIL_KB="2000"), 1)
+    assert result.returncode == 3 and "need 3 MB, free 2 MB" in result.stdout
