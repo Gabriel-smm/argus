@@ -40,7 +40,9 @@ SAMPLE_DTYPE = np.complex64
 #: reaches a model (matches pipeline/features.py, which keeps only ratios).
 
 LABEL_STRENGTHS = ("strong", "weak")
-SPLITS = ("train", "val", "test", "cross_test")
+#: `generalization` holds whole held-out emitters (drone models) for the separate
+#: "generalize to a new drone" test (PLAN 3.5); it never feeds the headline test.
+SPLITS = ("train", "val", "test", "cross_test", "generalization")
 
 # ---------------------------------------------------------------------------
 # Bands: derived from the centre frequency, never learned
@@ -164,6 +166,9 @@ class ManifestRow:
     snr_db_est: float | None = None
     bandwidth_hz: float | None = None
     duty_cycle: float | None = None
+    #: Windows cut from the same detected burst share this id (front end sets it;
+    #: None for background windows). Burst-level metrics group by it.
+    burst_id: str | None = None
 
     def validate(self, classes: tuple[str, ...] | None = None) -> None:
         """Raise ValueError when the row breaks the contract."""

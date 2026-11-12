@@ -12,6 +12,7 @@ from pathlib import Path
 MODELS = ("softmax_regression", "lightgbm", "knn", "majority", "cnn1d", "cnn2d", "fused")
 OPTIMIZERS = ("adamw", "sgd")
 SCHEDULES = ("onecycle", "cosine", "constant")
+LOSSES = ("cross_entropy", "focal")
 DEVICES = ("auto", "cuda", "mps", "cpu")
 
 #: section -> key -> (type, required)
@@ -24,7 +25,12 @@ SCHEMA: dict[str, dict[str, tuple[type | tuple[type, ...], bool]]] = {
         "cross_test_datasets": (list, False),
         "use_simulated": (bool, False),
     },
-    "model": {"name": (str, True), "dropout": ((int, float), False), "width": (int, False)},
+    "model": {
+        "name": (str, True),
+        "dropout": ((int, float), False),
+        "width": (int, False),
+        "aux_head": (bool, False),
+    },
     "optim": {
         "name": (str, False),
         "lr": ((int, float), False),
@@ -37,6 +43,11 @@ SCHEMA: dict[str, dict[str, tuple[type | tuple[type, ...], bool]]] = {
         "grad_clip": ((int, float), False),
         "ema_decay": ((int, float), False),
         "early_stop_patience": (int, False),
+        "loss": (str, False),
+        "focal_gamma": ((int, float), False),
+        "nesterov": (bool, False),
+        "balanced_sampler": (bool, False),
+        "aux_weight": ((int, float), False),
     },
     "augment": {
         "enabled": (bool, False),
@@ -96,6 +107,8 @@ def _check_choices(config: dict, name: str) -> None:
     optim = config.get("optim", {})
     if "name" in optim and optim["name"] not in OPTIMIZERS:
         raise ValueError(f"{name}: optim.name must be one of {OPTIMIZERS}")
+    if "loss" in optim and optim["loss"] not in LOSSES:
+        raise ValueError(f"{name}: optim.loss must be one of {LOSSES}")
     if "schedule" in optim and optim["schedule"] not in SCHEDULES:
         raise ValueError(f"{name}: optim.schedule must be one of {SCHEDULES}")
     for key in ("lr", "epochs", "batch_size"):
