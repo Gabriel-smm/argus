@@ -1,4 +1,17 @@
-"""Read configs/taxonomy.toml: the class set and the label of every file."""
+"""Read configs/taxonomy.toml: the class set and the label of every file.
+
+A file's label comes from its dataset's overrides (the first whose `match` is a
+substring of the file name) or, failing that, the dataset default. Two optional
+additions, both backwards compatible:
+
+- `emitter_id` on an override: the transmitting device (e.g. the drone model)
+  when the class is physical (`wifi`, `bluetooth`) but the emitter matters.
+- `exclude = true` on an override, or `default_exclude = true` on a dataset:
+  the file has no class in the current set and must not be used. `label_for`
+  then returns a Label with `excluded=True` and label `EXCLUDED`, which is not
+  a class, so a loader that forgets to check fails at manifest validation
+  instead of training on it. An exclusion needs a `note` saying why.
+"""
 
 from __future__ import annotations
 
@@ -10,12 +23,17 @@ from mcls.contracts import LABEL_STRENGTHS
 
 DEFAULT_PATH = Path(__file__).resolve().parent.parent / "configs" / "taxonomy.toml"
 
+#: Label of an excluded file. Never a class.
+EXCLUDED = "excluded"
+
 
 @dataclass(frozen=True)
 class Label:
     label: str
     strength: str
     note: str | None = None
+    emitter_id: str | None = None
+    excluded: bool = False
 
 
 @dataclass(frozen=True)
@@ -36,6 +54,8 @@ class Taxonomy:
         overlap = set(self.v1) & set(self.v2)
         if overlap:
             raise ValueError(f"taxonomy: classes in both v1 and v2: {sorted(overlap)}")
+        if EXCLUDED in self.all_classes:
+            raise ValueError(f"taxonomy: {EXCLUDED!r} is reserved and cannot be a class")
         self._datasets = data.get("datasets", {})
         for name in self._datasets:
             self._check_dataset(name)
@@ -43,6 +63,10 @@ class Taxonomy:
     @property
     def all_classes(self) -> tuple[str, ...]:
         return self.v1 + self.v2
+
+    @property
+    def dataset_names(self) -> tuple[str, ...]:
+        return tuple(self._datasets)
 
     def classes(self, version: str = "v1") -> tuple[str, ...]:
         """The class list a model trains on: "v1", or "v2" for v1 plus v2."""
@@ -61,7 +85,11 @@ class Taxonomy:
         entry = self._entry(dataset)
         for override in entry.get("overrides", []):
             if override["match"] in file_name:
-                return Label(override["label"], override["strength"], override.get("note"))
+                if override.get("exclude", False):
+                    return Label(EXCLUDED, "weak", override["note"], override.get("emitter_id"), excluded=True)
+                return Label(override["label"], override["strength"], override.get("note"), override.get("emitter_id"))
+        if entry.get("default_exclude", False):
+            return Label(EXCLUDED, "weak", entry["note"], excluded=True)
         return Label(entry["default_label"], entry["default_strength"])
 
     def _entry(self, name: str) -> dict:
@@ -71,11 +99,29 @@ class Taxonomy:
 
     def _check_dataset(self, name: str) -> None:
         entry = self._datasets[name]
-        for key in ("license", "is_real", "default_label", "default_strength"):
+        for key in ("license", "is_real"):
             if key not in entry:
                 raise ValueError(f"taxonomy: dataset {name!r} is missing {key}")
-        pairs = [(entry["default_label"], entry["default_strength"])]
-        pairs += [(o["label"], o["strength"]) for o in entry.get("overrides", [])]
+        pairs = []
+        if entry.get("default_exclude", False):
+            if not entry.get("note"):
+                raise ValueError(f"taxonomy: dataset {name!r} excludes its default without a note")
+        else:
+            for key in ("default_label", "default_strength"):
+                if key not in entry:
+                    raise ValueError(f"taxonomy: dataset {name!r} is missing {key}")
+            pairs.append((entry["default_label"], entry["default_strength"]))
+        for override in entry.get("overrides", []):
+            if not override.get("match"):
+                raise ValueError(f"taxonomy: dataset {name!r} has an override without `match`")
+            if override.get("exclude", False):
+                if not override.get("note"):
+                    raise ValueError(f"taxonomy: dataset {name!r} excludes {override['match']!r} without a note")
+                continue
+            for key in ("label", "strength"):
+                if key not in override:
+                    raise ValueError(f"taxonomy: dataset {name!r} override {override['match']!r} is missing {key}")
+            pairs.append((override["label"], override["strength"]))
         for label, strength in pairs:
             if label not in self.all_classes:
                 raise ValueError(f"taxonomy: dataset {name!r} uses unknown class {label!r}")
