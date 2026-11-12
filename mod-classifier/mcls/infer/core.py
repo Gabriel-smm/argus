@@ -11,15 +11,16 @@ Order of operations, per burst (PLAN 5.5 and 5.7):
    unit RMS.
 3. Logits per window (`classifier.logits` when it has one, else
    log(`classifier.classify`)), divided by the temperature.
-4. Average the windows' log-softmax, add log(band prior), softmax. This is the
-   same as multiplying the averaged probabilities by the prior and
-   renormalising.
+4. Average the windows' logits (as Engineer 8's burst-level evaluation does,
+   `mcls.evaluate.metrics.burst_logits`), softmax, multiply by the band prior
+   and renormalise.
 5. Top probability under the threshold -> `unknown`.
 
 Why `logits` first: Engineer 7's `classify` already divides by the temperature
 stored in the checkpoint; dividing again by calibration.json's temperature
-would apply it twice. A classifier with only `classify` gives probabilities,
-whose logs are logits up to a constant, so step 3 is still exact.
+would apply it twice. A classifier with only `classify` gives probabilities;
+their logs are its logits minus a per-window constant, so a single window is
+exact and a multi-window average equals the mean of log-probabilities.
 """
 
 from __future__ import annotations
@@ -117,12 +118,12 @@ def _log_softmax(x: np.ndarray) -> np.ndarray:
 
 def aggregate(logits: np.ndarray, classes: Sequence[str], *, temperature: float = 1.0,
               prior: np.ndarray | None = None, unknown_threshold: float | None = None) -> BurstClass:
-    """One burst's class from its windows' logits (n, K): temperature, mean log-prob, prior, threshold."""
+    """One burst's class from its windows' logits (n, K): temperature, mean logits, prior, threshold."""
     classes = tuple(classes)
     if len(logits) == 0:
         uniform = 1.0 / len(classes)
         return BurstClass(UNKNOWN, uniform, {c: uniform for c in classes}, 0)
-    score = _log_softmax(np.asarray(logits, dtype=np.float64) / temperature).mean(axis=0)
+    score = (np.asarray(logits, dtype=np.float64) / temperature).mean(axis=0)
     if prior is not None:
         score = score + np.log(np.asarray(prior, dtype=np.float64))
     probs = np.exp(_log_softmax(score))

@@ -8,8 +8,8 @@
                               priors=load_priors())
 
 Per burst: cut 4096-sample windows at 20 MS/s inside the burst, get each
-window's logits, divide by the temperature, average the windows' log
-probabilities, multiply by the band prior and renormalise, then call the burst
+window's logits, divide by the temperature, average them over the burst,
+softmax, multiply by the band prior and renormalise, then call the burst
 `unknown` when the top probability is under the threshold. `unknown` is what
 the Judge ranks white (SRS NFR-4).
 

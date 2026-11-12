@@ -105,7 +105,7 @@ def test_short_burst_is_one_zero_padded_window_and_empty_is_none():
 
 def test_logits_preferred_and_probs_only_equivalent_after_temperature():
     z = [2.0, 0.5, -1.0, 0.0]
-    windows = burst_windows(tone(WINDOW_SAMPLES * 2))
+    windows = burst_windows(tone(WINDOW_SAMPLES))  # one window: exact
     a = window_logits(FixedLogits(z), windows)
     b = window_logits(ProbsOnly(z), windows)
     for t in (0.5, 1.0, 2.5):
@@ -147,11 +147,15 @@ def test_prior_multiplies_and_renormalises():
     assert out.signal_class == "drone_link"  # wifi was on top before the prior
 
 
-def test_window_log_probs_are_averaged():
+def test_window_logits_are_averaged_like_the_evaluator():
     z = np.array([[4.0, 0, 0, 0], [0, 4.0, 0, 0]])
     out = aggregate(z, CLASSES)
     assert out.probs["drone_link"] == pytest.approx(out.probs["wifi"])
     assert out.windows == 2
+    # Mean of logits, not of log-softmax: these differ when window scales differ.
+    z = np.array([[10.0, 0, 0, 0], [0, 1.0, 0, 0], [0, 1.0, 0, 0]])
+    out = aggregate(z, CLASSES, temperature=2.0)
+    assert [out.probs[c] for c in CLASSES] == pytest.approx(list(softmax(z.mean(axis=0) / 2.0)))
 
 
 def test_below_threshold_is_unknown_with_probs_kept():
