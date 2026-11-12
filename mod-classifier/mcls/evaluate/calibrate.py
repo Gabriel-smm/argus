@@ -183,6 +183,42 @@ def evaluate_split(logits: np.ndarray, labels: np.ndarray, result: dict[str, Any
     return out
 
 
+def check_calibration(calibration: dict[str, Any], classes: list[str] | tuple[str, ...],
+                      manifest_sha256: str | None = None, run: str | None = None) -> None:
+    """Raise ValueError unless `calibration` belongs to this run and class list.
+
+    Every reader of calibration.json should call this: a temperature or
+    threshold fitted for another model, class order or manifest is wrong in a
+    way no later check can see. `classes` must match exactly, in order.
+    `manifest_sha256` (full or 16-hex short) and `run` (folder name) are
+    checked when given; a calibration.json missing a field that is checked is
+    refused too.
+    """
+    from mcls.evaluate.runio import hashes_match
+
+    where = calibration.get("source_run", "calibration.json")
+    if list(calibration.get("classes") or []) != list(classes):
+        raise ValueError(f"{where}: calibration classes {calibration.get('classes')} differ from {list(classes)}")
+    if manifest_sha256 is not None and not hashes_match(calibration.get("manifest_sha256"), manifest_sha256):
+        raise ValueError(f"{where}: calibration manifest_sha256 {str(calibration.get('manifest_sha256'))[:16]} "
+                         f"differs from {manifest_sha256[:16]}")
+    if run is not None and calibration.get("run") != run:
+        raise ValueError(f"{where}: calibration is for run {calibration.get('run')!r}, not {run!r}")
+    for key in ("temperature", "unknown_threshold"):
+        if key not in calibration:
+            raise ValueError(f"{where}: calibration.json has no {key}")
+
+
+def load_for_run(run_dir: Path, meta: dict[str, Any]) -> dict[str, Any] | None:
+    """calibration.json of `run_dir`, checked against its meta.json; None when absent."""
+    path = run_dir / "calibration.json"
+    if not path.is_file():
+        return None
+    calibration = json.loads(path.read_text())
+    check_calibration(calibration, meta["classes"], meta.get("manifest_sha256"), run_dir.resolve().name)
+    return calibration
+
+
 def run(run_dir: Path, keep: float = 0.95, n_bins: int = 15) -> dict[str, Any]:
     meta = load_meta(run_dir)
     classes = list(meta["classes"])
@@ -192,7 +228,7 @@ def run(run_dir: Path, keep: float = 0.95, n_bins: int = 15) -> dict[str, Any]:
     val = load_predictions(val_path, len(classes))
     result = calibrate(val.logits, val.label, keep, n_bins)
     result["held_out"] = {}
-    for split in ("test", "cross_test"):
+    for split in ("test", "cross_test", "generalization"):
         path = run_dir / f"predictions_{split}.npz"
         if path.is_file():
             pred = load_predictions(path, len(classes))
@@ -200,6 +236,7 @@ def run(run_dir: Path, keep: float = 0.95, n_bins: int = 15) -> dict[str, Any]:
                 result["held_out"][split] = evaluate_split(pred.logits, pred.label, result, classes)
     result.update({
         "classes": classes,
+        "run": run_dir.resolve().name,
         "source_run": str(run_dir),
         "manifest_sha256": meta.get("manifest_sha256"),
         "git_commit": meta.get("git_commit"),

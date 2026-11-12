@@ -8,8 +8,9 @@ rate has no agreed value, so that gate stays None until one is passed in.
 Inputs (all optional; keys as below):
     model_macro_f1_seeds     list[float]  test macro-F1 of the network, one per seed
     best_baseline_macro_f1   float        best baseline test macro-F1, same splits
-    generalization_reported  bool         held-out drone-model result is in the report
-    cross_test_reported      bool         cross_test result is in the report
+    generalization_reported  bool         `generalization` split (held-out drone model) has real windows
+    cross_test_reported      bool         cross_test split has real windows
+    generalization_macro_f1, cross_test_macro_f1   float   shown with the gate, not part of pass/fail
     ece_after                float        ECE after temperature scaling (test, else val)
     background_false_alarm   float        share of background windows called above the threshold
     agreed_false_alarm_rate  float        the team's agreed maximum (no default)
@@ -54,8 +55,11 @@ def check_gates(inputs: dict[str, Any], thresholds: dict[str, Any] | None = None
 
     gen, cross = g("generalization_reported"), g("cross_test_reported")
     out.append(_gate("honest_generalization", "held-out drone model and cross_test reported next to the headline",
-                     {"generalization": gen, "cross_test": cross},
-                     None if gen is None or cross is None else bool(gen and cross)))
+                     {"generalization": gen, "cross_test": cross,
+                      "generalization_macro_f1": g("generalization_macro_f1"),
+                      "cross_test_macro_f1": g("cross_test_macro_f1")},
+                     None if gen is None or cross is None else bool(gen and cross),
+                     "pass means reported, whatever the score" if gen and cross else ""))
 
     e = g("ece_after")
     out.append(_gate("calibration", f"ECE after temperature scaling <= {t['ece_max']}", e,
