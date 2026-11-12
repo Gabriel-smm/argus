@@ -109,14 +109,16 @@ def classify_rows(path: Path, rows: list[dict], model: Path, calibration: Path |
                   center_frequency_hz: float | None = None, datatype: str | None = None) -> list[dict]:
     """Add signal_class, class_confidence and class_probs to IQ burst rows (in place; also returned)."""
     infer = _infer()
-    from mcls.infer.loading import calibration_for
+    from mcls.infer.loading import calibration_for, run_identity
 
     calibration = calibration or calibration_for(model)
     if calibration is None:
         raise IQError(f"No calibration.json next to {model}; pass --calibration. "
                       "Its threshold decides when a burst is 'unknown'.")
-    classifier = infer.load_classifier(model)
-    cal = infer.load_calibration(calibration)
+    classifier = infer.load_classifier(model, calibration=calibration)
+    run, manifest_sha256 = run_identity(model)
+    # Refuses a calibration.json fitted for another model, class list, manifest or run.
+    cal = infer.load_calibration(calibration, classifier.classes, manifest_sha256=manifest_sha256, run=run)
     band_priors = infer.load_priors(priors)
     values, datatype, rate, centre_at = _iq_source(Path(path), sample_rate_hz, center_frequency_hz, datatype)
     if datatype not in FORMATS:
