@@ -71,6 +71,106 @@ def test_without_classify_output_is_byte_identical(tmp_path):
         assert not {"signal_class", "class_confidence", "class_probs"} & set(row)
 
 
+
+# -- with --classify ---------------------------------------------------------------
+
+CLASSES = ("drone_link", "wifi", "bluetooth", "background")
+
+
+def baseline_run(folder: Path, threshold: float = 0.5) -> Path:
+    """A tiny Engineer 6 baseline (numpy only) in a run folder, with a calibration.json."""
+    from pipeline.ingest import _infer
+
+    _infer()  # puts mod-classifier/ on sys.path
+    from mcls.baselines import features
+    from mcls.baselines.classifier import FeatureClassifier
+    from mcls.baselines.models import SoftmaxRegression
+    from mcls.infer.core import normalize
+
+    rng = np.random.default_rng(1)
+    t = np.arange(4096) / 20e6
+    noise = (rng.standard_normal((48, 4096)) + 1j * rng.standard_normal((48, 4096))) * 0.05
+    noise[:24] += np.exp(2j * np.pi * rng.uniform(-3e6, 3e6, (24, 1)) * t)
+    X = features.extract(normalize(noise.astype(np.complex64)))
+    y = np.array([0] * 24 + [3] * 24)
+    mean, std = X.mean(axis=0), X.std(axis=0)
+    std[std < 1e-9] = 1.0
+    clf = FeatureClassifier(None, CLASSES, mean, std)
+    clf.model = SoftmaxRegression(len(CLASSES), params={"epochs": 30}).fit(clf.standardize(X), y)
+    folder.mkdir()
+    clf.save(folder)
+    (folder / "calibration.json").write_text(json.dumps(
+        {"temperature": 1.0, "unknown_threshold": {"score": "max_softmax", "value": threshold, "applied_after_temperature": True}}
+    ))
+    return folder
+
+
+def raw_20m(tmp_path):
+    """A 20 MS/s .cs8 with one tone burst (needs no resampler)."""
+    n = 400_000
+    rng = np.random.default_rng(9)
+    iq = 0.01 * (rng.standard_normal(n) + 1j * rng.standard_normal(n))
+    t = np.arange(n) / 20e6
+    iq[100_000:200_000] += 0.5 * np.exp(2j * np.pi * 1e6 * t[100_000:200_000])
+    values = np.empty(2 * n, dtype=np.int8)
+    values[0::2] = np.clip(np.round(iq.real * 127), -128, 127)
+    values[1::2] = np.clip(np.round(iq.imag * 127), -128, 127)
+    path = tmp_path / "burst20.cs8"
+    values.tofile(path)
+    return path
+
+
+def test_classify_adds_three_fields_and_keeps_modulation(tmp_path):
+    model = baseline_run(tmp_path / "run")
+    path = raw_20m(tmp_path)
+    plain = run([str(path), "--sample-rate", "20M", "--center-freq", "2.437G"], tmp_path, "plain.jsonl")
+    out = run([str(path), "--sample-rate", "20M", "--center-freq", "2.437G", "--classify", "--model", str(model)],
+              tmp_path, "classified.jsonl")
+    plain_rows = [json.loads(line) for line in plain.decode().splitlines()]
+    rows = [json.loads(line) for line in out.decode().splitlines()]
+    assert len(rows) == len(plain_rows) >= 1
+    for before, after in zip(plain_rows, rows):
+        assert {k: after[k] for k in before} == before  # nothing existing changes
+        assert set(after) - set(before) == {"signal_class", "class_confidence", "class_probs"}
+        assert after["modulation"] == "unknown"
+        assert after["signal_class"] in (*CLASSES, "unknown")
+        assert set(after["class_probs"]) == set(CLASSES)
+        assert abs(sum(after["class_probs"].values()) - 1) < 1e-3
+        assert after["class_confidence"] == max(after["class_probs"].values())
+    from pipeline.inputs import combine_observations
+
+    combine_observations([("classified.jsonl", out.decode())])  # the Library still accepts it
+
+
+def test_classify_threshold_one_makes_everything_unknown(tmp_path):
+    model = baseline_run(tmp_path / "run", threshold=1.0)
+    out = run([str(raw_20m(tmp_path)), "--sample-rate", "20M", "--center-freq", "2.437G", "--classify", "--model", str(model)],
+              tmp_path)
+    assert {json.loads(line)["signal_class"] for line in out.decode().splitlines()} == {"unknown"}
+
+
+def test_classify_refusals(tmp_path, capsys):
+    path = raw_20m(tmp_path)
+    with pytest.raises(SystemExit):
+        main([str(path), "--sample-rate", "20M", "--center-freq", "2.437G", "--classify"])
+    sweep = tmp_path / "s.csv"
+    sweep.write_text("x")
+    with pytest.raises(SystemExit):
+        main([str(sweep), "--classify", "--model", str(tmp_path)])
+    model = baseline_run(tmp_path / "run")
+    (model / "calibration.json").unlink()
+    assert main([str(path), "--sample-rate", "20M", "--center-freq", "2.437G", "--classify", "--model", str(model)]) == 1
+    assert "calibration" in capsys.readouterr().err
+
+
+def test_import_of_ingest_does_not_import_mcls_or_torch():
+    import subprocess
+
+    code = "import sys, pipeline.ingest; assert 'mcls' not in sys.modules and 'torch' not in sys.modules; print('ok')"
+    out = subprocess.run([sys.executable, "-c", code], cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True)
+    assert out.stdout.strip() == "ok", out.stderr
+
+
 if __name__ == "__main__":  # print the golden hashes (run once on the commit before --classify)
     import tempfile
 

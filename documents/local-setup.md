@@ -198,6 +198,13 @@ What each row carries besides the three fields the classifier reads:
 - **Sweeps** (`pipeline/sweep.py`): `power_db`, `noise_floor_db` (the local floor under the signal), `snr_db`, `occupancy` (the share of sweep passes the signal was seen in: near 1 for a signal that is always on, low for one that comes and goes), `passes`, `first_seen` and `last_seen`.
 - **IQ** (`pipeline/iq.py`, through `pipeline/features.py`, the same code that measures the training rows): `snr_db`, `duty_cycle`, `burst_duration_s`, `hopping`, `pulse_interval_s`, `truncated` and `start_s` (seconds from the start of the file).
 
+**Signal class (optional, IQ only).** Add `--classify --model <run folder>` to run each burst through the signal classifier in `mod-classifier/` (see `mod-classifier/README.md`). Each row then also gets `signal_class` (for example `wifi`, or `unknown` when the classifier is not confident enough), `class_confidence` (0 to 1) and `class_probs` (one probability per class). `modulation` stays `"unknown"`. The run folder must hold a `calibration.json` (or pass `--calibration`); its threshold decides what counts as `unknown`. Without `--classify` the output is exactly as before.
+
+```bash
+python -m pipeline.ingest capture.cs8 --sample-rate 20M --center-freq 2.437G \
+    --classify --model mod-classifier/runs/<name> -o signals.jsonl
+```
+
 Signals are runs of bins at least 10 dB above the local noise floor; `--threshold-db` changes that for sweeps. Large IQ files are read in chunks, and a burst that crosses a chunk boundary shows up in both chunks marked `truncated`. SigMF annotations are not used yet, and real-valued (`rf32`, `ri16`) and multi-channel recordings are refused.
 
 ## 8. If something fails
