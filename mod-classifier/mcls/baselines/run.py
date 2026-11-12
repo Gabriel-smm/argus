@@ -14,7 +14,9 @@ run's manifest or seed. `train` refuses a folder that already holds results
 (predictions, model.pkl or metrics.json), or a meta.json whose manifest_sha256,
 seed, model or classes differ from this run. A meta.json that matches exactly is
 kept: Engineer 7's `python -m mcls.train` writes config.toml and meta.json
-before calling `train`. `overwrite=True` (CLI `--overwrite`) empties the folder first.
+before calling `train`. `overwrite=True` (CLI `--overwrite`) first deletes the run
+files of a folder that is recognisably a run folder (see `clear_run_dir`), and
+refuses any other folder.
 """
 
 from __future__ import annotations
@@ -24,7 +26,7 @@ import datetime
 import hashlib
 import json
 import math
-import shutil
+import re
 import subprocess
 from pathlib import Path
 
@@ -42,6 +44,14 @@ from mcls.baselines.models import MODELS, build
 PREDICT_SPLITS = ("val", "test", "cross_test", "generalization")
 #: Files that mean a folder already holds a finished (or partly written) run.
 RESULT_FILES = ("model.pkl", "metrics.json")
+#: The only files --overwrite may delete: the run-output contract plus what e6, e7 and e8 add.
+RUN_FILES = frozenset({
+    "config.toml", "meta.json", "metrics.json", "model.pkl", "calibration.json",
+    "checkpoint.pt", "last.pt", "history.jsonl",
+})
+#: A folder is a run folder only if it holds at least one of these.
+RUN_MARKERS = frozenset({"config.toml", "meta.json"})
+PREDICTIONS_FILE = re.compile(r"predictions_[A-Za-z0-9_]+\.npz")
 WEAK_WEIGHT = 0.5
 #: Windows read and featurized at a time (32 MB of samples).
 CHUNK = 1024
@@ -75,8 +85,8 @@ def train(
         "model": name,
         "classes": list(classes),
     }
-    if overwrite and run_dir.exists():
-        shutil.rmtree(run_dir)
+    if overwrite:
+        clear_run_dir(run_dir)
     meta_matches = check_run_dir(run_dir, expected)
     run_dir.mkdir(parents=True, exist_ok=True)
 
@@ -118,6 +128,44 @@ def train(
 # ---------------------------------------------------------------------------
 # Rows and windows
 # ---------------------------------------------------------------------------
+
+
+def _is_run_file(name: str) -> bool:
+    return name in RUN_FILES or PREDICTIONS_FILE.fullmatch(name) is not None
+
+
+def clear_run_dir(run_dir: Path) -> list[str]:
+    """Delete the run files in run_dir (for --overwrite); return their names.
+
+    Refuses (FileExistsError) unless run_dir is a real directory (not a symlink)
+    holding meta.json, config.toml or predictions_*.npz, and nothing but regular
+    files named in RUN_FILES or predictions_<split>.npz. Only those files are
+    unlinked; the folder itself stays, and no link is followed. A missing or
+    empty folder is left as is.
+    """
+    run_dir = Path(run_dir)
+    if run_dir.is_symlink():
+        raise FileExistsError(f"--overwrite refused: {run_dir} is a symlink")
+    if not run_dir.exists():
+        return []
+    if not run_dir.is_dir():
+        raise FileExistsError(f"--overwrite refused: {run_dir} is not a folder")
+    entries = sorted(run_dir.iterdir(), key=lambda p: p.name)
+    if not entries:
+        return []
+    unknown = [p.name for p in entries if p.is_symlink() or not p.is_file() or not _is_run_file(p.name)]
+    if unknown:
+        raise FileExistsError(
+            f"--overwrite refused: {run_dir} holds files that are not run files ({', '.join(unknown)}); "
+            "remove them yourself or choose another folder"
+        )
+    names = [p.name for p in entries]
+    if not any(name in RUN_MARKERS or PREDICTIONS_FILE.fullmatch(name) for name in names):
+        raise FileExistsError(f"--overwrite refused: {run_dir} does not look like a run folder (no meta.json, "
+                              "config.toml or predictions_*.npz)")
+    for path in entries:
+        path.unlink()
+    return names
 
 
 def check_run_dir(run_dir: Path, expected: dict) -> bool:
