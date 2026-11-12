@@ -22,7 +22,8 @@ def param_groups(model: nn.Module, weight_decay: float) -> list[dict]:
         if not param.requires_grad:
             continue
         (decay if param.ndim >= 2 else no_decay).append(param)
-    return [{"params": decay, "weight_decay": weight_decay}, {"params": no_decay, "weight_decay": 0.0}]
+    groups = [{"params": decay, "weight_decay": weight_decay}, {"params": no_decay, "weight_decay": 0.0}]
+    return [g for g in groups if g["params"]]
 
 
 def make_optimizer(model: nn.Module, optim: dict) -> torch.optim.Optimizer:

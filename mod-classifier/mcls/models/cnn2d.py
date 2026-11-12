@@ -59,7 +59,7 @@ class Spectrogram(nn.Module):
         imag = b @ cos_t - a @ sin_t
         power = torch.log10(real * real + imag * imag + SPEC_EPS)
         mean = power.mean(dim=(1, 2), keepdim=True)
-        std = power.std(dim=(1, 2), keepdim=True, unbiased=False)
+        std = power.std(dim=(1, 2), keepdim=True, correction=0)
         return ((power - mean) / (std + 1e-6)).unsqueeze(1)
 
 
