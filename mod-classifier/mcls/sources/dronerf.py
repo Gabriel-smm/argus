@@ -16,9 +16,23 @@ Each CSV becomes one Recording at **20 MS/s complex baseband** after
 EDGE_TRIM samples dropped at each end), centred at band start + fs/4: 2410 MHz (L) or 2450 MHz (H), as
 `real_to_iq` and the repo loader define it. Note: a real stream at 40 MS/s spans
 20 MHz, not the 40 MHz the L/H band names suggest; the RF mapping is unverified.
-The L and H files of one segment are different recordings of different bands but
-the same moment, so they share `recording_id` = `<BUI>_<segment>` and therefore
-the same split.
+Split key: `recording_id` = the BUI (drone + flight mode), so every segment of
+one BUI, L and H, lands in one split. Why not one id per segment: the data paper
+(Al-Sa'd et al., Data in Brief 2019, https://pmc.ncbi.nlm.nih.gov/articles/PMC6727013/,
+read Nov 12) does not say whether segments are independent captures. It says
+"The records are 10.25 seconds of RF background activities and approximately
+5.25 seconds of RF drone communications for each flight mode", stored as
+"RF data segments" by a LabVIEW program started once per mode ("Start the
+LabVIEW programs to fetch, process and store RF data segments"). Inference
+(not stated): with 1e7 real samples per file at 40 MS/s (0.25 s), 41 no-drone
+segments are 10.25 s and the Bebop's 84 segments over 4 modes are 21 x 0.25 s
+= 5.25 s per mode, so the segments of one BUI look like consecutive slices of
+one session, and splitting them would leak (PLAN 3.5). The L and H files of one
+segment are the two receivers at the same moment and share the id too.
+
+Labels and emitter ids come from the taxonomy (the drones' links are Wi-Fi);
+files the taxonomy excludes, including names with an unknown BUI, are skipped.
+The parsed drone name is only the fallback emitter id.
 
 Lazy reading and its cost: a CSV inside a RAR cannot be read from an offset, so
 the first `read()` of a recording decompresses and parses the whole CSV (about
@@ -51,7 +65,8 @@ from mcls.sources.base import Source, register
 REAL_RATE_HZ = 40e6
 #: Start of the 40 MHz slice each receiver recorded, by file letter.
 BAND_START_HZ = {"L": 2400e6, "H": 2440e6}
-DRONES = {"00": "Parrot_Bebop", "01": "Parrot_AR_Drone", "10": "DJI_Phantom"}
+#: Model names from the paper's references (Parrot Bebop, Parrot AR.Drone 2.0, DJI Phantom 3 Standard).
+DRONES = {"00": "Parrot_Bebop", "01": "Parrot_AR_Drone_2", "10": "DJI_Phantom_3_Standard"}
 MODES = {"00": "on_connected", "01": "hovering", "10": "flying", "11": "video_recording"}
 REAL_SAMPLES_PER_FILE = 10_000_000
 EXPECTED_ARCHIVES = 23
@@ -155,10 +170,12 @@ class DroneRF(Source):
         for path, member, file_name in self.members():
             parsed = parse_name(file_name)
             label = self.taxonomy.label_for(self.name, file_name)
+            if label.excluded:
+                continue
             key = f"{path.name}/{member}" if member else path.name
             recording = Recording(
                 dataset=self.name,
-                recording_id=f"{parsed['bui']}_{parsed['segment']}",
+                recording_id=parsed["bui"],
                 source_file=key,
                 sample_rate_hz=REAL_RATE_HZ / 2,
                 center_frequency_hz=BAND_START_HZ[parsed["band"]] + REAL_RATE_HZ / 4,
@@ -168,7 +185,7 @@ class DroneRF(Source):
                 is_real=info.is_real,
                 license=info.license,
                 read=self._make_reader(key, path, member, num_samples),
-                emitter_id=parsed["drone"],
+                emitter_id=label.emitter_id or parsed["drone"],
                 meta={
                     "bui": parsed["bui"],
                     "band_letter": parsed["band"],
