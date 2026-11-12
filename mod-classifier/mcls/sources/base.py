@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -44,6 +45,9 @@ class Source(ABC):
 
 REGISTRY: dict[str, type[Source]] = {}
 
+#: Loader modules under mcls/sources/; importing one registers its Source(s).
+LOADERS = ("tampere", "dronerf", "nist_wifi_bt", "sigmf", "gateman", "triangular")
+
 
 def register(cls: type[Source]) -> type[Source]:
     if not cls.name:
@@ -54,7 +58,8 @@ def register(cls: type[Source]) -> type[Source]:
 
 def get(name: str, **kwargs) -> Source:
     # Import the loaders so they register themselves.
-    from mcls.sources import tampere  # noqa: F401
+    for module in LOADERS:
+        importlib.import_module(f"mcls.sources.{module}")
 
     if name not in REGISTRY:
         raise KeyError(f"no source named {name!r}; known: {sorted(REGISTRY)}")
