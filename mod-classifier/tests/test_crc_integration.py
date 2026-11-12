@@ -26,66 +26,27 @@ sys.path.pop(0)
 
 needs_bash = pytest.mark.skipif(BASH is None, reason="bash not installed")
 
-CATALOG = """
-[datasets.demo]
-access = "direct"
-files_status = "complete"
-[[datasets.demo.files]]
-name = "a.bin"
-url = "https://example.invalid/a.bin"
-size = 10
-checksum = "md5:00"
-[[datasets.demo.files]]
-name = "Group1/x.mat"
-url = "https://example.invalid/g1x"
-size = 10
-checksum = "md5:00"
-[[datasets.demo.files]]
-name = "Group2/x.mat"
-url = "https://example.invalid/g2x"
-size = 10
-checksum = "md5:00"
-[[datasets.demo.files]]
-name = "load_bin.py"
-url = "https://example.invalid/l"
-size = 1
-checksum = "md5:00"
+MD5 = "md5:" + "0" * 32
 
-[datasets.roles]
-access = "direct"
-files_status = "complete"
-[[datasets.roles.files]]
-name = "notes.txt"
-role = "data"
-url = "https://example.invalid/n"
-size = 1
-checksum = "md5:00"
-[[datasets.roles.files]]
-name = "raw.bin"
-role = "doc"
-url = "https://example.invalid/r"
-size = 1
-checksum = "md5:00"
 
-[datasets.login]
-access = "ieee_login"
-files_status = "complete"
-[[datasets.login.files]]
-name = "b.bin"
-url = "https://example.invalid/b"
-size = 1
-checksum = "md5:00"
+def _dataset(name, files, access="direct", status="complete", **extra):
+    lines = [f"[datasets.{name}]", 'title = "t"', 'page = "https://example.invalid"', 'host = "zenodo"',
+             f'access = "{access}"', 'licence = "cc-by-4.0"', f'files_status = "{status}"', 'files_note = "n"']
+    lines += [f'{k} = "{v}"' for k, v in extra.items()]
+    for fname, *role in files:
+        lines += [f"[[datasets.{name}.files]]", f'name = "{fname}"', "size = 10", f'checksum = "{MD5}"',
+                  f'url = "https://example.invalid/{fname}"']
+        lines += [f'role = "{r}"' for r in role]
+    return "\n".join(lines) + "\n"
 
-[datasets.partial]
-access = "direct"
-files_status = "unknown"
-files_note = "list not published"
-[[datasets.partial.files]]
-name = "c.bin"
-url = "https://example.invalid/c"
-size = 1
-checksum = "md5:00"
-"""
+
+CATALOG = "\n".join([
+    "[hosts.zenodo]\nmax_connections = 8\nsupports_range = true\nnote = \"\"\n",
+    _dataset("demo", [("a.bin",), ("Group1/x.mat",), ("Group2/y.mat",), ("load_bin.py",)]),
+    _dataset("roles", [("notes.txt", "data"), ("raw.bin", "doc")]),
+    _dataset("login", [("b.bin",)], access="ieee_login"),
+    _dataset("partial", [], status="unknown"),
+])
 
 
 def _job_text():
@@ -167,7 +128,7 @@ def catalog(tmp_path):
 def test_file_list_written_in_catalog_order(catalog, tmp_path, capsys):
     out = tmp_path / "lists" / "files_demo.txt"
     assert make_file_list.main(["demo", "--catalog", str(catalog), "--out", str(out)]) == 0
-    assert out.read_text() == "a.bin\nGroup1/x.mat\nGroup2/x.mat\n"
+    assert out.read_text() == "a.bin\nGroup1/x.mat\nGroup2/y.mat\n"
     assert capsys.readouterr().out.strip() == "3"
 
 
@@ -189,7 +150,7 @@ def test_catalog_role_overrides_the_suffix_rule(catalog, tmp_path):
 def test_file_list_match(catalog, tmp_path):
     out = tmp_path / "l.txt"
     assert make_file_list.main(["demo", "--catalog", str(catalog), "--out", str(out), "--match", "Group2/"]) == 0
-    assert out.read_text() == "Group2/x.mat\n"
+    assert out.read_text() == "Group2/y.mat\n"
 
 
 @pytest.mark.parametrize("dataset", ["nope", "login", "partial"])
@@ -199,11 +160,10 @@ def test_file_list_refuses(catalog, tmp_path, dataset):
     assert not out.exists()
 
 
-def test_file_list_incomplete_allowed_on_request(catalog, tmp_path):
-    out = tmp_path / "l.txt"
-    args = ["partial", "--catalog", str(catalog), "--out", str(out), "--allow-incomplete"]
-    assert make_file_list.main(args) == 0
-    assert out.read_text() == "c.bin\n"
+def test_file_list_refuses_an_invalid_catalog(tmp_path):
+    bad = tmp_path / "bad.toml"
+    bad.write_text(CATALOG.replace("max_connections = 8", "max_connections = 0"))
+    assert make_file_list.main(["demo", "--catalog", str(bad), "--out", str(tmp_path / "l.txt")]) == 2
 
 
 def test_real_catalog_lists_if_present():
@@ -212,8 +172,8 @@ def test_real_catalog_lists_if_present():
         pytest.skip("configs/catalog.toml not merged yet")
     catalog = make_file_list.load_catalog(path)
     usable = [d for d, e in catalog["datasets"].items()
-              if e.get("access") == "direct" and e.get("files_status") == "complete" and e.get("files")]
-    assert usable, "no directly fetchable dataset with a complete file list"
+              if e.get("access") in make_file_list.FETCHABLE and e.get("files_status") == "complete"]
+    assert usable, "no fetchable dataset with a complete file list"
     for dataset in usable:
         names = make_file_list.file_names(catalog, dataset)
         assert len({merge_shards.key_for(n) for n in names}) == len(names), f"{dataset}: output keys collide"
@@ -234,19 +194,19 @@ def _finished(prepared, key, body="row"):
 def test_merge_takes_only_finished_folders(tmp_path, capsys):
     prepared = tmp_path / "prepared" / "demo"
     _finished(prepared, "a.bin")
-    _finished(prepared, "Group1__x.mat")
-    (prepared / "Group2__x.mat").mkdir()  # failed: no DONE
+    _finished(prepared, "x.mat")
+    (prepared / "y.mat").mkdir()  # failed: no DONE
     stage = prepared / ".a.bin.partial.7.1"
     stage.mkdir()
     (stage / "rows.jsonl").write_text("{}\n")
     lst = tmp_path / "files.txt"
-    lst.write_text("# demo\na.bin\nGroup1/x.mat\nGroup2/x.mat\n\n")
+    lst.write_text("# demo\na.bin\nGroup1/x.mat\nGroup2/y.mat\n\n")
     dest = tmp_path / "shards"
 
     rc = merge_shards.main(["--prepared", str(prepared), "--dest", str(dest), "--file-list", str(lst)])
     out = capsys.readouterr().out
-    assert rc == 1 and "missing: Group2/x.mat" in out and "unfinished" in out
-    assert sorted(p.name for p in (dest / "demo").iterdir()) == ["Group1__x.mat", "a.bin"]
+    assert rc == 1 and "missing: Group2/y.mat" in out and "unfinished" in out
+    assert sorted(p.name for p in (dest / "demo").iterdir()) == ["a.bin", "x.mat"]
     assert not list(dest.rglob(".*"))
     merged = dest / "demo" / "a.bin" / "shards" / "s.npy"
     assert os.stat(merged).st_ino == os.stat(prepared / "a.bin" / "shards" / "s.npy").st_ino  # hard link
@@ -276,8 +236,8 @@ def test_merge_move(tmp_path):
 @needs_bash
 def test_key_matches_the_job():
     names = ["a.bin", "SimulatedRadarWaveforms/Group1/x.mat", "dir/sub dir/f.bin"]
-    script = 'while IFS= read -r NAME; do KEY="${NAME//\\//__}"; printf "%s\\n" "$KEY"; done'
-    assert "KEY=\"${NAME//\\//__}\"" in _job_text()
+    script = 'while IFS= read -r NAME; do KEY="${NAME##*/}"; printf "%s\\n" "$KEY"; done'
+    assert 'KEY="${NAME##*/}"' in _job_text()
     result = subprocess.run([BASH, "-c", script], input="\n".join(names) + "\n",
                             capture_output=True, text=True, check=True)
     assert result.stdout.splitlines() == [merge_shards.key_for(n) for n in names]
@@ -293,9 +253,7 @@ p.add_argument("--connections", type=int); p.add_argument("--max-gb", type=float
 a = p.parse_args()
 assert a.connections == 1, a.connections
 for name in a.only:
-    dest = pathlib.Path(os.environ["MCLS_RAW"]) / name
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_bytes(b"raw")
+    (pathlib.Path(os.environ["MCLS_RAW"]) / pathlib.PurePosixPath(name).name).write_bytes(b"raw")  # base name, as e2
 '''
 
 FAKE_SOURCES = '''
@@ -353,7 +311,7 @@ def _task(work, env, task):
 
 @needs_bash
 def test_job_then_merge_end_to_end(tmp_path):
-    work, env = _sandbox(tmp_path, ["a.bin", "Group1/x.mat", "Group2/x.mat"])
+    work, env = _sandbox(tmp_path, ["a.bin", "Group1/x.mat", "Group2/y.mat"])
     lst = Path(env["MCLS_FILE_LIST"])
     out = Path(env["MCLS_OUT"])
     node = Path(env["MCLS_NODE_TMP"])
@@ -361,8 +319,8 @@ def test_job_then_merge_end_to_end(tmp_path):
         result = _task(work, env, task)
         assert result.returncode == 0, result.stdout + result.stderr
     assert "already done" in result.stdout
-    assert sorted(p.name for p in out.iterdir()) == ["Group1__x.mat", "Group2__x.mat", "a.bin"]
-    assert '"src": "Group2/x.mat"' in (out / "Group2__x.mat" / "rows.jsonl").read_text()
+    assert sorted(p.name for p in out.iterdir()) == ["a.bin", "x.mat", "y.mat"]
+    assert '"src": "y.mat"' in (out / "y.mat" / "rows.jsonl").read_text()
     assert not [p for p in node.rglob("*") if p.is_file()], "raw or scratch left on the node"
 
     dest = tmp_path / "shards"

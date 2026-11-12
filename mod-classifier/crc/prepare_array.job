@@ -7,9 +7,8 @@
 #   2. fetches that ONE file with `python -m mcls.acquire` into node-local
 #      /tmp/$USER/mcls_raw/<job>.<task> (exported as $MCLS_RAW),
 #   3. runs `python -m mcls.preprocess` on it into node-local scratch,
-#   4. copies only the outputs to $MCLS_OUT/<key>/ (key = the file name with
-#      every "/" replaced by "__", so NIST radar's Group1/x.mat and Group2/x.mat
-#      do not collide),
+#   4. copies only the outputs to $MCLS_OUT/<base name>/ (mcls.acquire keeps
+#      base names unique per dataset),
 #   5. deletes the raw file and the scratch (also on failure).
 # A file whose output folder already holds a DONE marker is skipped, so a
 # rerun only does what is missing.
@@ -44,7 +43,7 @@
 #
 # Interfaces this relies on (owned by other engineers; check before first use):
 #   python -m mcls.acquire --dataset D --only NAME --connections N [--max-gb X]
-#       (Engineer 2: writes $MCLS_RAW/NAME directly, no dataset subfolder; NAME may hold "/")
+#       (Engineer 2: writes $MCLS_RAW/<base name of NAME> directly, no subfolders)
 #   python -m mcls.preprocess --dataset D --raw DIR --out DIR
 #       (Engineer 4: reads the raw files under DIR, writes shards and *.jsonl rows under DIR)
 #
@@ -95,7 +94,7 @@ NAME="$(grep -v -e '^#' -e '^[[:space:]]*$' "$LIST" | sed -n "${TASK}p" | tr -d 
 case "/$NAME/" in
     *'/../'* | *'/./'* | //*) die "task $TASK: unsafe file name '$NAME' in $LIST" ;;
 esac
-KEY="${NAME//\//__}"   # must match key_for() in scripts/merge_shards.py
+KEY="${NAME##*/}"   # base name: where mcls.acquire puts the file; must match key_for() in scripts/merge_shards.py
 DEST="$OUT/$KEY"
 
 echo "task $TASK of job $JOB on $(hostname) at $(date)"
@@ -150,12 +149,13 @@ echo "[$(date +%T)] acquire"
 ACQUIRE=(python -m mcls.acquire --dataset "$DATASET" --only "$NAME" --connections "$CONNECTIONS")
 if [ -n "$MAX_GB" ]; then ACQUIRE+=(--max-gb "$MAX_GB"); fi
 "${ACQUIRE[@]}"
-[ -f "$MCLS_RAW/$NAME" ] || die "mcls.acquire exited 0 but $MCLS_RAW/$NAME does not exist"
+RAWFILE="$MCLS_RAW/$KEY"
+[ -f "$RAWFILE" ] || die "mcls.acquire exited 0 but $RAWFILE does not exist"
 du -sh "$MCLS_RAW" || true
 
 if [ "${MCLS_UNPACK:-0}" = "1" ]; then
-    ARCHIVE="$MCLS_RAW/$NAME"
-    case "$NAME" in
+    ARCHIVE="$RAWFILE"
+    case "$KEY" in
         *.zip) echo "[$(date +%T)] unzip"; python -m zipfile -e "$ARCHIVE" "$MCLS_RAW" ;;
         *.tar | *.tar.gz | *.tgz) echo "[$(date +%T)] untar"; python -m tarfile --filter data -e "$ARCHIVE" "$MCLS_RAW" ;;
         *) die "MCLS_UNPACK=1 but $NAME is not a .zip or .tar archive" ;;

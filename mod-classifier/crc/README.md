@@ -91,11 +91,11 @@ Repeat 4a to 4c per dataset into the same `--dest`, then run 4d once.
 
 ## `prepare_array.job` (template)
 
-One task per raw file. Task N reads line N of a file list (blank lines and `#` comments skipped). The names are the catalog's `name` fields, written by `scripts/make_file_list.py`; it refuses a dataset whose access is not `direct` (IEEE login, Fairdata tokens, Mendeley) or whose file list is not complete in the catalog. It leaves out the documentation files datasets ship (`example.py`, `load_bin.m`, figures, notes: a catalog `role = "doc"`, else the file suffix) and names each one on stderr; `--keep-all` keeps them. `--match TEXT` keeps a subset, for example one NIST radar group. Each task then:
+One task per raw file. Task N reads line N of a file list (blank lines and `#` comments skipped). The names are the catalog's `name` fields, written by `scripts/make_file_list.py`; it refuses a dataset that `mcls.acquire` cannot fetch unattended (`ieee_login`, `manual`) or whose file list is unknown in the catalog. It leaves out the documentation files datasets ship (`example.py`, `load_bin.m`, figures, notes: a catalog `role = "doc"`, else the file suffix) and names each one on stderr; `--keep-all` keeps them. `--match TEXT` keeps a subset, for example one NIST radar group. Check the list before submitting: a few non-recording files pass the suffix rule (LoRaIQ's `dataset.csv`, Drexel's MATLAB-scripts `.tar`), and their task would fail with "no recordings"; pick the data with `--match`, e.g. `--match sigmfs.zip`. Each task then:
 
-1. `python -m mcls.acquire --dataset D --only NAME --connections N`, which writes `$MCLS_RAW/NAME` with `MCLS_RAW=/tmp/$USER/mcls_raw/<job>.<task>`
+1. `python -m mcls.acquire --dataset D --only NAME --connections N`, which writes `$MCLS_RAW/<base name of NAME>` with `MCLS_RAW=/tmp/$USER/mcls_raw/<job>.<task>`
 2. `python -m mcls.preprocess --dataset D --raw $MCLS_RAW --out <node scratch>`
-3. copies only the outputs to `$MCLS_OUT/<key>/` and writes a `DONE` marker there; `<key>` is the name with every `/` replaced by `__`, so `Group1/x.mat` and `Group2/x.mat` stay apart
+3. copies only the outputs to `$MCLS_OUT/<key>/` and writes a `DONE` marker there; `<key>` is the file's base name, which `mcls.acquire` keeps unique per dataset
 4. deletes the raw file and the scratch, also when the task fails
 
 `merge_shards.py` then hard-links each finished `<key>/` folder, unchanged, into `<dest>/<dataset>/<key>/`, so the relative shard paths in its `.jsonl` rows stay valid. It skips the hidden `.<key>.partial.*` folders of killed tasks, which `build_manifest`'s recursive search would otherwise read. `--move` renames instead of linking.

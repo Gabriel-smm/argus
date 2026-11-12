@@ -17,16 +17,15 @@ whose catalog entry has `role = "doc"` is skipped, and, when no file of the data
 `role`, so is any file ending in one of DOC_SUFFIXES. Each skipped name is printed to stderr;
 --keep-all keeps everything.
 
-Exit codes match mcls.acquire: 0 ok, 2 refused (unknown dataset, access not "direct",
-files_status not "complete" without --allow-incomplete, or no files selected).
-Standard library only; reads no network.
+Exit codes match mcls.acquire: 0 ok, 2 refused (bad catalog, unknown dataset, access that
+mcls.acquire cannot fetch unattended, file list unknown, or no files selected).
+Reads the catalog with mcls.acquire.load_catalog, so both agree; reads no network.
 """
 
 from __future__ import annotations
 
 import argparse
 import sys
-import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -35,19 +34,9 @@ DEFAULT_OUT_DIR = ROOT / "runs" / "file_lists"
 DOC_SUFFIXES = (".py", ".m", ".ipynb", ".md", ".txt", ".pdf", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".html")
 
 
-def load_catalog(path: Path) -> dict:
-    """The parsed catalog. Uses mcls.acquire.load_catalog when it exists, so both agree."""
-    try:
-        sys.path.insert(0, str(ROOT))
-        from mcls.acquire import load_catalog as acquire_load  # type: ignore
-    except ImportError:
-        acquire_load = None
-    finally:
-        sys.path.pop(0)
-    if acquire_load is not None:
-        return acquire_load(path)
-    with open(path, "rb") as handle:
-        return tomllib.load(handle)
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from mcls.acquire import FETCHABLE, load_catalog  # noqa: E402  (validates the catalog)
 
 
 def is_doc(entry: dict, dataset_has_roles: bool) -> bool:
@@ -56,8 +45,7 @@ def is_doc(entry: dict, dataset_has_roles: bool) -> bool:
     return entry["name"].lower().endswith(DOC_SUFFIXES)
 
 
-def file_names(catalog: dict, dataset: str, match: str | None = None,
-               allow_incomplete: bool = False, keep_all: bool = False,
+def file_names(catalog: dict, dataset: str, match: str | None = None, keep_all: bool = False,
                skipped: list[str] | None = None) -> list[str]:
     """Catalog file names for one dataset, documentation files left out (unless keep_all).
 
@@ -67,13 +55,11 @@ def file_names(catalog: dict, dataset: str, match: str | None = None,
     if dataset not in datasets:
         raise ValueError(f"unknown dataset {dataset!r}; known: {', '.join(sorted(datasets))}")
     entry = datasets[dataset]
-    access = entry.get("access", "direct")
-    if access != "direct":
-        raise ValueError(f"{dataset}: access is {access!r}, not 'direct'; a batch job cannot fetch it")
-    status = entry.get("files_status", "complete")
-    if status != "complete" and not allow_incomplete:
-        note = entry.get("files_note", "")
-        raise ValueError(f"{dataset}: files_status is {status!r} ({note}); pass --allow-incomplete to list anyway")
+    access = entry.get("access")
+    if access not in FETCHABLE:
+        raise ValueError(f"{dataset}: access is {access!r}; mcls.acquire fetches only {sorted(FETCHABLE)}")
+    if entry.get("files_status") != "complete":
+        raise ValueError(f"{dataset}: file list unknown. {entry.get('files_note', '')}")
     files = entry.get("files", [])
     has_roles = any("role" in f for f in files)
     names = []
@@ -101,7 +87,6 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, help="default runs/file_lists/files_<dataset>.txt")
     parser.add_argument("--catalog", type=Path, default=DEFAULT_CATALOG)
     parser.add_argument("--match", help="keep only names containing this text")
-    parser.add_argument("--allow-incomplete", action="store_true")
     parser.add_argument("--keep-all", action="store_true", help="do not leave out documentation files")
     args = parser.parse_args(argv)
 
@@ -110,8 +95,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     skipped: list[str] = []
     try:
-        names = file_names(load_catalog(args.catalog), args.dataset, args.match, args.allow_incomplete,
-                           args.keep_all, skipped)
+        names = file_names(load_catalog(args.catalog), args.dataset, args.match, args.keep_all, skipped)
     except ValueError as error:
         print(f"ERROR: {error}", file=sys.stderr)
         return 2

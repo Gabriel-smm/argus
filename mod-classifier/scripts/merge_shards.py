@@ -5,7 +5,7 @@
     python -m mcls.dataset.build_manifest --shards ~/mcls_data/shards --out data/manifest.jsonl --seed 1
 
 prepare_array.job writes one folder per raw file, <prepared>/<key>/, with a DONE marker
-when the task finished (key = the catalog name with "/" replaced by "__"). This script:
+when the task finished (key = the catalog name's base name, unique per dataset; mcls.acquire enforces that). This script:
 
 - takes only folders with DONE; ignores the hidden .<key>.partial.* staging folders of
   running or killed tasks, which build_manifest's recursive *.jsonl search would otherwise read;
@@ -33,8 +33,8 @@ DONE = "DONE"
 
 
 def key_for(name: str) -> str:
-    """Output folder name for a catalog file name (must match prepare_array.job)."""
-    return name.replace("/", "__")
+    """Output folder name for a catalog file name: its base name (must match prepare_array.job)."""
+    return name.rsplit("/", 1)[-1]
 
 
 def read_list(path: Path) -> list[str]:
