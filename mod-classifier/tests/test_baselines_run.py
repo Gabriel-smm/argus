@@ -207,3 +207,27 @@ def test_library_baselines_write_runs(tmp_path, model, module):
     assert clf.classes == CLASSES
     with np.load(run / "predictions_test.npz") as data:
         assert np.isfinite(data["logits"]).all()
+
+
+def test_runs_on_a_manifest_built_by_the_data_pipeline(tmp_path):
+    """Engineer 5's fake shards -> build_manifest CLI -> baseline CLI (plumbing only: random windows)."""
+    from mcls.dataset import WindowStore, build_manifest
+    from mcls.dataset.fakes import make_fake_shards
+
+    make_fake_shards(tmp_path / "shards", seed=0, recordings_per_class=10, windows_per_recording=2)
+    path = tmp_path / "data" / "manifest.jsonl"
+    assert build_manifest.main(["--shards", str(tmp_path / "shards"), "--out", str(path), "--seed", "1",
+                                "--cap-per-class", "0"]) == 0
+    rows = manifest.read(path)
+    assert {r.split for r in rows} >= {"train", "val", "test"}
+    config_path = tmp_path / "baseline.toml"
+    config_path.write_text(to_toml(make_config()))
+    out = tmp_path / "runs" / "e5"
+    assert main(["--config", str(config_path), "--manifest", str(path), "--out", str(out)]) == 0
+    clf = load(out)
+    for split in ("val", "test"):
+        expected = [r for r in rows if r.split == split]
+        with np.load(out / f"predictions_{split}.npz") as data:
+            assert data["window_id"].tolist() == [r.window_id for r in expected]
+            windows = WindowStore(path.parent).windows(expected)
+            assert np.allclose(clf.logits(windows), data["logits"], atol=1e-5)
