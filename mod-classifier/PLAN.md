@@ -158,6 +158,7 @@ Every loader converts its dataset into the same thing, so the rest of the pipeli
 - One `complex64` window of 4096 samples is **32 KB**. 30,000 windows per class is about **1 GB per class**; 8 classes is about 8 GB. Storing int16 halves that.
 - The processed set therefore fits in a 100 GB CRC home directory. Raw data does not, so it must stay transient.
 - Possible shortcut, not tested: Zenodo serves files over HTTP, so a task might read single members of a large zip by range request instead of fetching the whole archive. Test before relying on it.
+- **Zenodo caps each connection at about 0.6 MB/s** (measured Nov 11 from Odon's laptop, against 18 MB/s from a CDN on the same line). Four parallel byte-range connections gave 2.4 MB/s, so the cap is per connection. At one connection a 50 GB archive takes about 23 hours. Fetchers therefore download in parallel byte ranges (at most about 8 per file, to avoid being blocked), resume after drops, and verify checksums; array jobs fetch different files at the same time. Measure once from a CRC front end before planning a large download.
 - Byte-order traps: GATEMAN is big-endian int16; the triangular set is gzip int8; Tampere is little-endian int16. Each loader gets a test on a real file header.
 
 ---
@@ -404,6 +405,7 @@ Anchored on the team's dates: pitch and M1 on Nov 13, M2 on Nov 20, feature free
 | Weak, file-level labels on Wi-Fi and Bluetooth | Label noise | Energy-detector filtering, down-weighting, confident-learning audit |
 | Jammer data is lab-generated, with no field jammers and no confirmed clean L1 baseline | Weak UC2 | Keep `gnss_jammer` in version 2; add a clean L1 baseline; the noise-floor rule in the Judge covers UC2 until then |
 | Radar data is simulated | Over-optimistic radar results | Flagged `is_real=false`; excluded from headline |
+| Slow downloads: Zenodo caps each connection at about 0.6 MB/s | 50 GB archives take a day on one connection | Parallel byte ranges (up to about 8), resumable fetchers, array jobs over files; measure from CRC first |
 | Leakage through overlapping windows | Inflated scores | Group splits by recording; leakage audit |
 | Sample-rate mismatch (15 to 200 MS/s vs 20 MS/s) | Different spectral shapes | Common 20 MS/s front end; test resampling error; AdaBN |
 | Class imbalance (millions of Wi-Fi windows) | Model ignores minority classes | Per-class caps, balanced sampler, per-class metrics |
