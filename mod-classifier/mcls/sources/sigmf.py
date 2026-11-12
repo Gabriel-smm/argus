@@ -119,6 +119,8 @@ class SigMFSource(Source):
             component = component_dtype(glob["core:datatype"])
             relative = meta_path.relative_to(self.root).as_posix()
             label = self.taxonomy.label_for(self.name, relative)
+            if label.excluded:
+                continue
             annotations = meta.get("annotations", [])
             for seg in segments(meta, data.stat().st_size):
                 if seg["num_samples"] <= 0:
@@ -140,7 +142,7 @@ class SigMFSource(Source):
                     is_real=info.is_real,
                     license=info.license,
                     read=interleaved_reader(data, component, seg["num_samples"], seg["byte_offset"]),
-                    emitter_id=None,
+                    emitter_id=label.emitter_id,
                     meta={
                         "datatype": glob["core:datatype"],
                         "capture_index": seg["index"],

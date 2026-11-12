@@ -17,7 +17,7 @@ INFERRED, not stated by the record (unverified until a file is opened):
   Every Recording says so in `meta`.
 
 Each file is its own `recording_id` (the file name without `.gz`); the power
-level is in `meta["jamming_power"]`.
+level is in `meta["jamming_power"]`. Files the taxonomy excludes are skipped.
 
 Reading, and what it costs:
 
@@ -182,6 +182,10 @@ class TriangularL1(Source):
         info = self.taxonomy.dataset(self.name)
         for stem, paths in self.files().items():
             parsed = parse_name(stem)
+            path = paths.get("raw", paths.get("gz"))
+            label = self.taxonomy.label_for(self.name, path.relative_to(self.root).as_posix())
+            if label.excluded:
+                continue  # before counting: an excluded .gz is never decompressed
             if "raw" in paths:
                 path = paths["raw"]
                 size = path.stat().st_size
@@ -194,7 +198,6 @@ class TriangularL1(Source):
                 num_samples = gzip_num_samples(path)
                 read, access = GzipReader(path, COMPONENT, num_samples), "gzip_stream"
             relative = path.relative_to(self.root).as_posix()
-            label = self.taxonomy.label_for(self.name, relative)
             recording = Recording(
                 dataset=self.name,
                 recording_id=stem,
@@ -207,7 +210,7 @@ class TriangularL1(Source):
                 is_real=info.is_real,
                 license=info.license,
                 read=read,
-                emitter_id=None,
+                emitter_id=label.emitter_id,
                 meta={
                     "jamming_power": parsed["power"],
                     "jamming_signal": "triangular",

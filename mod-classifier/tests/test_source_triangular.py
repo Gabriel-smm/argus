@@ -5,7 +5,7 @@ import pytest
 
 from mcls.sources import get, triangular
 from mcls.sources.triangular import GzipReader, TriangularL1, parse_name, sidecar
-from mcls.taxonomy import Taxonomy
+from mcls.taxonomy import Taxonomy, load
 
 
 def taxonomy():
@@ -119,3 +119,24 @@ def test_check_reports_truncated_gzip_and_missing_powers(tmp_path):
 
 def test_registered(tmp_path):
     assert type(get("triangular_l1", root=tmp_path, taxonomy=taxonomy())) is TriangularL1
+
+
+def test_real_taxonomy(tmp_path):
+    for power in triangular.POWERS:
+        write_gz(tmp_path, name(power), interleave(IQ))
+    recs = list(TriangularL1(root=tmp_path, taxonomy=load()).recordings())
+    assert len(recs) == 5 and {(r.label, r.license) for r in recs} == {("gnss_jammer", "CC BY 4.0")}
+    assert sorted(r.meta["jamming_power"] for r in recs) == list(triangular.POWERS)
+
+
+def test_excluded_gzip_is_not_decompressed(tmp_path, monkeypatch):
+    write_gz(tmp_path, name(65), interleave(IQ))
+    write_gz(tmp_path, name(85), interleave(IQ))
+    entry = {"license": "CC BY 4.0", "is_real": True, "default_label": "gnss_jammer", "default_strength": "weak",
+             "overrides": [{"match": "_TRI_65", "exclude": True, "note": "test"}]}
+    t = Taxonomy({"classes": {"v1": ["gnss_jammer"]}, "datasets": {"triangular_l1": entry}})
+    counted = []
+    real_count = triangular.count_gzip_bytes
+    monkeypatch.setattr(triangular, "count_gzip_bytes", lambda p: counted.append(p.name) or real_count(p))
+    recs = list(TriangularL1(root=tmp_path, taxonomy=t).recordings())
+    assert [r.recording_id for r in recs] == [name(85)] and counted == [f"{name(85)}.gz"]
