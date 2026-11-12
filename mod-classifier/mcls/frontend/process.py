@@ -22,8 +22,8 @@ from mcls.frontend import windows as W
 from mcls.frontend.channelize import Channelizer, choose_offset
 from mcls.frontend.shards import MAX_WINDOWS_PER_SHARD, ShardWriter
 
-#: Native samples read per call to Recording.read (64 MB of complex64).
-READ_CHUNK = 1 << 23
+#: Native samples read per call to Recording.read (16 MB of complex64).
+READ_CHUNK = 1 << 21
 #: 20 MS/s samples per detect_bursts call: about 0.21 s, as pipeline/iq.py.
 DETECT_BLOCK = 1 << 22
 BACKGROUND = "background"
