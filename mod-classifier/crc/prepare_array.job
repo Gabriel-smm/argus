@@ -1,0 +1,142 @@
+#!/bin/bash
+# TEMPLATE UGE array job: prepare one dataset, one raw file per task. No training.
+#
+# Each task:
+#   1. takes line N of $MCLS_FILE_LIST (N = $SGE_TASK_ID; blank lines and
+#      lines starting with # are ignored),
+#   2. fetches that ONE file with `python -m mcls.acquire` into node-local
+#      /tmp/$USER/mcls_raw/<job>.<task> (exported as $MCLS_RAW),
+#   3. runs `python -m mcls.preprocess` on it into node-local scratch,
+#   4. copies only the outputs to $MCLS_OUT/<file name>/,
+#   5. deletes the raw file and the scratch (also on failure).
+# A file whose output folder already holds a DONE marker is skipped, so a
+# rerun only does what is missing.
+#
+# Submit from mod-classifier/ (the job runs there, so `python -m mcls...` finds
+# the package):
+#
+#   cd argus/mod-classifier && mkdir -p runs/crc_logs
+#   N=$(grep -cv -e '^#' -e '^[[:space:]]*$' files_tampere.txt)
+#   qsub -t 1-$N -v MCLS_DATASET=tampere,MCLS_FILE_LIST=$PWD/files_tampere.txt crc/prepare_array.job
+#   qstat -u $USER
+#
+# Settings (pass with qsub -v NAME=value,NAME=value):
+#   MCLS_DATASET       required. Dataset name, as mcls.acquire and mcls.preprocess know it
+#   MCLS_FILE_LIST     required. Absolute path of a text file, one raw file name per line
+#   MCLS_OUT           output dir  (default $HOME/mcls_data/prepared/$MCLS_DATASET)
+#   MCLS_CONNECTIONS   parallel byte ranges per file for mcls.acquire (default 4)
+#   MCLS_VENV          venv built by setup_env.sh (default $HOME/venvs/mcls)
+#   MCLS_KEEP_FAILED=1 keep raw and scratch of a failed task in /tmp for debugging
+#
+# Interfaces this relies on (owned by other engineers; check before first use):
+#   python -m mcls.acquire --dataset D --only NAME --connections N   (writes into $MCLS_RAW)
+#   python -m mcls.preprocess --dataset D --raw DIR --out DIR         (placeholder: not written yet)
+#
+# -tc 8 caps running tasks at 8, so at most 8 files download from the same host
+# at once (8 x MCLS_CONNECTIONS connections in total). Lower it with qsub -tc.
+#
+#$ -N mcls_prepare
+#$ -q long
+#$ -pe smp 2
+#$ -t 1-1
+#$ -tc 8
+#$ -j y
+#$ -o runs/crc_logs/
+#$ -cwd
+set -euo pipefail
+
+die() {
+    echo "ERROR: $*" >&2
+    exit 1
+}
+
+[ -f crc/common.sh ] || die "submit from mod-classifier/ (crc/common.sh not found in $PWD)"
+# shellcheck source=common.sh
+source crc/common.sh
+
+# ---- parameters ------------------------------------------------------------
+TASK="${SGE_TASK_ID:-}"
+case "$TASK" in
+    '' | undefined | *[!0-9]*) die "SGE_TASK_ID is '$TASK': submit as an array job (qsub -t 1-N ...)" ;;
+esac
+JOB="${JOB_ID:-local}"
+DATASET="${MCLS_DATASET:-}"
+LIST="${MCLS_FILE_LIST:-}"
+CONNECTIONS="${MCLS_CONNECTIONS:-4}"
+[ -n "$DATASET" ] || die "MCLS_DATASET is not set (qsub -v MCLS_DATASET=name,...)"
+[ -n "$LIST" ] || die "MCLS_FILE_LIST is not set (qsub -v MCLS_FILE_LIST=/abs/path/list.txt,...)"
+[ -r "$LIST" ] || die "cannot read MCLS_FILE_LIST=$LIST (use an absolute path)"
+OUT="${MCLS_OUT:-$HOME/mcls_data/prepared/$DATASET}"
+
+NAME="$(grep -v -e '^#' -e '^[[:space:]]*$' "$LIST" | sed -n "${TASK}p" | tr -d '\r')"
+[ -n "$NAME" ] || die "task $TASK: no line $TASK in $LIST (only $(grep -cv -e '^#' -e '^[[:space:]]*$' "$LIST") files)"
+STEM="$(basename "$NAME")"
+DEST="$OUT/$STEM"
+
+echo "task $TASK of job $JOB on $(hostname) at $(date)"
+echo "dataset=$DATASET file=$NAME connections=$CONNECTIONS"
+echo "output -> $DEST"
+
+if [ -f "$DEST/DONE" ]; then
+    echo "already done ($DEST/DONE exists), skipping"
+    exit 0
+fi
+
+# ---- environment -----------------------------------------------------------
+mcls_load_python
+echo "module: $MCLS_LOADED_MODULE"
+mcls_relaxed mcls_activate_venv
+
+# Check both steps exist before downloading anything.
+for mod in mcls.acquire mcls.preprocess; do
+    if ! python -c "import importlib.util, sys; sys.exit(importlib.util.find_spec('$mod') is None)" 2>/dev/null; then
+        echo "ERROR: python module $mod does not exist yet in $PWD/mcls." >&2
+        echo "       This template needs it; nothing was downloaded. Pull the branch that adds it, then resubmit." >&2
+        exit 3
+    fi
+done
+
+# ---- node-local scratch ----------------------------------------------------
+export MCLS_RAW="/tmp/$USER/mcls_raw/$JOB.$TASK"
+WORK="/tmp/$USER/mcls_work/$JOB.$TASK"
+cleanup() {
+    local rc=$?
+    if [ "$rc" != 0 ] && [ "${MCLS_KEEP_FAILED:-0}" = "1" ]; then
+        echo "task failed (exit $rc); keeping $MCLS_RAW and $WORK for debugging"
+        return
+    fi
+    rm -rf "$MCLS_RAW" "$WORK" "${STAGE:-}"
+}
+trap cleanup EXIT
+mkdir -p "$MCLS_RAW" "$WORK"
+echo "node /tmp:"
+df -h /tmp || true
+
+# ---- 1. fetch one file -----------------------------------------------------
+echo "[$(date +%T)] acquire"
+python -m mcls.acquire --dataset "$DATASET" --only "$NAME" --connections "$CONNECTIONS"
+du -sh "$MCLS_RAW" || true
+
+# ---- 2. preprocess (placeholder interface) ---------------------------------
+echo "[$(date +%T)] preprocess"
+python -m mcls.preprocess --dataset "$DATASET" --raw "$MCLS_RAW" --out "$WORK"
+
+# ---- 3. copy outputs only, atomically --------------------------------------
+if [ -z "$(ls -A "$WORK")" ]; then
+    die "preprocess wrote nothing to $WORK"
+fi
+echo "[$(date +%T)] copy outputs"
+mkdir -p "$OUT"
+STAGE="$OUT/.$STEM.partial.$JOB.$TASK"
+rm -rf "$STAGE"
+mkdir -p "$STAGE"
+cp -R "$WORK/." "$STAGE/"
+date > "$STAGE/DONE"
+rm -rf "$DEST"
+mv "$STAGE" "$DEST"
+STAGE=""
+du -sh "$DEST" || true
+
+# ---- 4. delete the raw file ------------------------------------------------
+rm -rf "$MCLS_RAW" "$WORK"
+echo "[$(date +%T)] done: $NAME -> $DEST (raw file deleted)"
