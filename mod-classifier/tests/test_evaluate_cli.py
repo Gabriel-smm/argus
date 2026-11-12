@@ -121,13 +121,17 @@ def test_manifest_hash_mismatch_is_refused(tmp_path):
     assert main(["--run", str(run), "--manifest", str(mpath)]) == 2
 
 
-def test_without_manifest_still_reports_windows(tmp_path):
+def test_without_manifest_reports_nothing(tmp_path, capsys):
+    # A run holding simulated rows must never get headline numbers unchecked.
     run, _, _ = _build(tmp_path)
-    m = evaluate_run(run, None, plots=False)
-    assert m["splits"]["test"]["burst"] is None
-    assert m["splits"]["test"]["real_only_verified"] is False
-    assert any("no --manifest" in n for n in m["notes"])
-    assert m["gate_inputs"]["leakage_ok"] is None
+    with pytest.raises(ValueError, match="--manifest is required"):
+        evaluate_run(run, None, plots=False)
+    assert main(["--run", str(run)]) == 2
+    assert "--manifest is required" in capsys.readouterr().err
+    assert not (run / "metrics.json").exists()
+    # comparison of several runs is refused the same way
+    assert main(["--run", str(run), "--run", str(run)]) == 2
+    assert not (run / "comparison.json").exists()
 
 
 def test_comparison_of_runs_with_and_without_synthetic(tmp_path):
