@@ -68,8 +68,8 @@ def test_eight_bit_types(tmp_path):
     write_sigmf(tmp_path, "s", "ci8", np.array([-128, 127, 0, 64], np.int8).tobytes())
     write_sigmf(tmp_path, "u", "cu8", np.array([0, 255, 128, 127], np.uint8).tobytes())
     recs = {r.source_file: r for r in Occupancy(root=tmp_path, taxonomy=taxonomy()).recordings()}
-    np.testing.assert_allclose(recs["s.sigmf-meta#0"].read(0, 2), [-1 + 127 / 128j, 0.5j], rtol=1e-6)
-    np.testing.assert_allclose(recs["u.sigmf-meta#0"].read(0, 2), [-1 + 1j, 0.5 / 127.5 - 0.5 / 127.5j], rtol=1e-5)
+    np.testing.assert_allclose(recs["s.sigmf-meta#0"].read(0, 2), [complex(-1, 127 / 128), 0.5j], rtol=1e-6)
+    np.testing.assert_allclose(recs["u.sigmf-meta#0"].read(0, 2), [complex(-1, 1), complex(0.5 / 127.5, -0.5 / 127.5)], rtol=1e-5)
 
 
 def test_one_recording_per_capture_with_header_bytes(tmp_path):
