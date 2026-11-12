@@ -322,15 +322,17 @@ def test_checkpoint_path_goes_to_engineer_7_loader(tmp_path, monkeypatch):
 
     calls = []
 
-    def fake_load(path, device="cpu"):
-        calls.append((path, device))
+    def fake_load(path, device="cpu", calibration=None):
+        calls.append((path, device, calibration))
         return FixedLogits([0, 1, 0, 0])
 
     monkeypatch.setattr(e7, "load_classifier", fake_load)
     (tmp_path / "checkpoint.pt").write_bytes(b"")
     (tmp_path / "model.pkl").write_bytes(b"")  # checkpoint.pt wins
     clf = load_classifier(tmp_path)
-    assert clf.classes == CLASSES and calls == [(tmp_path / "checkpoint.pt", "cpu")]
+    assert clf.classes == CLASSES and calls == [(tmp_path / "checkpoint.pt", "cpu", None)]
+    load_classifier(tmp_path, calibration=tmp_path / "calibration.json")
+    assert calls[-1] == (tmp_path / "checkpoint.pt", "cpu", tmp_path / "calibration.json")
 
 
 class CalibratedLike:
