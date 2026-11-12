@@ -37,12 +37,19 @@ def test_ce_matches_torch_with_smoothing_and_weights():
 def test_focal_gamma_zero_is_cross_entropy_and_downweights_easy_rows():
     torch.manual_seed(1)
     logits, target = torch.randn(8, 4), torch.randint(0, 4, (8,))
-    ce = classification_loss(logits, target, label_smoothing=0.1, kind="ce")
+    ce = classification_loss(logits, target, label_smoothing=0.1, kind="cross_entropy")
     assert torch.allclose(classification_loss(logits, target, label_smoothing=0.1, kind="focal", focal_gamma=0.0), ce,
                           atol=1e-6)
     assert classification_loss(logits, target, label_smoothing=0.1, kind="focal", focal_gamma=2.0) < ce
     with pytest.raises(ValueError):
         classification_loss(logits, target, kind="hinge")
+
+
+def test_loss_names_match_config_schema():
+    from mcls import config as config_module
+    from mcls.train import losses
+
+    assert losses.LOSSES == config_module.LOSSES
 
 
 def test_family_loss_is_masked():
@@ -164,7 +171,8 @@ class ToyBalancedSampler:
 
 
 def _toy_data():
-    sets = {"train": ToyDataset(24, 0), "val": ToyDataset(9, 1), "test": ToyDataset(6, 2)}
+    sets = {"train": ToyDataset(24, 0), "val": ToyDataset(9, 1), "test": ToyDataset(6, 2),
+            "generalization": ToyDataset(4, 3)}
     return loop.RunData(datasets=sets, rows={k: v.rows for k, v in sets.items()},
                         train_labels=sets["train"].labels, sampler_factory=ToyBalancedSampler)
 
@@ -191,14 +199,14 @@ def test_fit_writes_the_run_folder(tmp_path, model):
     history = [json.loads(line) for line in (run_dir / "history.jsonl").read_text().splitlines()]
     assert [h["epoch"] for h in history] == [0, 1]
     payload = ckpt.load_best(run_dir / ckpt.BEST)
-    assert payload["classes"] == CLASSES and payload["temperature"] == 1.0 and payload["model"] == model
+    assert payload["classes"] == CLASSES and "temperature" not in payload and payload["model"] == model
     assert payload["manifest_sha256"] == json.loads((run_dir / "meta.json").read_text())["manifest_sha256"]
     assert (run_dir / ckpt.LAST).is_file()
-    for split, n in (("val", 9), ("test", 6)):
+    for split, n, seed in (("val", 9, 1), ("test", 6, 2), ("generalization", 4, 3)):
         with np.load(run_dir / f"predictions_{split}.npz", allow_pickle=False) as data:
             assert set(data.files) == set(runs.PREDICTION_KEYS)
             assert data["logits"].shape == (n, 3) and data["label"].dtype == np.int64
-            assert data["window_id"][0] == f"w{1 if split == 'val' else 2}_0"
+            assert data["window_id"][0] == f"w{seed}_0"
             assert np.isnan(data["snr_db_est"][1]) and data["snr_db_est"][0] == 10.0
     assert not (run_dir / "predictions_cross_test.npz").exists()
     assert not (run_dir / "metrics.json").exists()

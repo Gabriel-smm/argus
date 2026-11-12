@@ -84,7 +84,7 @@ def test_head_helpers():
     assert main_logits(a) is a and main_logits((a, torch.ones(2))) is a
 
 
-def _write_checkpoint(path, name="cnn1d", classes=("a", "b", "c"), temperature=1.0):
+def _write_checkpoint(path, name="cnn1d", classes=("a", "b", "c")):
     from mcls.train import checkpoint
 
     kwargs = {"num_classes": len(classes), "width": 4, "dropout": 0.2, "num_families": 0}
@@ -92,7 +92,7 @@ def _write_checkpoint(path, name="cnn1d", classes=("a", "b", "c"), temperature=1
     model = models.build(name, **kwargs)
     checkpoint.save_best(path, model_name=name, model_kwargs=kwargs, state_dict=model.state_dict(), classes=classes,
                          family_classes=(), config={"run": {"name": "t", "seed": 1}}, epoch=0, val_macro_f1=0.5,
-                         meta={"git_commit": "abc", "manifest_sha256": "0" * 64}, temperature=temperature)
+                         meta={"git_commit": "abc", "manifest_sha256": "0" * 64})
     return model
 
 
@@ -117,26 +117,30 @@ def test_classifier_from_checkpoint_meets_contract(tmp_path, name):
         clf.classify(windows[:, :100])
 
 
-def test_set_temperature_flattens_probabilities(tmp_path):
-    from mcls.models.classifier import load_classifier
+def test_calibration_temperature_applies_to_classify_only(tmp_path):
+    import json
+
+    from mcls.models.classifier import load_classifier, softmax
+
+    path = tmp_path / "checkpoint.pt"
+    _write_checkpoint(path)
+    calibration = tmp_path / "calibration.json"
+    calibration.write_text(json.dumps({"temperature": 4.0, "classes": ["a", "b", "c"]}))
+    windows = np.ones((2, WINDOW_SAMPLES), dtype=np.complex64)
+    plain = load_classifier(path)
+    calibrated = load_classifier(path, calibration=calibration)
+    assert plain.temperature == 1.0 and calibrated.temperature == 4.0
+    np.testing.assert_array_equal(plain.logits(windows), calibrated.logits(windows))  # logits always raw
+    np.testing.assert_allclose(calibrated.classify(windows), softmax(plain.logits(windows) / 4.0))
+    assert (calibrated.classify(windows).max(axis=1) <= plain.classify(windows).max(axis=1) + 1e-6).all()
+
+
+def test_checkpoint_loads_with_weights_only_and_has_no_temperature(tmp_path):
     from mcls.train import checkpoint
 
     path = tmp_path / "checkpoint.pt"
     _write_checkpoint(path)
-    windows = np.ones((2, WINDOW_SAMPLES), dtype=np.complex64)
-    sharp = load_classifier(path).classify(windows)
-    checkpoint.set_temperature(path, 4.0)
-    clf = load_classifier(path)
-    assert clf.temperature == 4.0
-    flat = clf.classify(windows)
-    assert (flat.max(axis=1) <= sharp.max(axis=1) + 1e-6).all()
-    with pytest.raises(ValueError):
-        checkpoint.set_temperature(path, 0.0)
-
-
-def test_checkpoint_loads_with_weights_only(tmp_path):
-    path = tmp_path / "checkpoint.pt"
-    _write_checkpoint(path)
     payload = torch.load(path, weights_only=True)
-    assert payload["format"] == "mcls-checkpoint-v1" and payload["temperature"] == 1.0
+    assert payload["format"] == "mcls-checkpoint-v2" and "temperature" not in payload
     assert payload["classes"] == ["a", "b", "c"]
+    assert not hasattr(checkpoint, "set_temperature")

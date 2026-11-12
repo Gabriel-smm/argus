@@ -1,15 +1,19 @@
 """A trained checkpoint behind the `mcls.contracts.Classifier` protocol (for Engineer 10).
 
-    clf = load_classifier("runs/cnn1d_v1/checkpoint.pt")
+    clf = load_classifier("runs/cnn1d_v1/checkpoint.pt", calibration="runs/cnn1d_v1/calibration.json")
     probs = clf.classify(windows)      # complex64 (n, 4096) -> (n, len(clf.classes)), rows sum to 1
+    raw = clf.logits(windows)          # always before any temperature
 
-Probabilities are softmax(logits / temperature), with the temperature stored
-in the checkpoint (1.0 until the evaluator fits it). Torch is imported when a
-classifier is loaded, not when this module is imported.
+The temperature has one home: Engineer 8's calibration.json. With
+`calibration` given, classify() returns softmax(logits / its temperature);
+without it, softmax(logits) (temperature 1). The checkpoint stores none.
+Torch is imported when a classifier is loaded, not when this module is imported.
 """
 
 from __future__ import annotations
 
+import json
+import math
 from pathlib import Path
 
 import numpy as np
@@ -27,7 +31,7 @@ class CheckpointClassifier:
         self.batch_size = batch_size
 
     def logits(self, windows: np.ndarray) -> np.ndarray:
-        """Float32 (n, K) logits before temperature."""
+        """Float32 (n, K) raw logits, never divided by a temperature."""
         import torch
 
         from mcls.models.heads import main_logits
@@ -51,8 +55,23 @@ def softmax(logits: np.ndarray) -> np.ndarray:
     return e / e.sum(axis=1, keepdims=True)
 
 
-def load_classifier(path, device="cpu", batch_size: int = 512) -> CheckpointClassifier:
+def read_temperature(calibration, classes) -> float:
+    """The temperature in Engineer 8's calibration.json, checked against the checkpoint's classes. No torch."""
+    path = Path(calibration)
+    data = json.loads(path.read_text())
+    temperature = data.get("temperature")
+    if isinstance(temperature, bool) or not isinstance(temperature, (int, float)) \
+            or not math.isfinite(temperature) or temperature <= 0:
+        raise ValueError(f"{path}: temperature must be a positive finite number, got {temperature!r}")
+    if "classes" in data and list(data["classes"]) != list(classes):
+        raise ValueError(f"{path}: classes {data['classes']} do not match the checkpoint's {list(classes)}")
+    return float(temperature)
+
+
+def load_classifier(path, device="cpu", batch_size: int = 512, calibration=None) -> CheckpointClassifier:
+    """Load checkpoint.pt; `calibration` is an optional path to calibration.json (its temperature is applied)."""
     from mcls.train.checkpoint import build_from, load_best
 
     payload = load_best(Path(path))
-    return CheckpointClassifier(build_from(payload), payload["classes"], payload["temperature"], device, batch_size)
+    temperature = 1.0 if calibration is None else read_temperature(calibration, payload["classes"])
+    return CheckpointClassifier(build_from(payload), payload["classes"], temperature, device, batch_size)
