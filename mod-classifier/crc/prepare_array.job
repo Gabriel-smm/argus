@@ -38,6 +38,8 @@
 #                      zipfile / tarfile, tar with the "data" filter) and delete the archive
 #                      before preprocess. Needed where a loader reads extracted files only
 #                      (GATEMAN's rawdata.zip). Peak /tmp use is then archive + contents.
+#   MCLS_UNPACKED_GB   extracted size in GB, when the catalog gives no `unpacked_size`
+#                      for the archive (the free-space check below needs one of the two)
 #   MCLS_KEEP_FAILED=1 keep raw and scratch of a failed task in /tmp for debugging
 #   MCLS_NODE_TMP      node-local scratch (default /tmp/$USER); only tests change it
 #
@@ -139,6 +141,27 @@ mkdir -p "$MCLS_RAW" "$WORK"
 # mcls.sources.get only builds the Source here, it reads no files.
 if ! python -c 'import sys; from mcls.sources import get; get(sys.argv[1], root=sys.argv[2])' "$DATASET" "$MCLS_RAW"; then
     echo "ERROR: mcls.sources.get('$DATASET') failed (no loader or no taxonomy entry); nothing was downloaded." >&2
+    exit 3
+fi
+
+# Room on node /tmp: the file, plus its extracted size with MCLS_UNPACK=1 (from the
+# catalog via scripts/space_needed.py). Fail now rather than after hours of download.
+SPACE=(python scripts/space_needed.py "$DATASET" "$NAME")
+if [ "${MCLS_UNPACK:-0}" = "1" ]; then SPACE+=(--unpack); fi
+if [ -n "${MCLS_UNPACKED_GB:-}" ]; then SPACE+=(--unpacked-gb "$MCLS_UNPACKED_GB"); fi
+NEED="$("${SPACE[@]}")" || { echo "ERROR: cannot tell how much room $NAME needs (above); nothing was downloaded." >&2; exit 3; }
+AVAIL_KB="$(df -Pk "$NODE_TMP" | awk 'NR == 2 { print $4 }')"
+case "$AVAIL_KB" in
+    '' | *[!0-9]*) die "could not read free space of $NODE_TMP from df (got '$AVAIL_KB')" ;;
+esac
+AVAIL=$((AVAIL_KB * 1024))
+echo "room: need $((NEED / 1000000)) MB, free $((AVAIL / 1000000)) MB on $NODE_TMP"
+if [ "$NEED" -gt "$AVAIL" ]; then
+    gb() { awk -v b="$1" 'BEGIN { printf "%.1f", b / 1e9 }'; }
+    what="file"
+    if [ "${MCLS_UNPACK:-0}" = "1" ]; then what="file + extracted contents"; fi
+    echo "ERROR: $NAME needs $(gb "$NEED") GB on node /tmp ($what), only $(gb "$AVAIL") GB free; nothing was downloaded." >&2
+    echo "       Ask for a node with a bigger /tmp, or prepare this file elsewhere." >&2
     exit 3
 fi
 echo "node /tmp:"

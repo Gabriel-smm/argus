@@ -11,11 +11,11 @@ last line printed is the number of files, which is the array size:
     qsub -t 1-<count> -v MCLS_DATASET=tampere,MCLS_FILE_LIST=$PWD/runs/file_lists/files_tampere.txt \
         crc/prepare_array.job
 
-Documentation and helper files the datasets ship (example.py, load_bin.m, figures, notes)
-are left out, since preprocess finds no recordings in them and the task would fail: a file
-whose catalog entry has `role = "doc"` is skipped, and, when no file of the dataset has a
-`role`, so is any file ending in one of DOC_SUFFIXES. Each skipped name is printed to stderr;
---keep-all keeps everything.
+Only recordings are listed: files whose catalog `role` is "data" (a missing role means
+data). Files marked "metadata" (label tables, calibration) or "doc" (readers, scripts,
+figures) are left out, since preprocess finds no recordings in them and the task would fail.
+As a backstop, a file with NO role whose name ends in one of DOC_SUFFIXES is left out too.
+Each name left out is printed to stderr with the reason; --keep-all keeps everything.
 
 Exit codes match mcls.acquire: 0 ok, 2 refused (bad catalog, unknown dataset, access that
 mcls.acquire cannot fetch unattended, file list unknown, or no files selected).
@@ -39,17 +39,20 @@ if str(ROOT) not in sys.path:
 from mcls.acquire import FETCHABLE, load_catalog  # noqa: E402  (validates the catalog)
 
 
-def is_doc(entry: dict, dataset_has_roles: bool) -> bool:
-    if dataset_has_roles:
-        return entry.get("role", "data") == "doc"
-    return entry["name"].lower().endswith(DOC_SUFFIXES)
+def skip_reason(entry: dict) -> str | None:
+    """Why a catalog file is not a recording to prepare, or None if it is one."""
+    if "role" in entry:
+        return None if entry["role"] == "data" else f"role={entry['role']}"
+    if entry["name"].lower().endswith(DOC_SUFFIXES):
+        return "no role, documentation suffix"
+    return None
 
 
 def file_names(catalog: dict, dataset: str, match: str | None = None, keep_all: bool = False,
-               skipped: list[str] | None = None) -> list[str]:
-    """Catalog file names for one dataset, documentation files left out (unless keep_all).
+               skipped: list[tuple[str, str]] | None = None) -> list[str]:
+    """Catalog names of the dataset's recordings (every file if keep_all).
 
-    Names left out are appended to `skipped`. Raises ValueError with the reason to refuse.
+    (name, reason) for each file left out is appended to `skipped`. Raises ValueError to refuse.
     """
     datasets = catalog.get("datasets", {})
     if dataset not in datasets:
@@ -60,13 +63,12 @@ def file_names(catalog: dict, dataset: str, match: str | None = None, keep_all: 
         raise ValueError(f"{dataset}: access is {access!r}; mcls.acquire fetches only {sorted(FETCHABLE)}")
     if entry.get("files_status") != "complete":
         raise ValueError(f"{dataset}: file list unknown. {entry.get('files_note', '')}")
-    files = entry.get("files", [])
-    has_roles = any("role" in f for f in files)
     names = []
-    for f in files:
-        if not keep_all and is_doc(f, has_roles):
+    for f in entry.get("files", []):
+        reason = None if keep_all else skip_reason(f)
+        if reason:
             if skipped is not None:
-                skipped.append(f["name"])
+                skipped.append((f["name"], reason))
             continue
         names.append(f["name"])
     if match:
@@ -87,20 +89,20 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, help="default runs/file_lists/files_<dataset>.txt")
     parser.add_argument("--catalog", type=Path, default=DEFAULT_CATALOG)
     parser.add_argument("--match", help="keep only names containing this text")
-    parser.add_argument("--keep-all", action="store_true", help="do not leave out documentation files")
+    parser.add_argument("--keep-all", action="store_true", help="list metadata and doc files too")
     args = parser.parse_args(argv)
 
     if not args.catalog.is_file():
         print(f"ERROR: no catalog at {args.catalog}", file=sys.stderr)
         return 2
-    skipped: list[str] = []
+    skipped: list[tuple[str, str]] = []
     try:
         names = file_names(load_catalog(args.catalog), args.dataset, args.match, args.keep_all, skipped)
     except ValueError as error:
         print(f"ERROR: {error}", file=sys.stderr)
         return 2
-    for name in skipped:
-        print(f"left out (documentation): {name}", file=sys.stderr)
+    for name, reason in skipped:
+        print(f"left out ({reason}): {name}", file=sys.stderr)
 
     out = args.out or DEFAULT_OUT_DIR / f"files_{args.dataset}.txt"
     out.parent.mkdir(parents=True, exist_ok=True)

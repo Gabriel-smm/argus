@@ -13,6 +13,7 @@ There are no training jobs here yet; they are written later, on request.
 | `prepare_array.job` | Template array job: one raw file per task, fetch to node `/tmp`, preprocess, keep outputs, delete raw |
 | `CI_PROPOSAL.md` | Draft: how the repo CI could also run `mod-classifier/tests` (needs Gabriel's agreement) |
 | `../scripts/make_file_list.py` | Writes `runs/file_lists/files_<dataset>.txt` from `configs/catalog.toml`; prints the array size |
+| `../scripts/space_needed.py` | Bytes of node `/tmp` one task needs (file, plus extracted size when unpacking); the job checks it before downloading |
 | `../scripts/merge_shards.py` | Gathers the finished per-file outputs into one shards dir for `build_manifest` |
 
 ## Settings
@@ -48,7 +49,7 @@ cat runs/crc_logs/check_node.o*
 
 Run step 1 before step 2: if home is nearly full, set `MCLS_VENV` to a path on group storage first.
 
-Step 4 prepares one dataset. It needs `mcls.acquire` (Engineer 2) and `mcls.preprocess` (Engineer 4) on the branch, and Odon's approval for that dataset's download (file names, source and total size first: `python -m mcls.acquire --dataset tampere --list`). If a module is missing, or `mcls.sources.get(<dataset>)` fails (no loader, or no taxonomy entry for it), the job stops at once with exit code 3, before it downloads anything.
+Step 4 prepares one dataset. It needs `mcls.acquire` (Engineer 2) and `mcls.preprocess` (Engineer 4) on the branch, and Odon's approval for that dataset's download (file names, source and total size first: `python -m mcls.acquire --dataset tampere --list`). If a module is missing, or `mcls.sources.get(<dataset>)` fails (no loader, or no taxonomy entry for it), the job stops at once with exit code 3, before it downloads anything. It also stops with exit code 3 if node `/tmp` (by `df`) has less free space than the file needs (see `MCLS_UNPACK` below).
 
 ```bash
 # 4a. File list from the catalog; the number printed is the array size
@@ -91,7 +92,7 @@ Repeat 4a to 4c per dataset into the same `--dest`, then run 4d once.
 
 ## `prepare_array.job` (template)
 
-One task per raw file. Task N reads line N of a file list (blank lines and `#` comments skipped). The names are the catalog's `name` fields, written by `scripts/make_file_list.py`; it refuses a dataset that `mcls.acquire` cannot fetch unattended (`ieee_login`, `manual`) or whose file list is unknown in the catalog. It leaves out the documentation files datasets ship (`example.py`, `load_bin.m`, figures, notes: a catalog `role = "doc"`, else the file suffix) and names each one on stderr; `--keep-all` keeps them. `--match TEXT` keeps a subset, for example one NIST radar group. Check the list before submitting: a few non-recording files pass the suffix rule (LoRaIQ's `dataset.csv`, Drexel's MATLAB-scripts `.tar`), and their task would fail with "no recordings"; pick the data with `--match`, e.g. `--match sigmfs.zip`. Each task then:
+One task per raw file. Task N reads line N of a file list (blank lines and `#` comments skipped). The names are the catalog's `name` fields, written by `scripts/make_file_list.py`; it refuses a dataset that `mcls.acquire` cannot fetch unattended (`ieee_login`, `manual`) or whose file list is unknown in the catalog. It lists only recordings: files whose catalog `role` is `data` (no role means data). Files marked `metadata` (label tables, calibration) or `doc` (readers, scripts, figures) are left out, each named on stderr, since preprocess would find no recordings in them; a file with no role but a documentation suffix (`.py`, `.m`, `.pdf`, ...) is left out as a backstop. `--keep-all` lists everything. `--match TEXT` keeps a subset, for example one NIST radar group. LoRaIQ and Drexel need no `--match`: their catalog roles leave one data file each. Each task then:
 
 1. `python -m mcls.acquire --dataset D --only NAME --connections N`, which writes `$MCLS_RAW/<base name of NAME>` with `MCLS_RAW=/tmp/$USER/mcls_raw/<job>.<task>`
 2. `python -m mcls.preprocess --dataset D --raw $MCLS_RAW --out <node scratch>`
@@ -100,7 +101,7 @@ One task per raw file. Task N reads line N of a file list (blank lines and `#` c
 
 `merge_shards.py` then hard-links each finished `<key>/` folder, unchanged, into `<dest>/<dataset>/<key>/`, so the relative shard paths in its `.jsonl` rows stay valid. It skips the hidden `.<key>.partial.*` folders of killed tasks, which `build_manifest`'s recursive search would otherwise read. `--move` renames instead of linking.
 
-`MCLS_OUT` defaults to `$HOME/mcls_data/prepared/<dataset>`; `MCLS_CONNECTIONS` defaults to 1. `#$ -tc 8` lets at most 8 tasks run (and download from Zenodo) at once, so about 8 connections in total, the cap in PLAN.md. Keep tasks x connections near 8: if you raise `MCLS_CONNECTIONS`, lower `-tc` (for example `MCLS_CONNECTIONS=4` with `qsub -tc 2`). The job refuses `MCLS_CONNECTIONS` above 8, and `mcls.acquire` also applies each host's own cap (1 for Fairdata). Set `MCLS_MAX_GB` to make a task refuse a file larger than the node's free `/tmp`. Set `MCLS_UNPACK=1` for a dataset whose loader reads extracted files only (GATEMAN: its loader asks for `rawdata.zip` to be extracted first): the task unpacks the `.zip` or `.tar` with Python's own modules and deletes the archive before preprocessing, so the node needs room for the archive and its contents at once. A rerun skips files whose output has a `DONE` marker. Set `MCLS_KEEP_FAILED=1` to keep a failed task's files in `/tmp` for debugging.
+`MCLS_OUT` defaults to `$HOME/mcls_data/prepared/<dataset>`; `MCLS_CONNECTIONS` defaults to 1. `#$ -tc 8` lets at most 8 tasks run (and download from Zenodo) at once, so about 8 connections in total, the cap in PLAN.md. Keep tasks x connections near 8: if you raise `MCLS_CONNECTIONS`, lower `-tc` (for example `MCLS_CONNECTIONS=4` with `qsub -tc 2`). The job refuses `MCLS_CONNECTIONS` above 8, and `mcls.acquire` also applies each host's own cap (1 for Fairdata). Set `MCLS_MAX_GB` to make a task refuse a file larger than the node's free `/tmp`. Set `MCLS_UNPACK=1` for a dataset whose loader reads extracted files only (GATEMAN: its loader asks for `rawdata.zip` to be extracted first): the task unpacks the `.zip` or `.tar` with Python's own modules and deletes the archive before preprocessing, so the node needs room for the archive and its contents at once. Before downloading, the task compares that total with `df` of node `/tmp` and stops (exit 3) if it does not fit. The extracted size comes from the archive's `unpacked_size` in the catalog; GATEMAN's entry has none yet, so until it does, pass it by hand with `MCLS_UNPACKED_GB=<GB>`, or the task refuses rather than guess. A rerun skips files whose output has a `DONE` marker. Set `MCLS_KEEP_FAILED=1` to keep a failed task's files in `/tmp` for debugging.
 
 ## Trained weights: never in git
 
