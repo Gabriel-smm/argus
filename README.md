@@ -71,6 +71,8 @@ Several files can be selected in each tab. Data files are joined in order. Knowl
 
 A file that does not fit is refused with a message that names the file and the row or question at fault, for example `Row 3 is missing bandwidth_hz.`
 
+**From a capture.** `python -m pipeline.ingest` turns an rtl_power or hackrf_sweep sweep (CSV), a raw `.cu8` / `.cs8` recording, or a SigMF recording into a data file, one row per signal found. See [documents/local-setup.md](documents/local-setup.md#from-a-capture-file).
+
 ## How it works
 
 ![Architecture: the dashboard, the chat agent, Ollama and the Laya pipeline service on one machine, with the offline fine-tuning that produces the checkpoint](documentation/assets/04-architecture.png)
@@ -187,7 +189,7 @@ python -m pytest tests
 - One result is kept at a time, in memory. It survives a page reload but not a restart of the Laya service.
 - One run at a time, one operator.
 - The model sees three fields as text. It has not been validated on signals captured off the air.
-- The app does not read a live SDR, a raw IQ file or a spectrogram image. Bandwidth is measured from IQ samples only offline, in [finetune/sources/panoradio.py](finetune/sources/panoradio.py), to build the training data.
+- The dashboard does not read a live SDR, a capture file or a spectrogram image. Sweeps and IQ recordings are turned into data files from the command line first (`python -m pipeline.ingest`).
 - Anomalies are low-confidence observations and rare answers, nothing more.
 
 ## Repository map
