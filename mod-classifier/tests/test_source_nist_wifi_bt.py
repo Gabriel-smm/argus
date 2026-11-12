@@ -4,8 +4,8 @@ import pytest
 h5py = pytest.importorskip("h5py")
 
 from mcls.sources import get  # noqa: E402
-from mcls.sources.nist_wifi_bt import NistWifiBt, parse_name  # noqa: E402
-from mcls.taxonomy import Taxonomy  # noqa: E402
+from mcls.sources.nist_wifi_bt import NistWifiBt, grouping_problems, parse_name  # noqa: E402
+from mcls.taxonomy import Taxonomy, load  # noqa: E402
 
 
 def taxonomy():
@@ -101,3 +101,28 @@ def test_wrong_dtype_is_refused(tmp_path):
 
 def test_registered():
     assert type(get("nist_wifi_bt", root=".", taxonomy=taxonomy())) is NistWifiBt
+
+
+def test_check_flags_indoor_outdoor_keys_without_a_twin(tmp_path):
+    """Guards the timestamp grouping: a key in only one of a pair would not share its recording_id."""
+    write_h5(tmp_path / "2_4ghz_indoor.h5", {"t1": IQ, "t2": IQ})
+    write_h5(tmp_path / "2_4ghz_outdoor.h5", {"t1": IQ, "t3": IQ})
+    write_h5(tmp_path / "5ghz_indoor.h5", {"t9": IQ})  # no outdoor file: nothing to pair
+    write_h5(tmp_path / "2_4ghz_bluetooth.h5", {"t7": IQ})  # not part of a pair
+    problems = [p for p in NistWifiBt(root=tmp_path, taxonomy=taxonomy()).check() if "twin" in p]
+    assert len(problems) == 2
+    assert any(p.startswith("2_4ghz_indoor.h5: 1 capture keys") and "t2" in p for p in problems)
+    assert any(p.startswith("2_4ghz_outdoor.h5: 1 capture keys") and "t3" in p for p in problems)
+    assert grouping_problems({"5ghz_indoor.h5": ["a"], "5ghz_outdoor.h5": ["a"]}) == []
+
+
+def test_real_taxonomy(tmp_path):
+    for name in ("2_4ghz_indoor.h5", "5ghz_outdoor.h5", "2_4ghz_bluetooth.h5"):
+        write_h5(tmp_path / name, {"t1": IQ})
+    recs = {r.source_file: r for r in NistWifiBt(root=tmp_path, taxonomy=load()).recordings()}
+    assert {f: r.label for f, r in recs.items()} == {
+        "2_4ghz_bluetooth.h5:t1": "bluetooth",
+        "2_4ghz_indoor.h5:t1": "wifi",
+        "5ghz_outdoor.h5:t1": "wifi",
+    }
+    assert all(r.emitter_id is None for r in recs.values())
