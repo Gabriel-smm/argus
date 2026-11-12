@@ -495,6 +495,9 @@ export function Library() {
                 {summary.low_confidence > 0 && (
                   <span className="block">{summary.low_confidence} low confidence</span>
                 )}
+                {summary.site_report && (
+                  <span className="block">Site check: {summary.site_report.headline.toLowerCase()}</span>
+                )}
               </p>
               <button
                 type="button"

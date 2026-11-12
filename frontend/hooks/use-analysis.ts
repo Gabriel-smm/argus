@@ -4,6 +4,32 @@ import { create } from "zustand";
 
 import type { LayaRole } from "@/lib/laya-files";
 
+export type SiteGroup = "needs_review" | "unknown" | "expected";
+
+/** The site check as a picture-ready report (pipeline/context.py build_site_report). */
+export type SiteReport = {
+  site: string;
+  verdict: "review" | "unknown" | "normal";
+  headline: string;
+  explain: string;
+  counts: Record<SiteGroup, number>;
+  total: number;
+  kinds: { kind: string; count: number; worst: SiteGroup }[];
+  flagged: {
+    id: string;
+    group: SiteGroup;
+    title: string;
+    kind: string;
+    reason: string;
+    check_next: string;
+    protected: boolean;
+  }[];
+  more_flagged: number;
+  /** Every signal, worst first, for the category buttons. */
+  signals: SiteReport["flagged"];
+  questions: string[];
+};
+
 export type AnalysisSummary = {
   knowledge_name: string;
   data_name: string;
@@ -18,6 +44,9 @@ export type AnalysisSummary = {
   }[];
   low_confidence: number;
   seconds: number;
+  /** Present when the site check ran. */
+  site_check?: Record<SiteGroup, number>;
+  site_report?: SiteReport | null;
 };
 
 export type AnalysisError = { message: string; field: LayaRole | null };

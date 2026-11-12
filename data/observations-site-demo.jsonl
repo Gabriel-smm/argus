@@ -1,0 +1,17 @@
+{"id": 0, "center_frequency_hz": 2437000000, "bandwidth_hz": 20000000, "modulation": "OFDM", "hopping": false, "use_case": "baseline", "note": "Wi-Fi router on channel 6", "expected_triage": "expected"}
+{"id": 1, "center_frequency_hz": 2441000000, "bandwidth_hz": 1000000, "modulation": "GFSK", "hopping": true, "use_case": "baseline", "note": "Bluetooth headphones", "expected_triage": "expected"}
+{"id": 2, "center_frequency_hz": 2440000000, "bandwidth_hz": 2000000, "modulation": "FHSS", "hopping": true, "remote_id": false, "use_case": "drone", "note": "Drone control link, no Remote ID heard", "expected_triage": "needs_review"}
+{"id": 3, "center_frequency_hz": 2430000000, "bandwidth_hz": 2000000, "modulation": "FHSS", "hopping": true, "remote_id": true, "use_case": "drone", "note": "Drone control link broadcasting Remote ID", "expected_triage": "unknown"}
+{"id": 4, "center_frequency_hz": 5780000000, "bandwidth_hz": 20000000, "modulation": "OFDM", "remote_id": false, "use_case": "drone", "note": "Drone video downlink at 5.8 GHz, no Remote ID", "expected_triage": "needs_review"}
+{"id": 5, "center_frequency_hz": 5917000000, "bandwidth_hz": 20000000, "modulation": "FM", "use_case": "drone", "note": "Analog FPV video above the Wi-Fi band", "expected_triage": "needs_review"}
+{"id": 6, "center_frequency_hz": 1575420000, "bandwidth_hz": 10000000, "modulation": "unknown", "use_case": "jamming", "note": "Noise centred on GPS L1, typical of a GPS jammer", "expected_triage": "needs_review"}
+{"id": 7, "center_frequency_hz": 1580000000, "bandwidth_hz": 40000000, "modulation": "CHIRP", "use_case": "jamming", "note": "Sweeping signal across GPS L1", "expected_triage": "needs_review"}
+{"id": 8, "center_frequency_hz": 2450000000, "bandwidth_hz": 300000, "modulation": "CW", "use_case": "jamming", "note": "Narrow steady carrier in the 2.4 GHz band", "expected_triage": "unknown"}
+{"id": 9, "center_frequency_hz": 2441750000, "bandwidth_hz": 83500000, "modulation": "unknown", "use_case": "jamming", "note": "Noise across the whole 2.4 GHz band (barrage)", "expected_triage": "unknown"}
+{"id": 10, "center_frequency_hz": 433920000, "bandwidth_hz": 50000, "modulation": "OOK", "use_case": "baseline", "note": "Weather station sensor", "expected_triage": "expected"}
+{"id": 11, "center_frequency_hz": 915000000, "bandwidth_hz": 125000, "modulation": "LoRa", "use_case": "baseline", "note": "LoRa sensor", "expected_triage": "expected"}
+{"id": 12, "center_frequency_hz": 1090000000, "bandwidth_hz": 2000000, "modulation": "PPM", "use_case": "baseline", "note": "Aircraft ADS-B", "expected_triage": "expected"}
+{"id": 13, "center_frequency_hz": 868300000, "bandwidth_hz": 100000, "modulation": "FSK", "use_case": "baseline", "note": "European 868 MHz sensor at a US site", "expected_triage": "unknown"}
+{"id": 14, "center_frequency_hz": 3100000000, "bandwidth_hz": 1000000, "modulation": "unknown", "use_case": "baseline", "note": "Signal in a gap of the band table", "expected_triage": "unknown"}
+{"id": 15, "center_frequency_hz": 98700000, "bandwidth_hz": 200000, "modulation": "FM", "use_case": "baseline", "note": "FM radio station", "expected_triage": "expected"}
+{"id": 16, "center_frequency_hz": 125000000, "bandwidth_hz": 8000, "modulation": "AM", "use_case": "baseline", "note": "Air traffic control voice", "expected_triage": "expected"}

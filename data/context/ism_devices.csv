@@ -1,0 +1,393 @@
+rtl433_id,name,category,on_by_default
+1,Silvercrest Remote Control,remote control,yes
+2,"Rubicson, TFA 30.3197 or InFactory PT-310 Temperature Sensor",temperature / humidity sensor,yes
+3,"Prologue, FreeTec NC-7104, NC-7159-675 temperature sensor",temperature / humidity sensor,yes
+4,Waveman Switch Transmitter,remote control,yes
+6,ELV EM 1000,other device,no
+7,ELV WS 2000,other device,no
+8,"LaCrosse TX Temperature / Humidity Sensor, TX5U rain gauge",weather station,yes
+10,Acurite 896 Rain Gauge,weather station,yes
+11,Acurite 609TXC Temperature and Humidity Sensor,temperature / humidity sensor,yes
+12,Oregon Scientific Weather Sensor,weather station,yes
+13,Mebus 433,other device,no
+14,Intertechno 433,other device,no
+15,KlikAanKlikUit Wireless Switch,remote control,yes
+16,AlectoV1 Weather Sensor (Alecto WS3500 WS4500 Ventus W155/W044 Oregon),weather station,yes
+17,Cardin S466-TX2,other device,yes
+18,"Fine Offset Electronics, WH2, WH5, Telldus Temperature/Humidity/Rain Sensor",weather station,yes
+19,"Nexus, FreeTec NC-7345, NX-3980, Solight TE82S, TFA 30.3209 temperature/humidity sensor",temperature / humidity sensor,yes
+20,"Ambient Weather F007TH, TFA 30.3208.02, SwitchDocLabs F016TH temperature sensor",weather station,yes
+21,Calibeur RF-104 Sensor,other device,yes
+22,X10 RF,other device,yes
+23,DSC Security Contact,security sensor,yes
+24,Brennenstuhl RCS 2044,other device,no
+25,Globaltronics GT-WT-02 Sensor,other device,yes
+26,Danfoss CFR Thermostat,other device,yes
+29,Chuango Security Technology,security sensor,no
+30,Generic Remote SC226x EV1527,remote control,yes
+31,"TFA-Twin-Plus-30.3049, Conrad KW9010, Ea2 BL999",other device,yes
+32,Fine Offset Electronics WH1080/WH3080 Weather Station,weather station,yes
+33,"WT450, WT260H, WT405H",other device,yes
+34,LaCrosse WS-2310 / WS-3600 Weather Station,weather station,yes
+35,Esperanza EWS,other device,yes
+36,Efergy e2 classic,other device,yes
+37,"Inovalley kw9015b, TFA Dostmann 30.3161 (Rain and temperature sensor)",weather station,no
+38,Generic temperature sensor 1,temperature / humidity sensor,yes
+39,WG-PB12V1 Temperature Sensor,temperature / humidity sensor,yes
+40,"Acurite 592TXR temp/humidity, 592TX temp, 5n1, 3n1, Atlas weather station, 515 fridge/freezer, 6045 lightning, 899 rain, 1190/1192 leak",security sensor,yes
+41,Acurite 986 Refrigerator / Freezer Thermometer,temperature / humidity sensor,yes
+42,"HIDEKI TS04 Temperature, Humidity, Wind and Rain Sensor",weather station,yes
+43,Watchman Sonic / Apollo Ultrasonic / Beckett Rocket oil tank monitor,other device,yes
+44,CurrentCost Current Sensor,other device,yes
+45,emonTx OpenEnergyMonitor,other device,yes
+46,HT680 Remote control,remote control,yes
+47,"Conrad S3318P, FreeTec NC-5849-913 temperature humidity sensor, ORIA WA50 ST389 temperature sensor",temperature / humidity sensor,yes
+48,Akhan 100F14 remote keyless entry,remote control,no
+49,Quhwa,other device,yes
+50,OSv1 Temperature Sensor,temperature / humidity sensor,yes
+51,Proove / Nexa / KlikAanKlikUit Wireless Switch,remote control,yes
+52,Bresser Thermo-/Hygro-Sensor 3CH,temperature / humidity sensor,yes
+53,Springfield Temperature and Soil Moisture,temperature / humidity sensor,yes
+54,Oregon Scientific SL109H Remote Thermal Hygro Sensor,temperature / humidity sensor,yes
+55,Acurite 606TX / Technoline TX960 Temperature Sensor,temperature / humidity sensor,yes
+56,TFA pool temperature sensor,temperature / humidity sensor,yes
+57,"Kedsum Temperature & Humidity Sensor, Pearl NC-7415",temperature / humidity sensor,yes
+58,Blyss DC5-UK-WH,other device,yes
+59,Steelmate TPMS,tire pressure sensor,yes
+60,Schrader TPMS,tire pressure sensor,yes
+61,LightwaveRF,other device,no
+62,Elro DB286A Doorbell,doorbell,no
+63,Efergy Optical,other device,yes
+64,Honda Car Key,other device,no
+67,Radiohead ASK,other device,yes
+68,Kerui PIR / Contact Sensor,security sensor,yes
+69,Fine Offset WH1050 Weather Station,weather station,yes
+70,"Honeywell Door/Window Sensor, 2Gig DW10/DW11, RE208 repeater",other device,yes
+71,Maverick ET-732/733 BBQ Sensor,temperature / humidity sensor,yes
+72,RF-tech,other device,no
+73,"LaCrosse TX141-Bv2, TX141TH-Bv2, TX141-Bv3, TX141W, TX145wsdth, (TFA, ORIA) sensor",other device,yes
+74,"Acurite 00275rm,00276rm Temp/Humidity with optional probe",temperature / humidity sensor,yes
+75,"LaCrosse TX35DTH-IT, TFA Dostmann 30.3155 Temperature/Humidity sensor",temperature / humidity sensor,yes
+76,"LaCrosse TX29IT, TFA Dostmann 30.3159.IT Temperature sensor",temperature / humidity sensor,yes
+77,Vaillant calorMatic VRT340f Central Heating Control,other device,yes
+78,"Fine Offset Electronics, WH25, WH32, WH32B, WN32B, WH24, WH65, WS69, HP1000, Misol WS2320 Temperature/Humidity/Pressure Sensor",temperature / humidity sensor,yes
+79,"Fine Offset Electronics, WH0530 Temperature/Rain Sensor",weather station,yes
+80,IBIS beacon,other device,yes
+81,Oil Ultrasonic STANDARD FSK,other device,yes
+82,Citroen TPMS,tire pressure sensor,yes
+83,Oil Ultrasonic STANDARD ASK,other device,yes
+84,Thermopro TP11 Thermometer,temperature / humidity sensor,yes
+85,"Solight TE44/TE66, EMOS E0107T, NX-6876-917",other device,yes
+86,Wireless Smoke and Heat Detector GS 558,security sensor,no
+87,Generic wireless motion sensor,security sensor,yes
+88,Toyota TPMS,tire pressure sensor,yes
+89,Ford TPMS,tire pressure sensor,yes
+90,Renault TPMS,tire pressure sensor,yes
+91,"inFactory, nor-tec, FreeTec NC-3982-913 temperature humidity sensor",temperature / humidity sensor,yes
+92,FT-004-B Temperature Sensor,temperature / humidity sensor,yes
+93,Ford Car Key,other device,no
+94,Philips outdoor temperature sensor (type AJ3650),temperature / humidity sensor,yes
+95,"Schrader TPMS EG53MA4, Saab, Opel, Vauxhall, Chevrolet",tire pressure sensor,yes
+96,Nexa,other device,yes
+97,ThermoPro TP08/TP12/TP20 thermometer,temperature / humidity sensor,yes
+98,GE Color Effects,other device,yes
+99,X10 Security,security sensor,yes
+100,Interlogix GE UTC Security Devices,security sensor,yes
+101,Dish remote 6.3,remote control,no
+102,SimpliSafe Home Security System (May require disabling automatic gain for KeyPad decodes),security sensor,yes
+103,Sensible Living Mini-Plant Moisture Sensor,other device,yes
+104,"Wireless M-Bus, Mode C&T, 100kbps (-f 868.95M -s 1200k)",other device,yes
+105,"Wireless M-Bus, Mode S, 32.768kbps (-f 868.3M -s 1000k)",other device,yes
+106,"Wireless M-Bus, Mode R, 4.8kbps (-f 868.33M)",other device,no
+107,"Wireless M-Bus, Mode F, 2.4kbps",other device,no
+108,Hyundai WS SENZOR Remote Temperature Sensor,temperature / humidity sensor,yes
+109,WT0124 Pool Thermometer,temperature / humidity sensor,yes
+110,PMV-107J (Toyota) TPMS,tire pressure sensor,yes
+111,Emos TTX201 Temperature Sensor,temperature / humidity sensor,yes
+112,Ambient Weather TX-8300 Temperature/Humidity Sensor,weather station,yes
+113,"Ambient Weather WH31E Thermo-Hygrometer Sensor, EcoWitt WH40/WN20 rain gauge, WS68 weather station",weather station,yes
+114,Maverick ET73,other device,yes
+115,"Honeywell ActivLink, Wireless Doorbell",doorbell,yes
+116,"Honeywell ActivLink, Wireless Doorbell (FSK)",doorbell,yes
+117,"ESA1000 / ESA2000 Energy Monitor, GIRA Wetterstation",weather station,no
+118,Biltema rain gauge,weather station,no
+119,Bresser Weather Center 5-in-1,weather station,yes
+120,Digitech XC-0324 / AmbientWeather FT005TH temp/hum sensor,other device,yes
+121,Opus/Imagintronix XT300 Soil Moisture,other device,yes
+122,FS20 / FHT,other device,no
+123,Jansite TPMS Model TY02S,tire pressure sensor,no
+124,LaCrosse/ELV/Conrad WS7000/WS2500 weather sensors,weather station,yes
+125,TS-FT002 Wireless Ultrasonic Tank Liquid Level Meter With Temperature Sensor,temperature / humidity sensor,yes
+126,Companion WTR001 Temperature Sensor,temperature / humidity sensor,yes
+127,Ecowitt Wireless Outdoor Thermometer WH53/WH0280/WH0281A,temperature / humidity sensor,yes
+128,DirecTV RC66RX Remote Control,remote control,yes
+129,Eurochron temperature and humidity sensor,temperature / humidity sensor,no
+130,IKEA Sparsnas Energy Meter Monitor,utility meter,yes
+131,Microchip HCS200/HCS300 KeeLoq Hopping Encoder based remotes,remote control,yes
+132,TFA Dostmann 30.3196 T/H outdoor sensor,other device,yes
+133,Rubicson 48659 Thermometer,temperature / humidity sensor,yes
+134,"AOK Weather Station rebrand Holman Industries iWeather WS5029, Conrad AOK-5056, Optex 990018",weather station,yes
+135,Philips outdoor temperature sensor (type AJ7010),temperature / humidity sensor,yes
+136,ESIC EMT7110 power meter,utility meter,yes
+137,Globaltronics QUIGG GT-TMBBQ-05,other device,yes
+138,Globaltronics GT-WT-03 Sensor,other device,yes
+139,Norgo NGE101,other device,yes
+140,Elantra2012 TPMS,tire pressure sensor,yes
+141,"Auriol HG02832, HG05124A-DCF, Rubicson 48957 temperature/humidity sensor",temperature / humidity sensor,yes
+142,"Fine Offset Electronics/Ecowitt WH51, WN31, SwitchDoc Labs SM23 Soil Moisture Sensor",other device,yes
+143,Holman Industries iWeather WS5029 weather station (older PWM),weather station,yes
+144,TBH weather sensor,weather station,yes
+145,WS2032 weather station,weather station,yes
+146,Auriol AFW2A1 temperature/humidity sensor,temperature / humidity sensor,yes
+147,TFA Drop Rain Gauge 30.3233.01,weather station,yes
+148,DSC Security Contact (WS4945),security sensor,yes
+149,ERT Standard Consumption Message (SCM),utility meter,yes
+150,Klimalogg,other device,no
+151,Visonic powercode,other device,yes
+152,Eurochron EFTH-800 temperature and humidity sensor,temperature / humidity sensor,yes
+153,"Cotech 36-7959, SwitchDocLabs FT020T wireless weather station with USB",weather station,yes
+154,Standard Consumption Message Plus (SCMplus),utility meter,yes
+155,Fine Offset Electronics WH1080/WH3080 Weather Station (FSK),weather station,yes
+156,Abarth 124 Spider and Shenzhen EGQ Q85 TPMS,tire pressure sensor,yes
+157,Missil ML0757 weather station,weather station,yes
+158,Sharp SPC775 weather station,weather station,yes
+159,Insteon,other device,yes
+160,ERT Interval Data Message (IDM),utility meter,yes
+161,ERT Interval Data Message (IDM) for Net Meters,utility meter,yes
+162,ThermoPro-TX2 temperature sensor,temperature / humidity sensor,no
+163,Acurite 590TX Temperature with optional Humidity,temperature / humidity sensor,yes
+164,Security+ 2.0 (Keyfob),security sensor,yes
+165,TFA Dostmann 30.3221.02 T/H Outdoor Sensor (also 30.3249.02),other device,yes
+166,LaCrosse Technology View LTV-WSDTH01 Breeze Pro Wind Sensor,weather station,yes
+167,Somfy RTS,other device,yes
+168,Schrader TPMS SMD3MA4 (Subaru),tire pressure sensor,yes
+169,Nice Flor-s remote control for gates,remote control,no
+170,LaCrosse Technology View LTV-WR1 Multi Sensor,other device,yes
+171,LaCrosse Technology View LTV-TH Thermo/Hygro Sensor,temperature / humidity sensor,yes
+172,"Bresser Weather Center 6-in-1, 7-in-1 indoor, soil, new 5-in-1, 3-in-1 wind gauge, Froggit WH6000, Ventus C8488A",weather station,yes
+173,"Bresser Weather Center 7-in-1, Air Quality PM2.5/PM10 7009970, CO2 7009977, HCHO/VOC 7009978 sensors",weather station,yes
+174,EcoDHOME Smart Socket and MCEE Solar monitor,utility meter,yes
+175,"LaCrosse Technology View LTV-R1, LTV-R3 Rainfall Gauge, LTV-W1/W2 Wind Sensor",weather station,yes
+176,"BlueLine Innovations Power Cost Monitor, Black & Decker EM100B",utility meter,yes
+177,Burnhard BBQ thermometer,temperature / humidity sensor,yes
+178,Security+ (Keyfob),security sensor,yes
+179,"Cavius smoke, heat and water detector",security sensor,yes
+180,Jansite TPMS Model Solar,tire pressure sensor,yes
+181,Amazon Basics Meat Thermometer,temperature / humidity sensor,yes
+182,TFA Marbella Pool Thermometer,temperature / humidity sensor,yes
+183,Auriol AHFL temperature/humidity sensor,temperature / humidity sensor,yes
+184,Auriol AFT 77 B2 temperature sensor,temperature / humidity sensor,yes
+185,Honeywell CM921 Wireless Programmable Room Thermostat,other device,yes
+186,Hyundai TPMS (VDO),tire pressure sensor,yes
+187,RojaFlex shutter and remote devices,remote control,yes
+188,Marlec Solar iBoost+ sensors,utility meter,yes
+189,Somfy io-homecontrol,other device,yes
+190,Ambient Weather WH31L (FineOffset WH57) Lightning-Strike sensor,weather station,yes
+191,"Markisol, E-Motion, BOFU, Rollerhouse, BF-30x, BF-415 curtain remote",security sensor,no
+192,"Govee Water Leak Detector H5054, Door Contact Sensor B5023",security sensor,yes
+193,Clipsal CMR113 Cent-a-meter power meter,utility meter,yes
+194,Inkbird ITH-20R temperature humidity sensor,temperature / humidity sensor,yes
+195,RainPoint soil temperature and moisture sensor,temperature / humidity sensor,yes
+196,Atech-WS308 temperature sensor,temperature / humidity sensor,yes
+197,Acurite Grill/Meat Thermometer 01185M,temperature / humidity sensor,yes
+198,EnOcean ERP1,other device,no
+199,Linear Megacode Garage/Gate Remotes,remote control,no
+200,"Auriol 4-LD5661/4-LD5972/4-LD6313, Sempre 4-AH0423-4 temperature/rain sensors",weather station,no
+201,Unbranded SolarTPMS for trucks,other device,yes
+202,"Funkbus / Instafunk (Berker, Gira, Jung)",other device,yes
+203,Porsche Boxster/Cayman TPMS,tire pressure sensor,yes
+204,Jasco/GE Choice Alert Security Devices,security sensor,yes
+205,Telldus weather station FT0385R sensors,weather station,yes
+206,LaCrosse TX34-IT rain gauge,weather station,yes
+207,SmartFire Proflame 2 remote control,remote control,yes
+208,AVE TPMS,tire pressure sensor,yes
+209,SimpliSafe Gen 3 Home Security System,security sensor,yes
+210,"Yale HSA (Home Security Alarm), YES-Alarmkit",security sensor,yes
+211,Regency Ceiling Fan Remote (-f 303.75M to 303.96M),remote control,yes
+212,Renault 0435R TPMS,tire pressure sensor,yes
+213,Fine Offset Electronics WS80 weather station,weather station,yes
+214,"EMOS E6016 weatherstation with DCF77, EMOS E6018 temperature/humidity sensor",temperature / humidity sensor,yes
+215,"Emax W6, rebrand Altronics x7063/4/x7064A, Optex 990040/50/51, Orium 13093/13123, Infactory FWS-1200, Newentor Q9, Otio 810025, Protmex PT3390A, Jula Marquant 014331/32, TechniSat IMETEO X6 76-4924-00, Weather Station or temperature/humidity sensor",weather station,yes
+216,ANT and ANT+ devices,other device,no
+217,EMOS E6016 rain gauge,weather station,yes
+218,Microchip HCS200/HCS300 KeeLoq Hopping Encoder based remotes (FSK),remote control,yes
+219,Fine Offset Electronics WH45 air quality sensor,other device,yes
+220,Maverick XR-30 BBQ Sensor,temperature / humidity sensor,yes
+221,"Fine Offset Electronics WN34S/L/D, WN38 and Froggit DP150/D35 temperature sensor",temperature / humidity sensor,yes
+222,Rubicson Pool Thermometer 48942,temperature / humidity sensor,yes
+223,"Badger ORION water meter, 100kbps (-f 916.45M -s 1200k)",utility meter,yes
+224,GEO minim+ energy monitor,utility meter,yes
+225,TyreGuard 400 TPMS,tire pressure sensor,yes
+226,Kia TPMS (-s 1000k),tire pressure sensor,yes
+227,SRSmith Pool Light Remote Control SRS-2C-TX (-f 915M),temperature / humidity sensor,yes
+228,Neptune R900 flow meters,utility meter,yes
+229,WEC-2103 temperature/humidity sensor,temperature / humidity sensor,yes
+230,Vauno EN8822C,other device,yes
+231,Govee Water Leak Detector H5054,security sensor,yes
+232,TFA Dostmann 14.1504.V2 Radio-controlled grill and meat thermometer,temperature / humidity sensor,yes
+233,CED7000 Shot Timer,other device,no
+234,"Watchman Sonic Advanced / Plus, Tekelek",other device,yes
+235,Oil Ultrasonic SMART FSK,other device,yes
+236,Gasmate BA1008 meat thermometer,temperature / humidity sensor,yes
+237,Flowis flow meters,utility meter,yes
+238,"Wireless M-Bus, Mode T, 32.768kbps (-f 868.3M -s 1000k)",other device,yes
+239,Revolt NC-5642 Energy Meter,utility meter,yes
+240,"LaCrosse TX31U-IT, The Weather Channel WS-1910TWC-IT",weather station,yes
+241,"EezTire E618, Carchet TPMS, TST-507 TPMS",tire pressure sensor,yes
+242,Baldr / RainPoint rain gauge.,weather station,no
+243,Celsia CZC1 Thermostat,other device,yes
+244,Fine Offset Electronics WS90 weather station,weather station,yes
+245,"ThermoPro TX-2C, TX-2B Thermometer and Humidity sensor",temperature / humidity sensor,no
+246,TFA 30.3151 Weather Station,weather station,yes
+247,Bresser water leakage,other device,yes
+248,Nissan TPMS,tire pressure sensor,yes
+249,Bresser lightning,weather station,yes
+250,"Schou 72543 Day Rain Gauge, Motonet MTX Rain, MarQuant Rain Gauge, TFA Dostmann 30.3252.01/47.3006.01 Rain Gauge and Thermometer, ADE WS1907",weather station,yes
+251,Fine Offset / Ecowitt WH55 water leak sensor,security sensor,yes
+252,"BMW Gen4-Gen5 TPMS and Audi TPMS Pressure Alert, multi-brand HUF/Beru, Continental, Schrader/Sensata, Audi",tire pressure sensor,yes
+253,Watts WFHT-RF Thermostat,other device,yes
+254,Thermor DG950 weather station,weather station,yes
+255,Mueller Hot Rod water meter,utility meter,yes
+256,ThermoPro TP28b Super Long Range Wireless Meat Thermometer for Smoker BBQ Grill,temperature / humidity sensor,yes
+257,BMW Gen2 and Gen3 TPMS,tire pressure sensor,yes
+258,Chamberlain CWPIRC PIR Sensor,security sensor,yes
+259,"ThermoPro Meat Thermometers, TP829B 4 probes with temp only",temperature / humidity sensor,yes
+260,Arad/Master Meter Dialog3G water utility meter,utility meter,yes
+261,Geevon TX16-3 outdoor sensor,other device,yes
+262,Fine Offset Electronics WH46 air quality sensor,other device,yes
+263,Vevor Wireless Weather Station 7-in-1,weather station,yes
+264,"Arexx Multilogger IP-HA90, IP-TH78EXT, TSN-70E",other device,yes
+265,Rosstech Digital Control Unit DCU-706/Sundance/Jacuzzi,other device,yes
+266,"Risco 2 Way Agility protocol, Risco PIR/PET Sensor RWX95P",security sensor,yes
+267,"ThermoPro Meat Thermometers, TP828B 2 probes with Temp, BBQ Target LO and HI",temperature / humidity sensor,yes
+268,Bresser Thermo-/Hygro-Sensor Explore Scientific ST1005H,temperature / humidity sensor,yes
+269,DeltaDore X3D devices,other device,yes
+270,Quinetic,other device,no
+271,Landis & Gyr Gridstream Power Meters 9.6k,utility meter,yes
+272,Landis & Gyr Gridstream Power Meters 19.2k,utility meter,yes
+273,Landis & Gyr Gridstream Power Meters 38.4k,utility meter,yes
+274,Revolt ZX-7717 power meter,utility meter,yes
+275,GM-Aftermarket TPMS,tire pressure sensor,yes
+276,RainPoint HCS012ARF Rain Gauge sensor,weather station,yes
+277,Apator Metra E-RM 30 water meter,utility meter,yes
+278,ThermoPro TX-7B Outdoor Thermometer Hygrometer,temperature / humidity sensor,yes
+279,"Nexus, CRX, Prego sauna temperature sensor",temperature / humidity sensor,yes
+280,"Homelead HG9901 (Geevon, Dr.Meter, Royal Gardineer) soil moisture/temp/light level sensor",utility meter,yes
+281,Maverick XR-50 BBQ Sensor,temperature / humidity sensor,yes
+282,"Orion Endpoint from Badger Meter, GIF2014W-OSE, water meter, hopping from 904.4 Mhz to 924.6Mhz (-s 1600k)",utility meter,yes
+283,Fine Offset Electronics WH43 air quality sensor,other device,yes
+284,Baldr E0666TH Thermo-Hygrometer,temperature / humidity sensor,yes
+285,bm5-v2 12V Battery Monitor,other device,yes
+286,Universal (Reverseable) 24V Fan Controller,other device,yes
+287,Fine Offset Electronics WS85 weather station,weather station,yes
+288,Oria WA150KM freezer and fridge thermometer,temperature / humidity sensor,yes
+289,Voltcraft EnergyCount 3000 (ec3k),other device,yes
+290,"Orion Endpoint from Badger Meter, GIF2020OCECNA, water meter, hopping from 904.4 Mhz to 924.6Mhz (-s 1600k)",utility meter,yes
+291,Geevon TX19-1 outdoor sensor,other device,yes
+292,WallarGe CLTX001 Outdoor Temperature Sensor,temperature / humidity sensor,yes
+293,"Sainlogic SA8, Gevanti SA8 Weather Station",weather station,yes
+294,ThermoPro TempSpike XR TP862b / TP863b Wireless Dual-Probe Meat Thermometer,temperature / humidity sensor,yes
+295,Airpuxem TPMS TYH11_EU6_ZQ,tire pressure sensor,yes
+296,Apator Metra E-ITN 30 heat cost allocator,other device,yes
+297,ThermoPro TP211B Thermometer,temperature / humidity sensor,yes
+298,TRW TPMS OOK OEM and Clone models,tire pressure sensor,yes
+299,TRW TPMS FSK OEM and Clone models,tire pressure sensor,yes
+300,Govee Water Leak Detector H5059,security sensor,yes
+301,Astrostart 2000 Car Remote (-f 372.4M),remote control,yes
+302,Compustar 1WG3R Car Remote,remote control,yes
+303,Chrysler Car Remote (-f 315.1M -s 920k),remote control,yes
+304,Nidec Car Remote (-f 313.8M -s 1024k),remote control,no
+305,Audiovox PRO-OE3B Car Remote (-f 303.4M),remote control,yes
+306,"Microchip HCS361 KeeLoq Hopping Encoder based remotes (-f 315.1M) (Sync, 833 bit/s)",remote control,yes
+307,"Microchip HCS361 KeeLoq Hopping Encoder based remotes (-f 315.1M) (Sync, 1667 bit/s)",remote control,yes
+308,"Microchip HCS361 KeeLoq Hopping Encoder based remotes (-f 315.1M) (No Sync, 833 bit/s)",remote control,yes
+309,"Microchip HCS361 KeeLoq Hopping Encoder based remotes (-f 315.1M) (No Sync, 1667 bit/s)",remote control,yes
+310,"Microchip HCS361 KeeLoq Hopping Encoder based remotes (-f 315.1M) (PIWM, 2500 bit/s)",remote control,yes
+311,"Microchip HCS361 KeeLoq Hopping Encoder based remotes (-f 315.1M) (PIWM, 5000 bit/s)",remote control,yes
+312,MIC 6SC2 Car Remote (-f 315.1M),remote control,yes
+313,GM ABO1502T Car Remote (-f 314.9M),remote control,yes
+314,Siemens 5WY72XX Car Remote (-f 315.1M),remote control,yes
+315,Alps FWB1U545 Car Remote,remote control,yes
+316,Continental KR5V2X Car Remote (-f 313.8M -s 1024k),remote control,yes
+317,Code Alarm FRDPC2002 Car Remote,security sensor,yes
+318,RFM69 LowPowerLab Moteino board (-s 1000k),other device,yes
+319,Shenzhen Wale WL-TH6R Temperature & Humidity Sensor,temperature / humidity sensor,yes
+320,Cellular Tracking Technologies LifeTag/PowerTag/HybridTag,other device,yes
+321,Schrader Motorcycle TPMS sensor,tire pressure sensor,yes
+322,Gear Hive TPMS sensor,tire pressure sensor,yes
+323,LaCrosse Technology TX22U-IT,other device,yes
+324,LaCrosse Technology TX22U-IT (OOK),other device,yes
+325,Thermor A6N 132TX temperature sensor,temperature / humidity sensor,yes
+326,Acurite/Chaney 985 Refrigerator / Freezer Thermometer,temperature / humidity sensor,yes
+327,Honda Keyfob KR5V2X/1X (-f 433.6M -s 1024k),other device,yes
+328,Schrader TPMS MRXBC5A4 (BMW),tire pressure sensor,yes
+329,Microchip HCS362 KeeLoq PWM,other device,yes
+330,Microchip HCS362 KeeLoq MC,other device,yes
+331,RF-T0912 Grill Thermometer,temperature / humidity sensor,yes
+332,TR-502MSV remote smart socket controller,remote control,yes
+333,Opel Mokka Car Key,other device,yes
+334,"RfxMeter, RFXPwr",other device,yes
+335,Martec MPLCD Ceiling Fan Remote,remote control,yes
+336,NetAtmo temp/hum and wind sensors,weather station,yes
+337,Omni Multisensor,other device,yes
+338,Elster/Honeywell R2S/REXU power meter,utility meter,yes
+339,Florabest FB-TH-1 BBQ Thermometer,temperature / humidity sensor,yes
+340,"Holman Industries iWeather WS5029 weather station (older PWM, OOK), BIOWIN 270208",weather station,yes
+341,Esun EN2053 two-channel BBQ thermometer,temperature / humidity sensor,yes
+342,"Vivint Door/Window Sensor, V-DW21R-345/V-DW11-345",other device,yes
+343,"SmarTire TPMS sensor, Aston Martin/Vantage DB9 protocol",tire pressure sensor,yes
+344,Dickert MAHS433-01 garage door remote control,remote control,no
+345,FSL Cricket Scoreboard Controller,other device,yes
+346,EN2058 four probe temperature sensor,temperature / humidity sensor,yes
+347,TFA Dostmann 30.390X T/H sensors series,other device,yes
+348,Watts WFHT-RF / WFHC-MASTERH&C-RF underfloor heating thermostat,other device,yes
+349,Govee Pool/Spa Thermometer H5310,temperature / humidity sensor,yes
+350,Govee H5112 Dual-Probe Thermometer,temperature / humidity sensor,yes
+351,Eco-Eye solar PV/grid current monitor,utility meter,yes
+352,"Schrader TPMS MRXNIS315G3, 3039 (Infiniti, Nissan, Renault), aka Redi-Sensor SE10001HP/SE10001HPR",tire pressure sensor,yes
+353,Fine Offset Electronics / Ecowitt WH52 Soil Moisture/Temperature/EC Sensor,temperature / humidity sensor,yes
+354,iMars T240 TPMS,tire pressure sensor,yes
+355,Jansite TPMS TY-468-eu2 / KKMOON TPMS,tire pressure sensor,yes
+356,Agimex Rosenborg 66796 (collides with Fine Offset Electronics WH5) Temperature/Humidity Sensor,temperature / humidity sensor,no
+357,Auriol HG04641A temperature station,temperature / humidity sensor,yes
+358,Eberle Instat 868r1 floor heating thermostat remote,remote control,yes
+359,Kingspan/Watchman Plus (Niveau) oil tank monitor,other device,yes
+360,Baldr HCS528ARF Pool Thermometer sensor,temperature / humidity sensor,yes
+361,Kidde RF-SM-DC wireless-interconnect smoke alarm,security sensor,no
+362,Jansite TPMS TY588-EU2,tire pressure sensor,yes
+363,Oregon Scientific WMR500 weather station,weather station,yes
+364,Elsner Solexa 230V,other device,yes
+365,Mercedes Benz Sprinter 4500 TPMS sensor,tire pressure sensor,yes
+366,Watts Vision thermostat (-f 868.3M),other device,yes
+367,TFA 30.3307.02 Wind sensor,weather station,yes
+368,Cavius Door/Window sensor (-f 868.7M),other device,yes
+369,Cotech FT0203/18-3676 anemometer,other device,no
+370,2GIG-KEY2E-345 encrypted keyfob,other device,no
+371,Hanwell ML/RL4000-series Radiologger temperature/humidity sensor,temperature / humidity sensor,no
+372,Elero bidirectional blinds/awning remote (Silent Gliss and others),remote control,yes
+373,"Elster/Honeywell R2S/REXU power meter, type-2 frames",utility meter,yes
+374,LaCrosse WS6868 TX232TH-LCD temperature/humidity sensor,temperature / humidity sensor,yes
+375,LaCrosse WS6868 TX231RW wind/rain sensor,weather station,yes
+376,McPower Kinetic battery-less wall switch,remote control,yes
+377,Typhur Sync Gold meat thermometer probe,temperature / humidity sensor,yes
+378,Sefis M3 / Careud / Sykik SRTP300 TPMS,tire pressure sensor,yes
+379,RADIAN/RADIAN0 meter,utility meter,yes
+380,Jeep TPMS,tire pressure sensor,no
+381,Honda (TRW PPA-GF33) TPMS,tire pressure sensor,yes
+382,Cotech 36-7900 rain gauge,weather station,no
+383,Silver Spring Networks mesh endpoint (-s 1600k),other device,yes
+384,"Bresser SmartHome Garden soil moisture and water timer valve (Baldr Homgar, RainPoint)",other device,yes
+385,Neptune R900 BCD flow meters,utility meter,no
+386,Olympia Protect 9571 alarm system sensors,security sensor,yes
+387,Cotech 36-9231 FT020TL LoRa weather station,weather station,yes
+388,LoRaWAN 1.0.x generic MAC frame,other device,yes
+389,ELSYS ERS Series LoRaWAN sensors,other device,yes
+390,Hollarm alarm system remotes,security sensor,no
+391,Power Smart blind remotes,utility meter,yes
+392,Feron LED light remotes,remote control,no
+393,Paradox Magellan security sensors,security sensor,yes
+394,GangQi alarm system remotes,security sensor,yes
+395,Chamberlain / LiftMaster DIP switch remotes,remote control,no
+396,King Gates Stylo 4k gate remotes,remote control,no
+397,iDo 117/111 gate remotes,remote control,no
+398,"Bresser Thermo-/Hygro-Sensor 3CH, V0 format",temperature / humidity sensor,no

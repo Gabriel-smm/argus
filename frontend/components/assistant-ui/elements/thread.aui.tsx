@@ -24,6 +24,7 @@ import {
 import { TooltipIconButton } from "@/components/assistant-ui/elements/tooltip-icon-button";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SiteReport } from "@/components/site-report";
 import { ANALYSIS_POLL_MS, useAnalysis } from "@/hooks/use-analysis";
 import eagleIcon from "@/app/eagle_icon.png";
 import { cn } from "@/lib/utils";
@@ -373,6 +374,18 @@ const ThreadScrollToBottom: FC = () => {
 const ThreadWelcome: FC = () => {
   const running = useAnalysis((s) => s.running);
   const summary = useAnalysis((s) => s.summary);
+  const report = running ? null : summary?.site_report;
+
+  if (report) {
+    return (
+      <div className="aui-thread-welcome-root mb-6 flex flex-col px-2">
+        <SiteReport report={report} />
+        <p className="text-muted-foreground mt-5 text-sm">
+          Ask about any of the {summary?.observations} signals, or start with a question below.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="aui-thread-welcome-root mb-6 flex flex-col px-2">
@@ -417,11 +430,14 @@ const SUGGESTION_MARK =
 
 const ThreadSuggestions: FC = () => {
   const grounded = useAnalysis((s) => s.summary !== null && !s.running);
+  // Questions built from this run's site report, when there is one.
+  const reportQuestions = useAnalysis((s) => s.summary?.site_report?.questions);
+  const prompts = reportQuestions?.length ? reportQuestions : ANALYSIS_PROMPTS;
 
   return (
     <div className="aui-thread-welcome-suggestions flex w-full flex-col">
       {grounded &&
-        ANALYSIS_PROMPTS.map((prompt) => (
+        prompts.map((prompt) => (
           <div key={prompt} className={SUGGESTION_ROW}>
             <ThreadPrimitive.Suggestion
               prompt={prompt}

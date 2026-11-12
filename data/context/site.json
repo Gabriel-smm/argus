@@ -1,0 +1,305 @@
+{
+  "name": "Notre Dame campus (demo site)",
+  "latitude": 41.703,
+  "longitude": -86.239,
+  "radius_km": 10,
+  "frequency_list": "United States (FCC / NTIA)",
+  "expected_bands": [
+    "fm_broadcast",
+    "aviation_voice",
+    "amateur_2m",
+    "noaa_weather",
+    "ism_315",
+    "ism_433",
+    "cell_low",
+    "ism_915",
+    "dme",
+    "ssr_1030",
+    "adsb_1090",
+    "lband_radar",
+    "cell_mid",
+    "wifi_24",
+    "bluetooth",
+    "cell_25",
+    "radar_s",
+    "cbrs",
+    "cband_5g",
+    "radar_altimeter",
+    "wifi_5"
+  ],
+  "restricted": [],
+  "nearby": [
+    {
+      "kind": "power plant",
+      "name": "Notre Dame Power Plant",
+      "distance_km": 0.4,
+      "implies": [],
+      "source": "OpenStreetMap way 236663801",
+      "effect": "can cause electrical noise that looks like interference"
+    },
+    {
+      "kind": "power plant",
+      "name": "unnamed power plant",
+      "distance_km": 0.9,
+      "implies": [],
+      "source": "OpenStreetMap way 1457184583",
+      "effect": "can cause electrical noise that looks like interference"
+    },
+    {
+      "kind": "power substation",
+      "name": "American Electric Power",
+      "distance_km": 1.0,
+      "implies": [],
+      "source": "OpenStreetMap way 89597501",
+      "effect": "can cause electrical noise that looks like interference"
+    },
+    {
+      "kind": "power substation",
+      "name": "AEP Notre Dame Substation",
+      "distance_km": 1.0,
+      "implies": [],
+      "source": "OpenStreetMap way 682799134",
+      "effect": "can cause electrical noise that looks like interference"
+    },
+    {
+      "kind": "communication tower",
+      "name": "unnamed communication tower",
+      "distance_km": 1.3,
+      "implies": [
+        "cell_low",
+        "cell_mid",
+        "cell_25",
+        "cband_5g"
+      ],
+      "source": "OpenStreetMap node 13111003712"
+    },
+    {
+      "kind": "communication tower",
+      "name": "unnamed communication tower",
+      "distance_km": 1.5,
+      "implies": [
+        "cell_low",
+        "cell_mid",
+        "cell_25",
+        "cband_5g"
+      ],
+      "source": "OpenStreetMap node 3402066620"
+    },
+    {
+      "kind": "power substation",
+      "name": "unnamed power substation",
+      "distance_km": 2.0,
+      "implies": [],
+      "source": "OpenStreetMap way 1192414786",
+      "effect": "can cause electrical noise that looks like interference"
+    },
+    {
+      "kind": "communication tower",
+      "name": "unnamed communication tower",
+      "distance_km": 2.2,
+      "implies": [
+        "cell_low",
+        "cell_mid",
+        "cell_25",
+        "cband_5g"
+      ],
+      "source": "OpenStreetMap node 13111003703"
+    },
+    {
+      "kind": "communication tower",
+      "name": "unnamed communication tower",
+      "distance_km": 2.3,
+      "implies": [
+        "cell_low",
+        "cell_mid",
+        "cell_25",
+        "cband_5g"
+      ],
+      "source": "OpenStreetMap node 7416185489"
+    },
+    {
+      "kind": "communication tower",
+      "name": "unnamed communication tower",
+      "distance_km": 2.3,
+      "implies": [
+        "cell_low",
+        "cell_mid",
+        "cell_25",
+        "cband_5g"
+      ],
+      "source": "OpenStreetMap node 7416185842"
+    },
+    {
+      "kind": "communication tower",
+      "name": "unnamed communication tower",
+      "distance_km": 2.4,
+      "implies": [
+        "cell_low",
+        "cell_mid",
+        "cell_25",
+        "cband_5g"
+      ],
+      "source": "OpenStreetMap node 7734793745"
+    },
+    {
+      "kind": "power substation",
+      "name": "Colfax Station",
+      "distance_km": 2.8,
+      "implies": [],
+      "source": "OpenStreetMap way 1160274809",
+      "effect": "can cause electrical noise that looks like interference"
+    },
+    {
+      "kind": "power substation",
+      "name": "American Electric Power",
+      "distance_km": 2.9,
+      "implies": [],
+      "source": "OpenStreetMap way 1160537535",
+      "effect": "can cause electrical noise that looks like interference"
+    },
+    {
+      "kind": "power substation",
+      "name": "American Electric Power",
+      "distance_km": 3.0,
+      "implies": [],
+      "source": "OpenStreetMap way 1160537534",
+      "effect": "can cause electrical noise that looks like interference"
+    },
+    {
+      "kind": "power substation",
+      "name": "AEP South Bend Substation",
+      "distance_km": 3.3,
+      "implies": [],
+      "source": "OpenStreetMap way 1184058375",
+      "effect": "can cause electrical noise that looks like interference"
+    },
+    {
+      "kind": "power substation",
+      "name": "Darden Substation",
+      "distance_km": 3.5,
+      "implies": [],
+      "source": "OpenStreetMap way 1184382407",
+      "effect": "can cause electrical noise that looks like interference"
+    },
+    {
+      "kind": "communication tower",
+      "name": "unnamed communication tower",
+      "distance_km": 3.7,
+      "implies": [
+        "cell_low",
+        "cell_mid",
+        "cell_25",
+        "cband_5g"
+      ],
+      "source": "OpenStreetMap node 11575028086"
+    },
+    {
+      "kind": "power substation",
+      "name": "University Park Mall",
+      "distance_km": 3.9,
+      "implies": [],
+      "source": "OpenStreetMap way 962519388",
+      "effect": "can cause electrical noise that looks like interference"
+    },
+    {
+      "kind": "communication tower",
+      "name": "unnamed communication tower",
+      "distance_km": 4.0,
+      "implies": [
+        "cell_low",
+        "cell_mid",
+        "cell_25",
+        "cband_5g"
+      ],
+      "source": "OpenStreetMap node 7734794030"
+    },
+    {
+      "kind": "communication tower",
+      "name": "unnamed communication tower",
+      "distance_km": 4.0,
+      "implies": [
+        "cell_low",
+        "cell_mid",
+        "cell_25",
+        "cband_5g"
+      ],
+      "source": "OpenStreetMap node 7771556023"
+    },
+    {
+      "kind": "communication tower",
+      "name": "unnamed communication tower",
+      "distance_km": 4.0,
+      "implies": [
+        "cell_low",
+        "cell_mid",
+        "cell_25",
+        "cband_5g"
+      ],
+      "source": "OpenStreetMap node 8718550193"
+    },
+    {
+      "kind": "power substation",
+      "name": "AEP East Side Substation",
+      "distance_km": 4.0,
+      "implies": [],
+      "source": "OpenStreetMap way 669546388",
+      "effect": "can cause electrical noise that looks like interference"
+    },
+    {
+      "kind": "airport",
+      "name": "C. V. Airport",
+      "distance_km": 6.0,
+      "implies": [
+        "aviation_voice",
+        "dme",
+        "ssr_1030",
+        "adsb_1090",
+        "radar_s"
+      ],
+      "source": "OpenStreetMap node 1042045071"
+    },
+    {
+      "kind": "airport",
+      "name": "South Bend International Airport (SBN)",
+      "distance_km": 6.4,
+      "implies": [
+        "aviation_voice",
+        "dme",
+        "ssr_1030",
+        "adsb_1090",
+        "radar_s"
+      ],
+      "source": "OpenStreetMap way 224696857"
+    },
+    {
+      "kind": "power plant",
+      "name": "Twin Branch Power Plant",
+      "distance_km": 9.7,
+      "implies": [],
+      "source": "OpenStreetMap way 149696580",
+      "effect": "can cause electrical noise that looks like interference"
+    },
+    {
+      "kind": "power plant",
+      "name": "Twin Branch PV",
+      "distance_km": 9.9,
+      "implies": [],
+      "source": "OpenStreetMap way 783415360",
+      "effect": "can cause electrical noise that looks like interference"
+    },
+    {
+      "kind": "airport",
+      "name": "Rentz Ultralight Flightpark",
+      "distance_km": 10.1,
+      "implies": [
+        "aviation_voice",
+        "dme",
+        "ssr_1030",
+        "adsb_1090",
+        "radar_s"
+      ],
+      "source": "OpenStreetMap way 505892669"
+    }
+  ],
+  "notes": "Expected bands are what normally transmits around a US university campus near an airport. Drone links, European 868 MHz devices and any signal on GPS L1 are deliberately not expected here."
+}

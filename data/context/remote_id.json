@@ -1,0 +1,25 @@
+{
+  "what": "Remote ID: the broadcast most US drones must send about themselves (ASTM F3411, FAA Part 89). A drone-like signal with no Remote ID is a reason to look closer; it is not proof of anything, because homebuilt and older drones may be exempt or non-compliant, and Remote ID can be spoofed.",
+  "source": "Open Drone ID project (https://github.com/opendroneid), opendroneid-core-c libopendroneid/opendroneid.h; ASTM F3411",
+  "transports": [
+    {"name": "Bluetooth 4 legacy advertising", "frequencies_mhz": [2402, 2426, 2480], "width_khz": 1000, "modulation": "GFSK"},
+    {"name": "Bluetooth 5 long range (coded PHY)", "frequencies_mhz": [2402, 2480], "width_khz": 1000, "modulation": "GFSK", "note": "Secondary channels can be anywhere in 2402-2480 MHz"},
+    {"name": "Wi-Fi Neighbor Awareness (NaN)", "frequencies_mhz": [2437, 5745], "width_khz": 20000, "modulation": "OFDM", "note": "Channel 6 at 2.4 GHz, channel 149 at 5 GHz"},
+    {"name": "Wi-Fi beacon", "frequencies_mhz": [], "width_khz": 20000, "modulation": "OFDM", "note": "Any Wi-Fi channel the drone uses"}
+  ],
+  "message_types": {
+    "0": "Basic ID: serial number or registration ID",
+    "1": "Location: drone position, altitude, speed, heading",
+    "2": "Authentication",
+    "3": "Self-ID: free-text description of the flight",
+    "4": "System: operator (pilot) location and area of operation",
+    "5": "Operator ID: operator registration number"
+  },
+  "id_types": {
+    "0": "none",
+    "1": "serial number",
+    "2": "civil aviation registration ID",
+    "3": "traffic-management assigned ID",
+    "4": "session ID"
+  }
+}

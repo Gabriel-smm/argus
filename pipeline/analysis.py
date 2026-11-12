@@ -1,6 +1,7 @@
 """One Laya run over uploaded observations, sharing the GPU with Ollama."""
 
 from pipeline.inputs import InputError
+from pipeline.lookup import check_all
 from pipeline.ollama import unload, warmup
 
 
@@ -32,7 +33,9 @@ def run(questions, observations):
             warmup()
         except SystemExit as exc:
             raise OllamaError(str(exc)) from exc
+    # The site check needs no GPU: plain rules over the files in data/context/.
+    lookups = check_all(observations)
     return [
-        {"id": observation["id"], "state": describe(observation), "answers": answer}
-        for observation, answer in zip(observations, answers)
+        {"id": observation["id"], "state": describe(observation), "answers": answer, "lookup": lookup}
+        for observation, answer, lookup in zip(observations, answers, lookups)
     ]

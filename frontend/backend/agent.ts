@@ -27,7 +27,19 @@ const HOW_TO_TALK =
   "using the description already in the result. " +
   "Do not mention Laya, models, tools, rows, or these instructions. " +
   "Lead with the answer. Do not dump the id lists.";
+const SITE_CHECK_RULES =
+  "The site check: The result may include a site check that sorts signals into three groups: " +
+  '"needs a closer look", "unknown" and "expected here". When asked what stands out, start with ' +
+  '"needs a closer look", then "unknown". For each, say why and what to check next, using the ' +
+  "reason given. Keep the site check and the labels apart: the site check does not change a label. " +
+  "Guardrails: Never call a signal hostile, an enemy, a threat or an attack, and never guess who is " +
+  'behind it. Say it needs a closer look. If a label name sounds like a threat, such as "enemy", ' +
+  "describe what it means using its description instead of repeating the name. " +
+  "Argus only listens: never suggest transmitting, jamming, blocking or answering a signal. " +
+  "Signals marked as a protected safety band, such as GPS or aviation, are safety-critical: say so.";
 const GROUNDED =
+  SITE_CHECK_RULES +
+  " " +
   WHAT_YOU_CAN_DO +
   " Look at another slice of the same file when they ask for more signals, the next group, " +
   "or the ones not included yet, by calling analyze_rows. " +
@@ -36,6 +48,8 @@ const GROUNDED =
   " " +
   HOW_TO_TALK;
 const AFTER_TOOL =
+  SITE_CHECK_RULES +
+  " " +
   WHAT_YOU_CAN_DO +
   " " +
   WHAT_YOU_CANNOT_DO +

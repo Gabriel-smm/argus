@@ -1,0 +1,27 @@
+{
+  "name": "Example overseas site (illustration only)",
+  "latitude": 0,
+  "longitude": 0,
+  "radius_km": 10,
+  "frequency_list": "Example only: a real deployment would load the theater's frequency list (for example a JRFL). This file shows how a list is swapped, not real allocations.",
+  "expected_bands": [
+    "fm_broadcast",
+    "aviation_voice",
+    "srd_868",
+    "cell_low",
+    "cell_mid",
+    "wifi_24",
+    "bluetooth",
+    "wifi_5"
+  ],
+  "restricted": [
+    {
+      "name": "Example restricted channel",
+      "low_mhz": 433.05,
+      "high_mhz": 434.79,
+      "why": "Example entry: operators were told this band must stay quiet near the site."
+    }
+  ],
+  "nearby": [],
+  "notes": "Use with ARGUS_SITE=data/context/site_example_overseas.json to show that changing the site file changes what counts as expected, without retraining anything."
+}

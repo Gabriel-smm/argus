@@ -94,6 +94,10 @@ Orange arrows are a classification run. Blue arrows are a chat turn. The dashed 
 
 **What the chat model is given.** Not the rows. A small model miscounts long lists, so the service does the counting and hands over, per question: what each answer means, the count and observation ids per answer, the mean and lowest confidence, and the 20 least certain observations under 0.5 confidence with their measurements.
 
+### The site check
+
+Next to Laya's label, every signal is compared with a band table and a site profile and put in one of three groups: **needs a closer look**, **unknown** or **expected here**, with a reason and what to check next. The chat model is told to lead with these and never to call a signal hostile. It uses plain rules over small files in [data/context/](data/context/README.md), runs without a GPU, and changes with the site file instead of retraining. Try it alone with `python -m pipeline.lookup data/observations-site-demo.jsonl`.
+
 ### The Laya service
 
 `npm run dev` starts it. To run it by itself:
@@ -122,6 +126,7 @@ One result is kept at a time, in memory. A second run started while one is going
 | Chat context window | `OLLAMA_NUM_CTX` in `frontend/.env.local` | Ollama's default |
 | Laya service address | `PIPELINE_API_URL` in `frontend/.env.local` | `http://127.0.0.1:8000` |
 | Observations per run | `MAX_OBSERVATIONS` in `pipeline/inputs.py` | 100 |
+| Site profile for the site check | `ARGUS_SITE` environment variable (a site file) | `data/context/site.json` |
 
 The Laya service and the chat agent must name the same chat model, because the service keeps that one loaded and a small GPU cannot hold a second. The model has to support tool calling, which the chat uses to classify another slice of rows. `qwen3:4b` (without `-instruct`) reasons at length and runs out of tokens before it answers.
 

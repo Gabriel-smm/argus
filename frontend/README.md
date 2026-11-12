@@ -48,6 +48,8 @@ This is the [assistant-ui](https://github.com/assistant-ui/assistant-ui) starter
 4. Press **Run Laya**. Chat is paused while Laya has the GPU. Only the first 100 rows of the data file are classified. Asking the chat to analyze the remaining rows, or a different number, runs Laya on that slice and summarizes it.
 5. When the Library shows **Active**, ask the chat about the result. It answers from Laya's output only, and says so when the answer is not there.
 
+Above the chat, a **site report** shows the site check at a glance: one verdict (normal / mostly normal / needs a closer look), a red-yellow-green bar, what is in the air in everyday words, the signals to look at first with what to check next, and follow-up questions built from the result. It is computed by the Laya service (`build_site_report` in `pipeline/context.py`), not by the chat model, so it appears as soon as a run finishes and always matches the numbers.
+
 **Clear**, or removing a file the result came from, drops the result. It otherwise survives a page reload, until the Laya service restarts.
 
 ## Project layout
@@ -58,6 +60,7 @@ app/api/[..._path]/     proxy to the LangGraph server
 app/api/pipeline/       proxy to the Laya service
 backend/agent.ts        LangGraph graph exported as `graph`
 components/library.tsx  file upload, checks and the Run control
+components/site-report.tsx  the site report card above the chat
 hooks/use-analysis.ts   run state shared by the Library and the chat
 langgraph.json          LangGraph CLI config (graph id, node version, env file)
 ```

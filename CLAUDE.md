@@ -8,7 +8,7 @@ Argus classifies a list of observed radio signals with a fine-tuned [Laya](https
 
 | Path | What |
 |---|---|
-| `pipeline/` | Python 3.12. File checks (`inputs.py`), Laya wrapper (`laya.py`, `checkpoint.py`), chat context (`context.py`, `analysis.py`), FastAPI service (`server.py`, port 8000), CLI (`__main__.py`). Capture ingest: sweep CSVs (`sweep.py`), IQ files (`iq.py`), burst measurement (`features.py`), CLI (`ingest.py`) |
+| `pipeline/` | Python 3.12. File checks (`inputs.py`), Laya wrapper (`laya.py`, `checkpoint.py`), chat context (`context.py`, `analysis.py`), FastAPI service (`server.py`, port 8000), CLI (`__main__.py`). Capture ingest: sweep CSVs (`sweep.py`), IQ files (`iq.py`), burst measurement (`features.py`), CLI (`ingest.py`). Site check (`lookup.py`): band table and site profile in `data/context/`, builders in `context_sources/` |
 | `frontend/` | Next.js app (port 3000), LangGraph chat agent in `backend/agent.ts` (port 2024), shared helpers in `lib/` |
 | `finetune/` | Data converters (`sources/`), dataset builder, training and evaluation |
 | `data/` | Knowledge files, the 774 held-out test observations, training observations |
