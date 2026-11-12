@@ -108,6 +108,17 @@ class Channelizer:
     def taps(self) -> int:
         return 0 if self.resampler is None else len(self.resampler.taps)
 
+    def native_index(self, m):
+        """Native input sample index (float) that 20 MS/s output sample `m` stands for.
+
+        Corrects the resampler's group delay ((taps - 1) / 2 upsampled samples)
+        and its dropped start-up transient; identity for passthrough.
+        """
+        r = self.resampler
+        if r is None:
+            return np.asarray(m, dtype=np.float64) * 1.0
+        return (r._first_j + np.asarray(m, dtype=np.float64) * r.down - r.delay) / r.up
+
     def _mix(self, chunk: np.ndarray) -> np.ndarray:
         # complex128: products of float32 values are exact in float64, so the
         # result does not depend on SIMD/FMA code paths (chunk alignment).

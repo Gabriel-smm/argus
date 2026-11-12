@@ -15,7 +15,7 @@ import pytest
 from mcls import preprocess
 from mcls.frontend import windows as W
 from mcls.frontend.channelize import to_20msps
-from mcls.frontend.process import check_rows
+from mcls.frontend.process import check_rows, windows_from_iq
 from mcls.sources import get
 
 FILES = ["DJI_mavic_mini_2G.bin", "DJI_inspire_2_5G_1of2.bin"]
@@ -60,3 +60,9 @@ def test_real_file(tmp_path, name):
     assert len(bursts) == stats["bursts"]
     wins, _ = W.burst_windows(iq20, bursts)
     assert np.array_equal(W.cut(iq20, wins), np.asarray(shard).reshape(-1, 4096))
+
+    # Inference entry point: same windows and burst ids as the shard and rows.
+    result = windows_from_iq(rec.read(0, n), rec.sample_rate_hz, rec.center_frequency_hz, id_prefix=f"tampere/{stem}")
+    assert np.array_equal(result.windows, np.asarray(shard).reshape(-1, 4096))
+    assert result.burst_ids == [r["burst_id"] for r in rows] and all(result.burst_ids)
+    assert len(result.bursts) == stats["bursts"]
