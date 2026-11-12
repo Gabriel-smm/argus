@@ -46,3 +46,15 @@ def test_safe_failure_with_agreed_rate():
     assert g["safe_failure"]["pass"] is False
     g = _by_name(check_gates({"background_false_alarm": 0.02}, {"agreed_false_alarm_rate": 0.05}))
     assert g["safe_failure"]["pass"] is True
+
+
+def test_model_card_template_cites_run_and_manifest_and_states_no_own_hardware():
+    from pathlib import Path
+    import re
+
+    text = (Path(__file__).resolve().parents[1] / "reports" / "model_card_template.md").read_text()
+    for placeholder in ("{{run_dir}}", "{{manifest_sha256}}", "{{git_commit}}"):
+        assert placeholder in text
+    assert "No recording from the team's own radios" in text
+    # a template carries no measured numbers: no decimals outside placeholders
+    assert not re.findall(r"(?<![\w.{])0\.\d+", re.sub(r"\{\{.*?\}\}", "", text))
