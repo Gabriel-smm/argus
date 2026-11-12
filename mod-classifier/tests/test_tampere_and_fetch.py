@@ -9,6 +9,7 @@ from mcls import fetch
 from mcls.sources import get
 from mcls.sources.base import raw_root
 from mcls.sources.tampere import Tampere, parse_name
+from mcls.taxonomy import Taxonomy, load
 
 
 @pytest.mark.parametrize(
@@ -55,6 +56,38 @@ def test_loader_reads_int16_le_and_halves_share_an_id(tmp_path):
 def test_check_reports_partial_downloads(tmp_path):
     write_tampere(tmp_path, "DJI_mavic_mini_2G.bin", np.zeros(10, np.complex64))
     assert any("partial download" in p for p in Tampere(root=tmp_path).check())
+
+
+def test_real_taxonomy_labels_and_emitters(tmp_path):
+    """Against configs/taxonomy.toml: every parsed emitter must equal the taxonomy's emitter_id."""
+    iq = np.ones(4, np.complex64)
+    names = ["DJI_mavic_mini_2G.bin", "DJI_phantom_4_pro_plus_5G.bin", "DJI_phantom_4_2G.bin",
+             "Parrot_mambo_control_2G.bin", "Parrot_mambo_video_2G.bin", "Parrot_disco_5G.bin", "DJI_inspire_2_5G_1of2.bin"]
+    for name in names:
+        write_tampere(tmp_path, name, iq)
+    recs = {r.source_file: r for r in Tampere(root=tmp_path, taxonomy=load()).recordings()}
+    assert {f: (r.label, r.emitter_id) for f, r in recs.items()} == {
+        "DJI_mavic_mini_2G.bin": ("wifi", "DJI_mavic_mini"),
+        "DJI_phantom_4_pro_plus_5G.bin": ("drone_link", "DJI_phantom_4_pro_plus"),
+        "DJI_phantom_4_2G.bin": ("drone_link", "DJI_phantom_4"),
+        "Parrot_mambo_control_2G.bin": ("bluetooth", "Parrot_mambo"),
+        "Parrot_mambo_video_2G.bin": ("wifi", "Parrot_mambo"),
+        "Parrot_disco_5G.bin": ("wifi", "Parrot_disco"),
+        "DJI_inspire_2_5G_1of2.bin": ("drone_link", "DJI_inspire_2"),
+    }
+    for f, r in recs.items():
+        assert parse_name(f)["emitter"] == r.emitter_id
+
+
+def test_excluded_files_are_skipped_and_emitter_falls_back(tmp_path):
+    iq = np.ones(4, np.complex64)
+    write_tampere(tmp_path, "DJI_mavic_mini_2G.bin", iq)
+    write_tampere(tmp_path, "Parrot_disco_2G.bin", iq)
+    entry = {"license": "CC BY 4.0", "is_real": True, "default_label": "wifi", "default_strength": "weak",
+             "overrides": [{"match": "Parrot_disco", "exclude": True, "note": "test"}]}
+    t = Taxonomy({"classes": {"v1": ["wifi"]}, "datasets": {"tampere": entry}})
+    recs = list(Tampere(root=tmp_path, taxonomy=t).recordings())
+    assert [(r.source_file, r.emitter_id) for r in recs] == [("DJI_mavic_mini_2G.bin", "DJI_mavic_mini")]
 
 
 REAL = raw_root() / "tampere"

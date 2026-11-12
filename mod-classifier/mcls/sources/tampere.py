@@ -11,6 +11,9 @@ anechoic chamber. Each .bin file is interleaved I/Q as int16 little-endian
 Files named `_1of2` and `_2of2` are two halves of one capture, so they share a
 `recording_id` and always land in the same split.
 
+Labels and emitter ids come from the taxonomy; files it excludes are skipped,
+and the emitter parsed from the file name is only the fallback.
+
 This is the reference loader for the `Source` contract: the other loaders
 follow its shape.
 """
@@ -83,6 +86,8 @@ class Tampere(Source):
                 raise ValueError(f"{path.name}: {size} bytes is not a whole number of int16 I/Q pairs")
             num_samples = size // BYTES_PER_SAMPLE
             label = self.taxonomy.label_for(self.name, path.name)
+            if label.excluded:
+                continue
             link = parsed["link"]
             recording = Recording(
                 dataset=self.name,
@@ -96,7 +101,7 @@ class Tampere(Source):
                 is_real=info.is_real,
                 license=info.license,
                 read=make_reader(path, num_samples),
-                emitter_id=parsed["emitter"],
+                emitter_id=label.emitter_id or parsed["emitter"],
                 meta={"link": link, "part": parsed["part"], "parts": parsed["parts"], "note": label.note},
             )
             recording.validate()
