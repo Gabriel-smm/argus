@@ -52,7 +52,7 @@ def make_fake_shards(
                     label_strength="weak" if weak_every and (r * windows_per_recording + w) % weak_every == 0 else "strong",
                     native_rate_hz=20e6, center_frequency_hz=centre, band=band_of(centre), is_real=True,
                     license="CC BY 4.0", split="train", emitter_id=emitter, snr_db_est=20.0 + c,
-                    bandwidth_hz=10e6, duty_cycle=0.5,
+                    bandwidth_hz=10e6, duty_cycle=0.5, burst_id=f"{dataset}/{stem}/b{w // 2:04d}",
                 ))
             with open(out_dir / f"{stem}.s000.rows.jsonl", "w") as out:
                 for row in recording_rows:

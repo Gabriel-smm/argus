@@ -12,6 +12,7 @@ import hashlib
 import json
 import os
 from collections import defaultdict
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable, Sequence
 
@@ -24,6 +25,8 @@ from mcls.contracts import LABEL_STRENGTHS, SPLITS, ManifestRow
 DEFAULT_CAP_PER_CLASS = 30_000
 #: PLAN 5.3: weak-label windows get weight 0.5.
 WEAK_WEIGHT = 0.5
+#: Held-out emitters (PLAN 3.5) go here, never into the headline test.
+HOLDOUT_SPLIT = "generalization"
 
 
 def seeded_rng(seed: int, *keys: str) -> np.random.Generator:
@@ -52,6 +55,9 @@ def collect_rows(shard_dirs: Iterable[Path]) -> list[ManifestRow]:
         if not directory.is_dir():
             raise FileNotFoundError(f"shard directory not found: {directory}")
         for path in sorted(directory.rglob(ROWS_GLOB)):
+            # Hidden files and folders (e.g. `.<key>.partial.*` of killed CRC tasks) are never read.
+            if any(part.startswith(".") for part in path.relative_to(directory).parts):
+                continue
             with open(path) as source:
                 for number, line in enumerate(source, 1):
                     if not line.strip():
@@ -98,7 +104,7 @@ def cap_per_class(rows: Sequence[ManifestRow], cap: int, seed: int) -> list[Mani
 def holdout_emitters(
     rows: Iterable[ManifestRow],
     emitter_ids: Iterable[str],
-    split: str = "test",
+    split: str = HOLDOUT_SPLIT,
     match: str = "emitter",
 ) -> int:
     """Move every row of the named emitters (drone models) to `split`, in place (PLAN 3.5).
@@ -127,12 +133,72 @@ def holdout_emitters(
     return moved
 
 
-def check_emitter_holdout(rows: Iterable[ManifestRow], emitter_ids: Iterable[str], split: str = "test") -> None:
+def check_emitter_holdout(rows: Iterable[ManifestRow], emitter_ids: Iterable[str], split: str = HOLDOUT_SPLIT) -> None:
     """Raise ValueError if a held-out emitter appears outside `split`."""
     names = set(emitter_ids)
     for row in rows:
         if row.emitter_id in names and row.split != split:
             raise ValueError(f"held-out emitter {row.emitter_id!r} in {row.split}: {row.window_id}")
+
+
+def filter_classes(rows: Iterable[ManifestRow], classes: Sequence[str] | None) -> tuple[list[ManifestRow], dict[str, int]]:
+    """Keep rows whose label is in `classes` (None keeps all); return (kept, dropped count per label)."""
+    if classes is None:
+        return list(rows), {}
+    allowed = set(classes)
+    kept: list[ManifestRow] = []
+    dropped: dict[str, int] = defaultdict(int)
+    for row in rows:
+        if row.label in allowed:
+            kept.append(row)
+        else:
+            dropped[row.label] += 1
+    return kept, dict(sorted(dropped.items()))
+
+
+@dataclass
+class BuildReport:
+    """What `build_with_report` did besides producing rows."""
+
+    dropped_labels: dict[str, int] = field(default_factory=dict)
+    warnings: list[str] = field(default_factory=list)
+    held_out: int = 0
+
+
+def build_with_report(
+    shard_dirs: Iterable[Path],
+    seed: int,
+    cross_test: Iterable[str] = (),
+    cap: int = DEFAULT_CAP_PER_CLASS,
+    holdout: Iterable[str] = (),
+    holdout_split: str = HOLDOUT_SPLIT,
+    holdout_match: str = "emitter",
+    classes: Sequence[str] | None = None,
+) -> tuple[list[ManifestRow], BuildReport]:
+    """Collect, keep `classes`, cap, hold out emitters, split stratified by class, check leakage.
+
+    Held-out emitters are moved first (to `generalization` by default) so the
+    stratified split of train, val and test is made over the remaining
+    recordings only.
+    """
+    report = BuildReport()
+    rows, report.dropped_labels = filter_classes(collect_rows(shard_dirs), classes)
+    rows = cap_per_class(rows, cap, seed)
+    holdout = tuple(holdout)
+    for row in rows:
+        row.split = "train"
+    if holdout:
+        if holdout_split in ("train", "val"):
+            raise ValueError(f"held-out emitters cannot go to {holdout_split!r}")
+        report.held_out = holdout_emitters(rows, holdout, holdout_split, holdout_match)
+        if report.held_out == 0:
+            raise ValueError(f"no rows match held-out emitters {list(holdout)}")
+    skip = (holdout_split,) if holdout else ()
+    report.warnings = manifest.assign_splits_stratified(rows, seed, cross_test, skip_splits=skip)
+    manifest.check_leakage(rows)
+    if holdout and holdout_match == "emitter":
+        check_emitter_holdout(rows, holdout, holdout_split)
+    return rows, report
 
 
 def build(
@@ -141,20 +207,12 @@ def build(
     cross_test: Iterable[str] = (),
     cap: int = DEFAULT_CAP_PER_CLASS,
     holdout: Iterable[str] = (),
-    holdout_split: str = "test",
+    holdout_split: str = HOLDOUT_SPLIT,
     holdout_match: str = "emitter",
+    classes: Sequence[str] | None = None,
 ) -> list[ManifestRow]:
-    """Collect, cap, split by recording, hold out emitters, and check leakage."""
-    rows = cap_per_class(collect_rows(shard_dirs), cap, seed)
-    manifest.assign_splits(rows, seed, cross_test)
-    holdout = tuple(holdout)
-    if holdout:
-        if holdout_emitters(rows, holdout, holdout_split, holdout_match) == 0:
-            raise ValueError(f"no rows match held-out emitters {list(holdout)}")
-    manifest.check_leakage(rows)
-    if holdout and holdout_match == "emitter":
-        check_emitter_holdout(rows, holdout, holdout_split)
-    return rows
+    """`build_with_report` without the report."""
+    return build_with_report(shard_dirs, seed, cross_test, cap, holdout, holdout_split, holdout_match, classes)[0]
 
 
 def relative_to(rows: Iterable[ManifestRow], base: Path) -> list[ManifestRow]:
