@@ -85,7 +85,7 @@ def baseline_run(folder: Path, threshold: float = 0.5) -> Path:
     from mcls.baselines import features
     from mcls.baselines.classifier import FeatureClassifier
     from mcls.baselines.models import SoftmaxRegression
-    from mcls.infer.core import normalize
+    from mcls.frontend.windows import normalize
 
     rng = np.random.default_rng(1)
     t = np.arange(4096) / 20e6
@@ -100,7 +100,7 @@ def baseline_run(folder: Path, threshold: float = 0.5) -> Path:
     folder.mkdir()
     clf.save(folder)
     (folder / "calibration.json").write_text(json.dumps(
-        {"temperature": 1.0, "unknown_threshold": {"score": "max_softmax", "value": threshold, "applied_after_temperature": True}}
+        {"classes": list(CLASSES), "temperature": 1.0, "unknown_threshold": {"score": "max_softmax", "value": threshold, "applied_after_temperature": True}}
     ))
     return folder
 
@@ -172,6 +172,26 @@ def test_classify_at_another_rate_and_sigmf(tmp_path):
     for text in (raw, sig):
         rows = [json.loads(line) for line in text.decode().splitlines()]
         assert rows and all(r["signal_class"] in (*CLASSES, "unknown") for r in rows)
+
+@pytest.mark.parametrize("change", [
+    {"classes": ["wifi", "drone_link", "bluetooth", "background"]},   # another class order
+    {"classes": ["drone_link", "wifi", "bluetooth"]},                 # another class list
+    {"run": "some_other_run"},                                        # another run folder
+    {"manifest_sha256": "f" * 64},                                    # another manifest
+])
+def test_classify_refuses_a_calibration_from_another_model(tmp_path, capsys, change):
+    model = baseline_run(tmp_path / "run")
+    (model / "meta.json").write_text(json.dumps({"manifest_sha256": "a" * 64, "classes": list(CLASSES)}))
+    cal = json.loads((model / "calibration.json").read_text())
+    cal.update({"run": "run", "manifest_sha256": "a" * 64})
+    (model / "calibration.json").write_text(json.dumps(cal))
+    args = [str(raw_20m(tmp_path)), "--sample-rate", "20M", "--center-freq", "2.437G", "--classify", "--model", str(model)]
+    assert main([*args, "-o", str(tmp_path / "ok.jsonl")]) == 0  # the matching file is accepted
+    cal.update(change)
+    (model / "calibration.json").write_text(json.dumps(cal))
+    assert main([*args, "-o", str(tmp_path / "bad.jsonl")]) == 1
+    assert "calibration" in capsys.readouterr().err
+    assert not (tmp_path / "bad.jsonl").exists()
 
 def test_import_of_ingest_does_not_import_mcls_or_torch():
     import subprocess

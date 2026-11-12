@@ -11,7 +11,7 @@ from mcls.baselines.classifier import FeatureClassifier
 from mcls.baselines.models import SoftmaxRegression
 from mcls.contracts import WINDOW_SAMPLES
 from mcls.infer import UNKNOWN, classify_bursts, load_calibration, load_classifier
-from mcls.infer.core import normalize
+from mcls.frontend.windows import normalize
 
 CLASSES = ("drone_link", "wifi", "bluetooth", "background")
 FS = 20e6
@@ -35,7 +35,7 @@ def test_baseline_run_folder_classifies_bursts(tmp_path):
     clf.model = SoftmaxRegression(len(CLASSES), params={"epochs": 30, "lr": 0.1}).fit(clf.standardize(X), y)
     clf.save(tmp_path)
     (tmp_path / "calibration.json").write_text(json.dumps(
-        {"temperature": 1.0, "unknown_threshold": {"score": "max_softmax", "value": 0.5, "applied_after_temperature": True}}
+        {"classes": list(CLASSES), "temperature": 1.0, "unknown_threshold": {"score": "max_softmax", "value": 0.5, "applied_after_temperature": True}}
     ))
 
     loaded = load_classifier(tmp_path)
@@ -48,7 +48,7 @@ def test_baseline_run_folder_classifies_bursts(tmp_path):
         {"start_s": 20_000 / FS, "end_s": 80_000 / FS, "center_frequency_hz": 2.441e9},
         {"start_s": 120_000 / FS, "end_s": 180_000 / FS, "center_frequency_hz": 2.44e9},
     ]
-    out = classify_bursts(iq, FS, 2.44e9, bursts, loaded, calibration=load_calibration(tmp_path))
+    out = classify_bursts(iq, FS, 2.44e9, bursts, loaded, calibration=load_calibration(tmp_path, loaded.classes))
     assert out[0].signal_class == "drone_link"
     assert out[1].signal_class in ("background", UNKNOWN)
     assert all(abs(sum(r.probs.values()) - 1) < 1e-9 for r in out)

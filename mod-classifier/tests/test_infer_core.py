@@ -81,23 +81,35 @@ def test_import_does_not_load_torch():
     assert out.stdout.strip() == "ok"
 
 
-# -- windows ------------------------------------------------------------------
+# -- windows (Engineer 4's windows_from_iq) ----------------------------------------
 
 
-def test_burst_windows_shape_hop_cap_and_unit_rms():
-    iq = tone(WINDOW_SAMPLES * 20, amp=0.01)
-    w = burst_windows(iq, max_windows=8)
+def noisy(n, seed=0, level=0.001):
+    rng = np.random.default_rng(seed)
+    return (level * (rng.standard_normal(n) + 1j * rng.standard_normal(n))).astype(np.complex64)
+
+
+def test_burst_windows_are_unit_rms_capped_and_from_the_front_end():
+    from mcls.frontend.process import FrontendParams, windows_from_iq
+
+    iq = noisy(300_000)
+    iq[50_000:250_000] = tone(200_000)
+    burst = {"start_s": 50_000 / FS, "end_s": 250_000 / FS, "center_frequency_hz": 2.44e9}
+    w = burst_windows(iq, FS, 2.44e9, burst, max_windows=8)
     assert w.shape == (8, WINDOW_SAMPLES) and w.dtype == np.complex64
     assert np.allclose(np.sqrt(np.mean(np.abs(w) ** 2, axis=1)), 1.0, atol=1e-5)
-    # Few enough windows: every hop is kept.
-    assert burst_windows(tone(WINDOW_SAMPLES + 2048 * 2), max_windows=8).shape[0] == 3
+    # Context is a quarter of the burst each side (50k samples), i.e. the whole array here, so the
+    # windows are exactly what the front end cuts from it with the same cap (same code path).
+    ref = windows_from_iq(iq, FS, 2.44e9, offset_hz=0.0, params=FrontendParams(max_windows_per_burst=8))
+    assert np.array_equal(w, ref.windows)
 
 
-def test_short_burst_is_one_zero_padded_window_and_empty_is_none():
-    w = burst_windows(tone(1000))
-    assert w.shape == (1, WINDOW_SAMPLES)
-    assert np.all(w[0, 1000:] == 0)
-    assert burst_windows(np.zeros(0, np.complex64)).shape == (0, WINDOW_SAMPLES)
+def test_short_burst_gets_one_full_window_and_silence_gets_none():
+    iq = noisy(100_000)
+    iq[50_000:52_000] = tone(2_000)
+    w = burst_windows(iq, FS, 2.44e9, {"start_s": 50_000 / FS, "end_s": 52_000 / FS})
+    assert w.shape == (1, WINDOW_SAMPLES) and np.count_nonzero(w[0]) == WINDOW_SAMPLES
+    assert burst_windows(noisy(100_000), FS, 2.44e9, {"start_s": 0.001, "end_s": 0.002}).shape[0] == 0
 
 
 # -- logits -------------------------------------------------------------------
@@ -105,7 +117,7 @@ def test_short_burst_is_one_zero_padded_window_and_empty_is_none():
 
 def test_logits_preferred_and_probs_only_equivalent_after_temperature():
     z = [2.0, 0.5, -1.0, 0.0]
-    windows = burst_windows(tone(WINDOW_SAMPLES))  # one window: exact
+    windows = tone(WINDOW_SAMPLES)[None, :]  # one window: exact
     a = window_logits(FixedLogits(z), windows)
     b = window_logits(ProbsOnly(z), windows)
     for t in (0.5, 1.0, 2.5):
@@ -122,7 +134,7 @@ def test_bad_classifier_output_is_refused():
             return np.ones((len(windows), 4))  # rows sum to 4
 
     with pytest.raises(ValueError):
-        window_logits(Bad(), burst_windows(tone(WINDOW_SAMPLES)))
+        window_logits(Bad(), tone(WINDOW_SAMPLES)[None, :])
 
 
 # -- aggregation: temperature, prior, threshold ---------------------------------
@@ -189,29 +201,26 @@ def test_classify_bursts_one_result_per_burst_with_prior_by_burst_frequency():
                                      "weights": {"wifi": 0.01}}]})
     clf = FixedLogits([0.0, 2.0, 0.0, 0.0])
     out = classify_bursts(iq, FS, 2.4e9, bursts, clf, calibration=Calibration(1.0, 0.5), priors=priors)
-    assert [r.signal_class for r in out] == ["wifi", UNKNOWN, "wifi"]
+    assert [r.signal_class for r in out] == ["wifi", UNKNOWN, UNKNOWN]
     assert out[0].windows == 8  # capped
-    assert out[1].windows == 1  # widened to one full window, not padded
+    assert out[1].windows == 1  # one full window centred on the short burst; the FM prior makes it unknown
     assert np.count_nonzero(clf.seen[1][0]) == WINDOW_SAMPLES
-    assert out[2].windows >= 1  # truncated burst near the end still classified
+    assert out[2].windows == 0  # only noise there: nothing detected, so unknown (white), never a guess
     fields = out[0].row_fields()
     assert set(fields) == {"signal_class", "class_confidence", "class_probs"}
     json.dumps(fields)
 
 
-def test_other_rates_go_through_the_resampler_with_burst_offset():
-    calls = []
-
-    def fake_resample(iq, fs, offset):
-        calls.append((len(iq), fs, offset))
-        return np.resize(iq, int(len(iq) * 20e6 / fs)).astype(np.complex64)
-
-    iq = tone(400_000)
-    burst = {"start_s": 0.001, "end_s": 0.002, "center_frequency_hz": 2.45e9}
-    classify_bursts(iq, 40e6, 2.44e9, [burst], FixedLogits([1, 0, 0, 0]), resample=fake_resample)
-    classify_bursts(iq, 10e6, 2.44e9, [burst], FixedLogits([1, 0, 0, 0]), resample=fake_resample)
-    assert calls[0][1:] == (40e6, pytest.approx(10e6))  # wider: centred on the burst
-    assert calls[1][1:] == (10e6, None)  # narrower: resampled only
+@pytest.mark.parametrize("rate", [10e6, 40e6, 30e6])
+def test_other_rates_go_through_the_front_end(rate):
+    n = int(rate * 0.02)
+    t = np.arange(n) / rate
+    iq = noisy(n)
+    a, b = n // 4, 3 * n // 4
+    iq[a:b] = (0.5 * np.exp(2j * np.pi * 1e6 * t[a:b])).astype(np.complex64)
+    burst = {"start_s": a / rate, "end_s": b / rate, "center_frequency_hz": 2.441e9}
+    out = classify_bursts(iq, rate, 2.44e9, [burst], FixedLogits([1, 0, 0, 0]))
+    assert out[0].windows >= 1 and out[0].signal_class == "drone_link"
 
 
 # -- calibration, priors, loading ---------------------------------------------------
@@ -294,20 +303,6 @@ def test_reads_calibration_written_by_the_evaluator(tmp_path):
     assert cal.unknown_threshold == written["unknown_threshold"]["value"]
 
 
-@pytest.mark.parametrize("rate, offset", [(10e6, 0.0), (40e6, 0.0), (30e6, 2e6)])
-def test_index_map_accounts_for_resampler_lag(rate, offset):
-    from mcls.infer.core import to_rate
-
-    n, s0 = 60_000, 31_000
-    x = np.zeros(n, np.complex64)
-    x[s0:] = 1.0  # a step at input sample s0 (DC: survives the slice shift's low-pass for offset 0)
-    if offset:
-        x[s0:] = np.exp(2j * np.pi * offset * np.arange(n - s0) / rate).astype(np.complex64)
-    y, index = to_rate(x, rate, offset)
-    step = int(np.argmax(np.abs(y) > 0.5))
-    assert abs(step - index(s0)) <= 2
-
-
 def test_windows_skip_quiet_gaps_inside_a_burst():
     rng = np.random.default_rng(4)
     iq = (0.001 * (rng.standard_normal(200_000) + 1j * rng.standard_normal(200_000))).astype(np.complex64)
@@ -327,12 +322,49 @@ def test_checkpoint_path_goes_to_engineer_7_loader(tmp_path, monkeypatch):
 
     calls = []
 
-    def fake_load(path, device="cpu"):
-        calls.append((path, device))
+    def fake_load(path, device="cpu", calibration=None):
+        calls.append((path, device, calibration))
         return FixedLogits([0, 1, 0, 0])
 
     monkeypatch.setattr(e7, "load_classifier", fake_load)
     (tmp_path / "checkpoint.pt").write_bytes(b"")
     (tmp_path / "model.pkl").write_bytes(b"")  # checkpoint.pt wins
     clf = load_classifier(tmp_path)
-    assert clf.classes == CLASSES and calls == [(tmp_path / "checkpoint.pt", "cpu")]
+    assert clf.classes == CLASSES and calls == [(tmp_path / "checkpoint.pt", "cpu", None)]
+    load_classifier(tmp_path, calibration=tmp_path / "calibration.json")
+    assert calls[-1] == (tmp_path / "checkpoint.pt", "cpu", tmp_path / "calibration.json")
+
+
+class CalibratedLike:
+    """Engineer 7's contract: classify() = softmax(logits / T_cal); logits() raw."""
+
+    classes = CLASSES
+
+    def __init__(self, z, temperature):
+        self.z, self.temperature = np.asarray(z, dtype=np.float32), temperature
+
+    def logits(self, windows):
+        return np.tile(self.z, (len(windows), 1))
+
+    def classify(self, windows):  # pragma: no cover - must not be used when logits exists
+        raise AssertionError("classify() would apply the temperature a second time")
+
+
+def test_temperature_is_applied_exactly_once():
+    z, t = [3.0, 1.0, 0.0, 0.0], 2.0
+    iq = (0.001 * np.ones(200_000)).astype(np.complex64)
+    iq[50_000:150_000] = tone(100_000)
+    burst = {"start_s": 50_000 / FS, "end_s": 150_000 / FS}
+    out = classify_bursts(iq, FS, 2.44e9, [burst], CalibratedLike(z, t), calibration=Calibration(t, None))[0]
+    once, twice = softmax(np.array(z) / t), softmax(np.array(z) / t / t)
+    assert [out.probs[c] for c in CLASSES] == pytest.approx(list(once))
+    assert out.probs["drone_link"] != pytest.approx(twice[0])
+
+
+def test_load_calibration_refuses_another_models_classes(tmp_path):
+    path = tmp_path / "calibration.json"
+    path.write_text(json.dumps({"classes": ["wifi", "drone_link", "bluetooth", "background"], "temperature": 1.2,
+                                "unknown_threshold": {"score": "max_softmax", "value": 0.5}}))
+    with pytest.raises(ValueError, match="classes"):
+        load_calibration(path, CLASSES)
+    assert load_calibration(path, ("wifi", "drone_link", "bluetooth", "background")).temperature == 1.2

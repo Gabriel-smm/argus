@@ -34,12 +34,23 @@ class Calibration:
             raise ValueError(f"unknown_threshold must be in 0..1, got {self.unknown_threshold}")
 
 
-def load_calibration(path: str | Path) -> Calibration:
-    """Calibration from a calibration.json (or a run folder holding one)."""
+def load_calibration(path: str | Path, classes: tuple[str, ...] | list[str] | None = None, *,
+                     manifest_sha256: str | None = None, run: str | None = None) -> Calibration:
+    """Calibration from a calibration.json (or a run folder holding one).
+
+    With `classes` (the loaded model's class list, in order), the file is checked
+    with Engineer 8's `check_calibration`: its classes must match exactly, and its
+    manifest_sha256 and run folder name too when given. A calibration.json for
+    another model is refused with ValueError.
+    """
     path = Path(path)
     if path.is_dir():
         path = path / "calibration.json"
     data = json.loads(path.read_text())
+    if classes is not None:
+        from mcls.evaluate.calibrate import check_calibration  # Engineer 8
+
+        check_calibration(data, list(classes), manifest_sha256, run)
     threshold = data.get("unknown_threshold")
     if isinstance(threshold, dict):
         if threshold.get("score", "max_softmax") != "max_softmax":
