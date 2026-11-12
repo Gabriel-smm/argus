@@ -69,7 +69,8 @@ def test_real_tampere_files():
         reference = np.fromfile(source.root / rec.source_file, dtype="<i2", count=20_000).astype(np.float64)
         reference = reference.view(np.complex128) / 32768
         np.testing.assert_allclose(rec.read(0, 10_000), reference, atol=1e-7)
-        assert rec.label == "drone_link" and rec.is_real and rec.license == "CC BY 4.0"
+        expected = source.taxonomy.label_for("tampere", rec.source_file).label
+        assert rec.label == expected and rec.is_real and rec.license == "CC BY 4.0"
 
 
 class RangeHandler(http.server.BaseHTTPRequestHandler):
