@@ -2,13 +2,15 @@
 
     python -m mcls.dataset.build_manifest --shards DIR [--shards DIR ...] \
         --out data/manifest.jsonl --seed S [--cross-test DATASET ...] [--cap-per-class N] \
-        [--holdout-emitter ID ...] [--holdout-split test] [--classes v1|v2]
+        [--holdout-emitter ID ...] [--holdout-split generalization] [--classes v1|v2|all]
 
-Collects rows, caps each class per dataset (PLAN 3.6), splits by recording
-(`mcls.manifest.assign_splits`), optionally holds out whole emitters (PLAN
-3.5), checks id leakage and identical-sample leakage, writes the manifest
-sorted by window_id with shard paths relative to its own directory, and prints
-its sha256 (`mcls.manifest.digest`).
+Collects rows, keeps only labels in the class set (default v1) and reports
+the dropped ones, caps each class per dataset (PLAN 3.6), holds out whole
+emitters into `generalization` (PLAN 3.5), splits by recording stratified by
+class (`mcls.manifest.assign_splits_stratified`), checks id leakage and
+identical-sample leakage, writes the manifest sorted by window_id with shard
+paths relative to its own directory, and prints its sha256
+(`mcls.manifest.digest`).
 """
 
 from __future__ import annotations
@@ -19,7 +21,7 @@ from collections import Counter
 from pathlib import Path
 
 from mcls import manifest, taxonomy
-from mcls.dataset.rows import DEFAULT_CAP_PER_CLASS, build, relative_to
+from mcls.dataset.rows import DEFAULT_CAP_PER_CLASS, HOLDOUT_SPLIT, build_with_report, relative_to
 from mcls.dataset.store import WindowStore, audit_window_hashes
 
 
@@ -31,22 +33,31 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--cross-test", nargs="*", default=[], metavar="DATASET", help="datasets held out whole as cross_test")
     parser.add_argument("--cap-per-class", type=int, default=DEFAULT_CAP_PER_CLASS, help="per class per dataset; 0 = no cap")
     parser.add_argument("--holdout-emitter", nargs="*", default=[], metavar="ID", help="emitter_id(s) held out whole")
-    parser.add_argument("--holdout-split", default="test", help="split that held-out emitters go to")
+    parser.add_argument("--holdout-split", default=HOLDOUT_SPLIT, choices=("generalization", "test", "cross_test"),
+                        help="split that held-out emitters go to (default generalization)")
     parser.add_argument("--holdout-match", choices=("emitter", "recording"), default="emitter",
                         help="match emitter_id exactly, or a substring of recording_id")
-    parser.add_argument("--classes", choices=("v1", "v2"), default=None,
-                        help="validate labels against this class set from configs/taxonomy.toml")
+    parser.add_argument("--classes", choices=("v1", "v2", "all"), default="v1",
+                        help="keep only labels in this class set from configs/taxonomy.toml (all = keep every label)")
     parser.add_argument("--no-hash-audit", action="store_true", help="skip hashing window samples")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    classes = None if args.classes == "all" else taxonomy.load().classes(args.classes)
     try:
-        rows = build(args.shards, args.seed, args.cross_test, args.cap_per_class,
-                     args.holdout_emitter, args.holdout_split, args.holdout_match)
+        rows, report = build_with_report(args.shards, args.seed, args.cross_test, args.cap_per_class,
+                                         args.holdout_emitter, args.holdout_split, args.holdout_match, classes)
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
+        return 1
+    for label, count in report.dropped_labels.items():
+        print(f"dropped label {label!r} (not in {args.classes}): {count} windows", file=sys.stderr)
+    for warning in report.warnings:
+        print(f"warning: {warning}", file=sys.stderr)
+    if not rows:
+        print("error: no rows left to write", file=sys.stderr)
         return 1
     if not args.no_hash_audit:
         leaks = audit_window_hashes(rows, WindowStore())
@@ -55,7 +66,6 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"identical window across splits: {digest[:16]} {members}", file=sys.stderr)
             print(f"error: {len(leaks)} identical windows appear in more than one split", file=sys.stderr)
             return 1
-    classes = taxonomy.load().classes(args.classes) if args.classes else None
     out_rows = relative_to(rows, args.out.resolve().parent)
     try:
         count = manifest.write(args.out, out_rows, classes)
