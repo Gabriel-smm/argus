@@ -123,27 +123,36 @@ def load_manifest(path: Path, meta: dict[str, Any]) -> tuple[dict[str, ManifestR
     return {r.window_id: r for r in rows}, info
 
 
-def burst_keys(rows: list[ManifestRow]) -> dict[str, str]:
-    """Map window_id -> burst key, inferred from manifest rows.
+def burst_keys(rows: list[ManifestRow]) -> tuple[dict[str, str], dict[str, int]]:
+    """Map window_id -> burst key, and count how each window was grouped.
 
-    ManifestRow has no burst id. The front end (Engineer 4) writes a burst's
-    windows consecutively in its shard and gives each the stats of that burst
-    (snr_db_est, bandwidth_hz, duty_cycle). So a burst is a run of consecutive
-    windows (by offset) in one shard with identical stats. Windows with no
-    stats (idle background) are one-window "bursts". Two adjacent bursts with
-    bit-identical stats would merge; that is the known limit of the inference.
+    A row with `burst_id` is grouped by (dataset, recording_id, burst_id).
+    Only rows whose burst_id is None fall back to inference: the front end
+    (Engineer 4) writes a burst's windows consecutively in its shard and gives
+    each the stats of that burst (snr_db_est, bandwidth_hz, duty_cycle), so a
+    burst is a run of consecutive windows (by offset) in one shard with
+    identical stats. Windows with no stats (idle background) are one-window
+    groups. Two adjacent bursts with bit-identical stats would merge; that is
+    the known limit of the fallback.
     """
+    keys: dict[str, str] = {}
+    counts = {"burst_id": 0, "inferred_equal_stats": 0, "single_window_no_stats": 0}
     groups: dict[tuple[str, str, str], list[ManifestRow]] = {}
     for row in rows:
-        groups.setdefault((row.dataset, row.recording_id, row.shard), []).append(row)
-    keys: dict[str, str] = {}
+        if row.burst_id is not None:
+            keys[row.window_id] = f"{row.dataset}|{row.recording_id}|id:{row.burst_id}"
+            counts["burst_id"] += 1
+        else:
+            groups.setdefault((row.dataset, row.recording_id, row.shard), []).append(row)
     for (dataset, recording, shard), members in groups.items():
         members.sort(key=lambda r: r.offset)
         count, previous = -1, None
         for row in members:
             stats = (row.snr_db_est, row.bandwidth_hz, row.duty_cycle)
-            if all(v is None for v in stats) or stats != previous:
+            empty = all(v is None for v in stats)
+            if empty or stats != previous:
                 count += 1
-            previous = None if all(v is None for v in stats) else stats
+            previous = None if empty else stats
+            counts["single_window_no_stats" if empty else "inferred_equal_stats"] += 1
             keys[row.window_id] = f"{dataset}|{recording}|{shard}|{count}"
-    return keys
+    return keys, counts
