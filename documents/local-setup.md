@@ -176,6 +176,30 @@ To serve the same HTTP API the dashboard uses, without Next.js:
 python -m uvicorn pipeline.server:app --host 127.0.0.1 --port 8000
 ```
 
+### From a capture file
+
+`pipeline/ingest.py` turns a radio capture into a data file you can add under **Data**. It finds each signal and writes one row per signal, with `modulation` set to `"unknown"` (a sweep or a burst measurement cannot see modulation).
+
+```bash
+# A sweep from rtl_power or hackrf_sweep (CSV)
+rtl_power -f 88M:108M:100k -i 10 -e 2m fm.csv
+python -m pipeline.ingest fm.csv -o fm-signals.jsonl
+
+# A raw IQ recording: rtl_sdr writes .cu8, hackrf_transfer writes .cs8.
+# These files do not record how they were made, so give the sample rate and tuned frequency.
+python -m pipeline.ingest capture.cs8 --sample-rate 20M --center-freq 2.437G -o signals.jsonl
+
+# A SigMF recording (.sigmf-meta next to .sigmf-data); the metadata gives rate and frequency
+python -m pipeline.ingest recording.sigmf-meta -o signals.jsonl
+```
+
+What each row carries besides the three fields the classifier reads:
+
+- **Sweeps** (`pipeline/sweep.py`): `power_db`, `noise_floor_db` (the local floor under the signal), `snr_db`, `occupancy` (the share of sweep passes the signal was seen in: near 1 for a signal that is always on, low for one that comes and goes), `passes`, `first_seen` and `last_seen`.
+- **IQ** (`pipeline/iq.py`, through `pipeline/features.py`, the same code that measures the training rows): `snr_db`, `duty_cycle`, `burst_duration_s`, `hopping`, `pulse_interval_s`, `truncated` and `start_s` (seconds from the start of the file).
+
+Signals are runs of bins at least 10 dB above the local noise floor; `--threshold-db` changes that for sweeps. Large IQ files are read in chunks, and a burst that crosses a chunk boundary shows up in both chunks marked `truncated`. SigMF annotations are not used yet, and real-valued (`rf32`, `ri16`) and multi-channel recordings are refused.
+
 ## 8. If something fails
 
 **Ollama is not running.** `curl http://127.0.0.1:11434/api/tags` fails, or a run errors while calling the model. Start `ollama serve` or the Ollama app, then `ollama pull qwen2.5:14b`.
