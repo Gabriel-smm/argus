@@ -36,7 +36,7 @@ def test_items_shapes_and_train_only_augmentation(tmp_path):
 def test_stft_view_and_sampler(tmp_path):
     make_fake_shards(tmp_path)
     rows = build([tmp_path], seed=1, cap=0)
-    ds = WindowDataset(rows, WindowStore(), CLASSES, stft=lambda w: np.zeros((64, 64), np.float32))
+    ds = WindowDataset(rows, WindowStore(), CLASSES, stft=lambda w: np.zeros((len(w), 1, 64, 64), np.float32))
     assert ds[0]["stft"].shape == (1, 64, 64)
     sampler = BalancedTorchSampler(ds.labels, seed=2)
     assert list(sampler) == list(BalancedTorchSampler(ds.labels, seed=2))

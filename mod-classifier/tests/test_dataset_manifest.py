@@ -35,6 +35,17 @@ def test_collect_resolves_relative_shards_and_sorts(shards):
     assert all(Path(r.shard).is_absolute() and Path(r.shard).exists() for r in rows)
 
 
+def test_collect_reads_front_end_rows_without_split(tmp_path):
+    # e4.md: rows files are <stem>.sNNN.rows.jsonl with every ManifestRow field except "split".
+    make_fake_shards(tmp_path, dataset="ds")
+    rows_file = sorted(tmp_path.glob("*.s000.rows.jsonl"))[0]
+    assert "split" not in json.loads(rows_file.read_text().splitlines()[0])
+    # Other .jsonl files (a manifest written into the same folder) are not front-end rows.
+    (tmp_path / "manifest.jsonl").write_text('{"not": "a row"}\n')
+    rows = collect_rows([tmp_path])
+    assert len(rows) == 2 * 4 * 6 and {r.split for r in rows} == {"train"}
+
+
 def test_collect_rejects_duplicate_window_ids(tmp_path):
     make_fake_shards(tmp_path / "a", dataset="same")
     make_fake_shards(tmp_path / "b", dataset="same")
@@ -131,15 +142,15 @@ def test_cli_writes_manifest_and_prints_digest(shards, tmp_path, capsys):
 
 def test_cli_fails_on_identical_windows_across_splits(tmp_path, capsys):
     rows = make_fake_shards(tmp_path / "s", recordings_per_class=8)
-    # Rewrite rows.jsonl so a second recording reuses the first one's shard samples.
+    # Rewrite the second recording's rows so it reuses the first recording's shard samples.
     first, second = rows[0], next(r for r in rows if r.recording_id != rows[0].recording_id)
+    rows_file = tmp_path / "s" / second.shard.replace(".npy", ".rows.jsonl")
     lines = []
-    for r in rows:
-        d = r.to_dict()
-        if r.recording_id == second.recording_id:
-            d["shard"] = first.shard
+    for line in rows_file.read_text().splitlines():
+        d = json.loads(line)
+        d["shard"] = first.shard
         lines.append(json.dumps(d))
-    (tmp_path / "s" / "rows.jsonl").write_text("\n".join(lines) + "\n")
+    rows_file.write_text("\n".join(lines) + "\n")
     # Find a seed that puts the two recordings in different splits.
     seed = next(s for s in range(100) if manifest.split_of(first.recording_id, s) != manifest.split_of(second.recording_id, s))
     code = build_manifest.main(["--shards", str(tmp_path / "s"), "--out", str(tmp_path / "m.jsonl"), "--seed", str(seed)])

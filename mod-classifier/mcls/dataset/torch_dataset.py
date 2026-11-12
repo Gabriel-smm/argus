@@ -5,7 +5,8 @@ Each item is a dict:
     "label"  int64 scalar tensor (index into `classes`)
     "weight" float32 scalar tensor (1.0 strong, 0.5 weak; PLAN 5.3)
     "index"  int (row index, to map predictions back to window_id)
-    "stft"   float32 tensor [1, 64, 64], only when an STFT function is given
+    "stft"   float32 tensor [1, 64, 64], only with stft=True (Engineer 4's
+             mcls.frontend.views.stft_view) or an equivalent batch function
 
 Augmentation runs only on rows whose split is "train". Its generator is seeded
 from (seed, epoch, index), so call `set_epoch(e)` once per epoch; the same seed
@@ -40,9 +41,14 @@ class WindowDataset(Dataset):
         classes: Sequence[str],
         augmenter: Augmenter | None = None,
         seed: int = 0,
-        stft: Callable[[np.ndarray], np.ndarray] | None = None,
+        stft: bool | Callable[[np.ndarray], np.ndarray] = False,
         weak_weight: float = WEAK_WEIGHT,
     ):
+        if stft is True:
+            # Engineer 4's view: (n, 4096) complex64 -> (n, 1, 64, 64) float32.
+            from mcls.frontend.views import stft_view as stft
+        elif stft is False:
+            stft = None
         self.rows = list(rows)
         self.store = store
         self.classes = tuple(classes)
@@ -72,8 +78,8 @@ class WindowDataset(Dataset):
             "index": int(index),
         }
         if self.stft is not None:
-            view = np.asarray(self.stft(window), dtype=np.float32)
-            item["stft"] = torch.from_numpy(view.reshape((1, *view.shape[-2:])))
+            view = np.asarray(self.stft(window[None, :]), dtype=np.float32)
+            item["stft"] = torch.from_numpy(np.ascontiguousarray(view.reshape((1, *view.shape[-2:]))))
         return item
 
 

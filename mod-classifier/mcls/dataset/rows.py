@@ -32,12 +32,18 @@ def seeded_rng(seed: int, *keys: str) -> np.random.Generator:
     return np.random.default_rng(int.from_bytes(material[:16], "big"))
 
 
-def collect_rows(shard_dirs: Iterable[Path]) -> list[ManifestRow]:
-    """Read every `*.jsonl` under each directory (recursively), one ManifestRow dict per line.
+#: Front-end row files (Engineer 4): `<stem>.s000.rows.jsonl`, next to their shards.
+ROWS_GLOB = "*rows.jsonl"
 
-    A relative `shard` path is resolved against the directory of the .jsonl file
-    that names it; returned rows carry absolute shard paths. Rows are returned
-    sorted by window_id. A window_id seen twice is an error.
+
+def collect_rows(shard_dirs: Iterable[Path]) -> list[ManifestRow]:
+    """Read every `*rows.jsonl` under each directory (recursively), one row dict per line.
+
+    Rows follow ManifestRow without "split" (the front end leaves it out; it is
+    set to "train" here and overwritten by the split step). A relative `shard`
+    path is resolved against the directory of the rows file that names it;
+    returned rows carry absolute shard paths. Rows are returned sorted by
+    window_id. A window_id seen twice is an error.
     """
     rows: list[ManifestRow] = []
     seen: dict[str, Path] = {}
@@ -45,13 +51,14 @@ def collect_rows(shard_dirs: Iterable[Path]) -> list[ManifestRow]:
         directory = Path(directory)
         if not directory.is_dir():
             raise FileNotFoundError(f"shard directory not found: {directory}")
-        for path in sorted(directory.rglob("*.jsonl")):
+        for path in sorted(directory.rglob(ROWS_GLOB)):
             with open(path) as source:
                 for number, line in enumerate(source, 1):
                     if not line.strip():
                         continue
                     try:
-                        row = ManifestRow.from_dict(json.loads(line))
+                        row = ManifestRow.from_dict({"split": "train", **json.loads(line)})
+                        row.validate()
                     except (ValueError, TypeError) as exc:
                         raise ValueError(f"{path}, line {number}: {exc}") from exc
                     shard = Path(row.shard)
