@@ -3,11 +3,20 @@
     runs/<name>/
       config.toml               the effective run config
       meta.json                 git_commit, manifest_sha256, seed, classes, model, created
-      predictions_<split>.npz   window_id, recording_id, label, logits, snr_db_est (val, test, cross_test)
+      predictions_<split>.npz   window_id, recording_id, label, logits, snr_db_est
+                                (val, test, cross_test, generalization: each split that has rows)
       model.pkl                 the fitted FeatureClassifier (mcls.baselines.load)
 
-metrics.json is the evaluator's. When Engineer 7's `python -m mcls.train` calls
-`train`, it has already written config.toml and meta.json; they are left as is.
+metrics.json is the evaluator's.
+
+A run folder is never reused silently: results must not be credited to another
+run's manifest or seed. `train` refuses a folder that already holds results
+(predictions, model.pkl or metrics.json), or a meta.json whose manifest_sha256,
+seed, model or classes differ from this run. A meta.json that matches exactly is
+kept: Engineer 7's `python -m mcls.train` writes config.toml and meta.json
+before calling `train`. `overwrite=True` (CLI `--overwrite`) first deletes the run
+files of a folder that is recognisably a run folder (see `clear_run_dir`), and
+refuses any other folder.
 """
 
 from __future__ import annotations
@@ -17,6 +26,7 @@ import datetime
 import hashlib
 import json
 import math
+import re
 import subprocess
 from pathlib import Path
 
@@ -25,41 +35,66 @@ import numpy as np
 from mcls import config as config_module
 from mcls import manifest as manifest_module
 from mcls import taxonomy
-from mcls.contracts import WINDOW_SAMPLES, ManifestRow
+from mcls.contracts import SPLITS, WINDOW_SAMPLES, ManifestRow
 from mcls.baselines import features
 from mcls.baselines.classifier import FeatureClassifier
 from mcls.baselines.models import MODELS, build
 
 #: Splits that get a predictions file, when they have rows.
-PREDICT_SPLITS = ("val", "test", "cross_test")
+PREDICT_SPLITS = ("val", "test", "cross_test", "generalization")
+#: Files that mean a folder already holds a finished (or partly written) run.
+RESULT_FILES = ("model.pkl", "metrics.json")
+#: The only files --overwrite may delete: the run-output contract plus what e6, e7 and e8 add.
+RUN_FILES = frozenset({
+    "config.toml", "meta.json", "metrics.json", "model.pkl", "calibration.json",
+    "checkpoint.pt", "last.pt", "history.jsonl",
+})
+#: A folder is a run folder only if it holds at least one of these.
+RUN_MARKERS = frozenset({"config.toml", "meta.json"})
+PREDICTIONS_FILE = re.compile(r"predictions_[A-Za-z0-9_]+\.npz")
 WEAK_WEIGHT = 0.5
 #: Windows read and featurized at a time (32 MB of samples).
 CHUNK = 1024
 
 
-def train(config: dict, run_dir: Path, manifest: Path | None = None, classes: tuple[str, ...] | None = None) -> None:
+def train(
+    config: dict,
+    run_dir: Path,
+    manifest: Path | None = None,
+    classes: tuple[str, ...] | None = None,
+    overwrite: bool = False,
+) -> None:
     """Fit config["model"]["name"] on the train split, select on val, write run_dir.
 
-    `classes` overrides the taxonomy's class list (tests use it).
+    `classes` overrides the taxonomy's class list (tests use it). Raises
+    FileExistsError when run_dir holds another run (see the module docstring).
     """
     config_module.validate(config)
     name = config["model"]["name"]
     if name not in MODELS:
         raise ValueError(f"model.name {name!r} is not a baseline (choose from {sorted(MODELS)})")
     run_dir = Path(run_dir)
-    run_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = Path(manifest if manifest is not None else config["data"]["manifest"])
     seed = int(config["run"]["seed"])
     if classes is None:
         classes = taxonomy.load().classes(config["data"]["classes"])
     classes = tuple(classes)
+    expected = {
+        "manifest_sha256": sha256_file(manifest_path),
+        "seed": seed,
+        "model": name,
+        "classes": list(classes),
+    }
+    if overwrite:
+        clear_run_dir(run_dir)
+    meta_matches = check_run_dir(run_dir, expected)
+    run_dir.mkdir(parents=True, exist_ok=True)
 
-    effective = copy.deepcopy(config)
-    effective["data"]["manifest"] = str(manifest_path)
-    if not (run_dir / "config.toml").exists():
+    if not meta_matches:
+        effective = copy.deepcopy(config)
+        effective["data"]["manifest"] = str(manifest_path)
         (run_dir / "config.toml").write_text(to_toml(effective))
-    if not (run_dir / "meta.json").exists():
-        write_meta(run_dir, manifest_path, seed, classes, name)
+        write_meta(run_dir, expected)
 
     splits = select_rows(manifest_module.read(manifest_path), classes, config["data"], seed)
     if not splits["train"]:
@@ -95,11 +130,81 @@ def train(config: dict, run_dir: Path, manifest: Path | None = None, classes: tu
 # ---------------------------------------------------------------------------
 
 
+def _is_run_file(name: str) -> bool:
+    return name in RUN_FILES or PREDICTIONS_FILE.fullmatch(name) is not None
+
+
+def clear_run_dir(run_dir: Path) -> list[str]:
+    """Delete the run files in run_dir (for --overwrite); return their names.
+
+    Refuses (FileExistsError) unless run_dir is a real directory (not a symlink)
+    holding meta.json, config.toml or predictions_*.npz, and nothing but regular
+    files named in RUN_FILES or predictions_<split>.npz. Only those files are
+    unlinked; the folder itself stays, and no link is followed. A missing or
+    empty folder is left as is.
+    """
+    run_dir = Path(run_dir)
+    if run_dir.is_symlink():
+        raise FileExistsError(f"--overwrite refused: {run_dir} is a symlink")
+    if not run_dir.exists():
+        return []
+    if not run_dir.is_dir():
+        raise FileExistsError(f"--overwrite refused: {run_dir} is not a folder")
+    entries = sorted(run_dir.iterdir(), key=lambda p: p.name)
+    if not entries:
+        return []
+    unknown = [p.name for p in entries if p.is_symlink() or not p.is_file() or not _is_run_file(p.name)]
+    if unknown:
+        raise FileExistsError(
+            f"--overwrite refused: {run_dir} holds files that are not run files ({', '.join(unknown)}); "
+            "remove them yourself or choose another folder"
+        )
+    names = [p.name for p in entries]
+    if not any(name in RUN_MARKERS or PREDICTIONS_FILE.fullmatch(name) for name in names):
+        raise FileExistsError(f"--overwrite refused: {run_dir} does not look like a run folder (no meta.json, "
+                              "config.toml or predictions_*.npz)")
+    for path in entries:
+        path.unlink()
+    return names
+
+
+def check_run_dir(run_dir: Path, expected: dict) -> bool:
+    """True when run_dir holds a meta.json matching `expected` (keep it), False when it holds none.
+
+    Raises FileExistsError when run_dir already holds results or another run's meta.json.
+    """
+    if not run_dir.exists():
+        return False
+    results = sorted(p.name for p in run_dir.glob("predictions_*.npz"))
+    results += [name for name in RESULT_FILES if (run_dir / name).exists()]
+    if results:
+        raise FileExistsError(f"{run_dir} already holds results ({', '.join(results)}); pass --overwrite or choose another folder")
+    meta_path = run_dir / "meta.json"
+    if not meta_path.exists():
+        return False
+    try:
+        meta = json.loads(meta_path.read_text())
+    except ValueError as exc:
+        raise FileExistsError(f"{meta_path} is not valid JSON ({exc}); pass --overwrite") from exc
+    differ = [key for key, value in expected.items() if not isinstance(meta, dict) or meta.get(key) != value]
+    if differ:
+        raise FileExistsError(f"{meta_path} belongs to another run ({', '.join(differ)} differ); pass --overwrite or choose another folder")
+    return True
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for block in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
 def select_rows(rows: list[ManifestRow], classes: tuple[str, ...], data: dict, seed: int) -> dict[str, list[ManifestRow]]:
     """Rows per split: labels in `classes` only; real rows only outside train unless
     data.use_simulated (and then simulated rows only in train); train capped per class."""
     use_simulated = bool(data.get("use_simulated", False))
-    splits: dict[str, list[ManifestRow]] = {"train": [], "val": [], "test": [], "cross_test": []}
+    splits: dict[str, list[ManifestRow]] = {split: [] for split in SPLITS}
     for row in rows:
         if row.label not in classes or row.split not in splits:
             continue
@@ -188,13 +293,13 @@ def write_predictions(path: Path, rows: list[ManifestRow], labels: np.ndarray, l
     )
 
 
-def write_meta(run_dir: Path, manifest_path: Path, seed: int, classes: tuple[str, ...], model: str) -> None:
+def write_meta(run_dir: Path, expected: dict) -> None:
     meta = {
         "git_commit": git_commit(),
-        "manifest_sha256": hashlib.sha256(Path(manifest_path).read_bytes()).hexdigest(),
-        "seed": seed,
-        "classes": list(classes),
-        "model": model,
+        "manifest_sha256": expected["manifest_sha256"],
+        "seed": expected["seed"],
+        "classes": list(expected["classes"]),
+        "model": expected["model"],
         "created": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
     }
     (Path(run_dir) / "meta.json").write_text(json.dumps(meta, indent=2) + "\n")

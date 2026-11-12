@@ -22,6 +22,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, help="run folder (default: run.out_dir/run.name)")
     parser.add_argument("--model", choices=sorted(MODELS), help="override model.name")
     parser.add_argument("--seed", type=int, help="override run.seed")
+    parser.add_argument("--overwrite", action="store_true", help="empty the run folder first if it holds another run")
     args = parser.parse_args(argv)
     try:
         config = config_module.load(args.config)
@@ -38,7 +39,11 @@ def main(argv: list[str] | None = None) -> int:
     except (OSError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
-    train(config, out, manifest=manifest)
+    try:
+        train(config, out, manifest=manifest, overwrite=args.overwrite)
+    except FileExistsError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
     print(f"run: {out}")
     return 0
 

@@ -12,7 +12,7 @@ from mcls import config as config_module
 from mcls import manifest
 from mcls.baselines import FeatureClassifier, load, train
 from mcls.baselines.__main__ import main
-from mcls.baselines.run import ShardReader, cap_per_class, select_rows, to_toml
+from mcls.baselines.run import ShardReader, cap_per_class, clear_run_dir, select_rows, to_toml
 from mcls.contracts import Classifier, ManifestRow, WINDOW_SAMPLES, check_probabilities
 
 CLASSES = ("drone_link", "wifi", "bluetooth", "background")
@@ -125,18 +125,129 @@ def test_runs_are_deterministic_given_seed(tmp_path):
     assert not np.array_equal(outputs[0], outputs[2])
 
 
-def test_existing_config_and_meta_are_kept(tmp_path):
-    """Engineer 7's dispatcher writes config.toml and meta.json before calling train."""
+def dispatcher_meta(run, path, model="majority", seed=1):
+    """config.toml and meta.json as Engineer 7's mcls.train dispatcher writes them."""
+    from mcls.train.runs import prepare
+
+    config = make_config(model=model, seed=seed)
+    config["data"]["manifest"] = str(path)
+    prepare(config, run, list(CLASSES))
+    return config
+
+
+def test_matching_dispatcher_meta_is_kept(tmp_path):
     path, _ = build_fixture(tmp_path)
     run = tmp_path / "run"
-    run.mkdir()
-    (run / "config.toml").write_text("# from the dispatcher\n")
-    (run / "meta.json").write_text('{"from": "dispatcher"}')
-    train(make_config(model="majority"), run, manifest=path, classes=CLASSES)
-    assert (run / "config.toml").read_text() == "# from the dispatcher\n"
-    assert json.loads((run / "meta.json").read_text()) == {"from": "dispatcher"}
+    config = dispatcher_meta(run, path)
+    before = {name: (run / name).read_text() for name in ("config.toml", "meta.json")}
+    train(config, run, classes=CLASSES)
+    assert {name: (run / name).read_text() for name in ("config.toml", "meta.json")} == before
     with np.load(run / "predictions_test.npz") as data:
         assert len(set(np.argmax(data["logits"], axis=1).tolist())) == 1
+
+
+@pytest.mark.parametrize("change", ["seed", "model", "manifest"])
+def test_meta_of_another_run_is_refused(tmp_path, change):
+    path, rows = build_fixture(tmp_path)
+    run = tmp_path / "run"
+    dispatcher_meta(run, path)
+    config = make_config(model="softmax_regression" if change == "model" else "majority",
+                         seed=2 if change == "seed" else 1)
+    if change == "manifest":
+        manifest.write(path, rows[:-1])
+    with pytest.raises(FileExistsError, match="another run"):
+        train(config, run, manifest=path, classes=CLASSES)
+    assert not list(run.glob("predictions_*.npz"))
+
+
+def test_folder_with_results_is_refused_and_overwrite_clears_it(tmp_path):
+    path, _ = build_fixture(tmp_path)
+    run = tmp_path / "run"
+    train(make_config(model="majority"), run, manifest=path, classes=CLASSES)
+    (run / "metrics.json").write_text("{}")
+    # Same manifest, seed and model, but results exist: still refused.
+    with pytest.raises(FileExistsError, match="already holds results"):
+        train(make_config(model="majority"), run, manifest=path, classes=CLASSES)
+    train(make_config(model="softmax_regression", seed=5), run, manifest=path, classes=CLASSES, overwrite=True)
+    meta = json.loads((run / "meta.json").read_text())
+    assert meta["model"] == "softmax_regression" and meta["seed"] == 5
+    assert not (run / "metrics.json").exists()
+
+
+def test_overwrite_refuses_a_folder_that_is_not_a_run(tmp_path):
+    path, _ = build_fixture(tmp_path)
+    folder = tmp_path / "notes"
+    folder.mkdir()
+    (folder / "metrics.json").write_text("{}")  # a known name, but no run marker
+    with pytest.raises(FileExistsError, match="does not look like a run folder"):
+        train(make_config(model="majority"), folder, manifest=path, classes=CLASSES, overwrite=True)
+    assert (folder / "metrics.json").exists()
+    # The fixture folder itself holds a manifest and shards: never a run folder.
+    with pytest.raises(FileExistsError, match="not run files"):
+        clear_run_dir(tmp_path)
+    assert path.exists() and (tmp_path / "shards").is_dir()
+
+
+def test_overwrite_refuses_a_run_folder_holding_an_unknown_file(tmp_path):
+    path, _ = build_fixture(tmp_path)
+    run = tmp_path / "run"
+    train(make_config(model="majority"), run, manifest=path, classes=CLASSES)
+    (run / "notes.txt").write_text("keep me")
+    (run / "plots").mkdir()
+    with pytest.raises(FileExistsError, match="notes.txt, plots"):
+        train(make_config(model="majority"), run, manifest=path, classes=CLASSES, overwrite=True)
+    assert (run / "notes.txt").read_text() == "keep me" and (run / "meta.json").exists()
+
+
+def test_overwrite_never_follows_symlinks(tmp_path):
+    path, _ = build_fixture(tmp_path)
+    run = tmp_path / "run"
+    train(make_config(model="majority"), run, manifest=path, classes=CLASSES)
+    outside = tmp_path / "outside.json"
+    outside.write_text("{}")
+    (run / "metrics.json").symlink_to(outside)
+    with pytest.raises(FileExistsError, match="metrics.json"):
+        clear_run_dir(run)
+    linked = tmp_path / "linked_run"
+    linked.symlink_to(run, target_is_directory=True)
+    with pytest.raises(FileExistsError, match="symlink"):
+        clear_run_dir(linked)
+    assert outside.exists() and (run / "meta.json").exists()
+
+
+def test_overwrite_deletes_only_run_files(tmp_path):
+    path, _ = build_fixture(tmp_path)
+    run = tmp_path / "run"
+    train(make_config(model="majority"), run, manifest=path, classes=CLASSES)
+    for name in ("calibration.json", "history.jsonl", "checkpoint.pt", "last.pt"):
+        (run / name).write_text("x")
+    removed = clear_run_dir(run)
+    assert "meta.json" in removed and "predictions_val.npz" in removed and "last.pt" in removed
+    assert run.is_dir() and not list(run.iterdir())
+
+
+def test_cli_refuses_an_existing_run_unless_overwrite(tmp_path):
+    path, _ = build_fixture(tmp_path, per_split=(3, 2, 2))
+    config_path = tmp_path / "baseline.toml"
+    config_path.write_text(to_toml(make_config()))
+    out = tmp_path / "runs" / "cli"
+    args = ["--config", str(config_path), "--manifest", str(path), "--out", str(out), "--model", "majority"]
+    assert main(args) == 0
+    assert main(args) == 2
+    assert main(args + ["--overwrite"]) == 0
+
+
+def test_generalization_predictions_written_when_present(tmp_path):
+    path, rows = build_fixture(tmp_path)
+    held = [r for r in rows if r.split == "test" and r.label == "drone_link"]
+    for row in held:
+        row.split = "generalization"
+    manifest.write(path, rows)
+    run = tmp_path / "run"
+    train(make_config(model="majority"), run, manifest=path, classes=CLASSES)
+    with np.load(run / "predictions_generalization.npz") as data:
+        assert set(data.files) == CONTRACT_ARRAYS
+        assert data["window_id"].tolist() == [r.window_id for r in held]
 
 
 def test_cross_test_predictions_written_when_present(tmp_path):

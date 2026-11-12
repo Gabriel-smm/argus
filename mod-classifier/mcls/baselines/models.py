@@ -10,6 +10,18 @@ probability. X is already standardized by the caller.
   macro-F1).
 - KNN and LightGBM: scikit-learn and lightgbm, imported only when fitted, so
   this module imports on a machine that has neither.
+
+Weights and class balance differ by model:
+
+- SoftmaxRegression weighs each window by its sample weight (weak labels 0.5)
+  times a class-balancing weight, so every class carries the same total.
+- LightGBM uses the sample weights and class_weight="balanced".
+- KNN IGNORES both: every neighbour votes equally, weak-label windows count
+  as much as strong ones, and a large class outvotes a small one near a
+  boundary. With optim.balanced_sampler = true, KNN instead fits on a seeded
+  subsample with the same number of windows per class (the smallest class's
+  count); weak labels are still not down-weighted.
+- MajorityClass predicts the most frequent train class by count.
 """
 
 from __future__ import annotations
@@ -49,6 +61,16 @@ def balanced_weights(y: np.ndarray, num_classes: int) -> np.ndarray:
     present = np.count_nonzero(counts)
     per_class = np.where(counts > 0, len(y) / (present * np.maximum(counts, 1)), 0.0)
     return per_class[y]
+
+
+def balanced_subsample(y: np.ndarray, seed: int) -> np.ndarray:
+    """Sorted indices with the same number of rows per present class (the smallest class's count), seeded."""
+    y = np.asarray(y)
+    rng = np.random.default_rng(seed)
+    labels, counts = np.unique(y, return_counts=True)
+    size = int(counts.min()) if len(counts) else 0
+    picked = [rng.choice(np.flatnonzero(y == label), size, replace=False) for label in labels]
+    return np.sort(np.concatenate(picked)) if picked else np.zeros(0, dtype=np.int64)
 
 
 def _expand(scores: np.ndarray, present: np.ndarray, num_classes: int) -> np.ndarray:
@@ -230,12 +252,19 @@ class KNN:
 
     def __init__(self, num_classes: int, seed: int = 0, params: dict | None = None):
         self.num_classes = num_classes
+        self.seed = seed
+        self.balanced = bool((params or {}).get("balanced_sampler", False))
         self.model = None
         self.k = None
         self.scores: dict[int, float] = {}
 
     def fit(self, X, y, X_val=None, y_val=None, sample_weight=None):
+        """sample_weight is ignored (neighbour votes are unweighted); see the module docstring."""
         from sklearn.neighbors import KNeighborsClassifier
+
+        if self.balanced:
+            keep = balanced_subsample(y, self.seed)
+            X, y = np.asarray(X)[keep], np.asarray(y)[keep]
 
         choices = [k for k in self.K_CHOICES if k <= len(y)] or [1]
         has_val = X_val is not None and y_val is not None and len(y_val) > 0
