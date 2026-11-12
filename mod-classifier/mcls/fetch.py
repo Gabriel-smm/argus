@@ -12,12 +12,16 @@ Rules it follows:
 - Resumable: each range is written to its own part file; a rerun skips
   finished parts and continues partial ones.
 - Verified: the assembled file must match the expected size and checksum
-  (Zenodo publishes md5) or it is not kept.
+  (Zenodo publishes md5; NIST, Mendeley and Fairdata publish sha256) or it is
+  not kept.
+- Hosts that ignore Range (Fairdata) use `stream_download`: one connection,
+  one GET from byte 0, a fresh URL per attempt (Fairdata tokens are single-use).
 - No external packages: runs on CRC with the system Python 3.12.
 
 Command line:
 
     python -m mcls.fetch URL OUTPUT --size BYTES --md5 HEX [--connections 4]
+    python -m mcls.fetch URL OUTPUT --size BYTES --sha256 HEX
     python -m mcls.fetch --zenodo 4264467 --only DJI_mavic_mini_2G.bin --out data/raw/tampere
     python -m mcls.fetch --zenodo 4264467 --list
 """
@@ -85,6 +89,31 @@ def checksum(path: Path, algorithm: str = "md5") -> str:
     return digest.hexdigest()
 
 
+def expected_digest(md5: str | None = None, sha256: str | None = None) -> tuple[str, str] | None:
+    """(algorithm, lowercase hex) to verify against, or None. sha256 wins if both are given."""
+    if sha256:
+        return "sha256", sha256.lower()
+    if md5:
+        return "md5", md5.lower()
+    return None
+
+
+def parse_checksum(text: str) -> tuple[str, str]:
+    """Split "sha256:abc..." into ("sha256", "abc..."); refuse unknown algorithms and bad lengths."""
+    algorithm, sep, value = text.partition(":")
+    algorithm = algorithm.lower()
+    lengths = {"md5": 32, "sha256": 64}
+    if not sep or algorithm not in lengths:
+        raise ValueError(f"checksum {text!r}: expected 'md5:<hex>' or 'sha256:<hex>'")
+    if len(value) != lengths[algorithm] or any(c not in "0123456789abcdefABCDEF" for c in value):
+        raise ValueError(f"checksum {text!r}: {algorithm} needs {lengths[algorithm]} hex digits")
+    return algorithm, value.lower()
+
+
+def _have(output: Path, size: int, digest: tuple[str, str] | None) -> bool:
+    return output.exists() and output.stat().st_size == size and (digest is None or checksum(output, digest[0]) == digest[1])
+
+
 def download(
     url: str,
     output: Path,
@@ -93,17 +122,19 @@ def download(
     connections: int = DEFAULT_CONNECTIONS,
     timeout: float = 120.0,
     progress: bool = True,
+    sha256: str | None = None,
 ) -> Path:
-    """Download `url` to `output` over parallel byte ranges; verify size and md5.
+    """Download `url` to `output` over parallel byte ranges; verify size and md5 or sha256.
 
     Returns `output`. Raises IOError and leaves the part files in place (so a
     rerun resumes) when anything goes wrong.
     """
     if connections < 1 or connections > MAX_CONNECTIONS:
         raise ValueError(f"connections must be 1..{MAX_CONNECTIONS}")
+    digest = expected_digest(md5, sha256)
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
-    if output.exists() and output.stat().st_size == size and (md5 is None or checksum(output) == md5):
+    if _have(output, size, digest):
         if progress:
             print(f"have {output.name}")
         return output
@@ -125,22 +156,81 @@ def download(
             with open(part, "rb") as source:
                 while chunk := source.read(CHUNK * 8):
                     out.write(chunk)
-    if tmp.stat().st_size != size:
+    assembled = tmp.stat().st_size
+    if assembled != size:
         tmp.unlink()
-        raise IOError(f"{output.name}: assembled {tmp.stat().st_size if tmp.exists() else 0} bytes, expected {size}")
-    if md5 is not None:
-        got = checksum(tmp)
-        if got != md5:
+        raise IOError(f"{output.name}: assembled {assembled} bytes, expected {size}")
+    if digest is not None:
+        algorithm, want = digest
+        got = checksum(tmp, algorithm)
+        if got != want:
             tmp.unlink()
             for part in parts:
                 part.unlink()
-            raise IOError(f"{output.name}: md5 {got} does not match {md5}; parts removed, rerun to fetch again")
+            raise IOError(f"{output.name}: {algorithm} {got} does not match {want}; parts removed, rerun to fetch again")
     tmp.replace(output)
     for part in parts:
         part.unlink()
     parts_dir.rmdir()
     if progress:
         print(f"got  {output.name} ({size / 1e6:.0f} MB in {seconds:.0f} s, {size / 1e6 / seconds:.2f} MB/s)")
+    return output
+
+
+def stream_download(
+    url,
+    output: Path,
+    size: int,
+    md5: str | None = None,
+    sha256: str | None = None,
+    timeout: float = 120.0,
+    progress: bool = True,
+    retries: int | None = None,
+) -> Path:
+    """Download over ONE connection with no Range header, for hosts that ignore ranges.
+
+    `url` is a string or a zero-argument callable returning a fresh URL; it is
+    called once per attempt, so single-use download tokens (Fairdata) work.
+    A broken transfer cannot resume: the next attempt starts from byte 0.
+    """
+    digest = expected_digest(md5, sha256)
+    output = Path(output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    if _have(output, size, digest):
+        if progress:
+            print(f"have {output.name}")
+        return output
+    tmp = output.with_name(output.name + ".tmp")
+    retries = RETRIES if retries is None else retries
+    started = time.time()
+    for attempt in range(1, retries + 1):
+        try:
+            target = url() if callable(url) else url
+            request = urllib.request.Request(target, headers={"User-Agent": USER_AGENT})
+            with urllib.request.urlopen(request, timeout=timeout) as response, open(tmp, "wb") as out:
+                if response.status != 200:
+                    raise IOError(f"unexpected status {response.status}")
+                while chunk := response.read(CHUNK):
+                    out.write(chunk)
+            got = tmp.stat().st_size
+            if got != size:
+                raise IOError(f"got {got} bytes, expected {size}")
+            break
+        except (OSError, IOError) as exc:
+            tmp.unlink(missing_ok=True)
+            if attempt == retries:
+                raise IOError(f"{output.name}: gave up after {retries} attempts: {exc}") from exc
+            time.sleep(min(30, 2**attempt))
+    seconds = max(time.time() - started, 1e-6)
+    if digest is not None:
+        algorithm, want = digest
+        got = checksum(tmp, algorithm)
+        if got != want:
+            tmp.unlink()
+            raise IOError(f"{output.name}: {algorithm} {got} does not match {want}; removed, rerun to fetch again")
+    tmp.replace(output)
+    if progress:
+        print(f"got  {output.name} ({size / 1e6:.0f} MB in {seconds:.0f} s, {size / 1e6 / seconds:.2f} MB/s, one stream)")
     return output
 
 
@@ -171,6 +261,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("output", nargs="?", type=Path, help="where to write the file")
     parser.add_argument("--size", type=int, help="expected size in bytes (required with a URL)")
     parser.add_argument("--md5", help="expected md5")
+    parser.add_argument("--sha256", help="expected sha256 (used instead of --md5 if both are given)")
     parser.add_argument("--zenodo", help="Zenodo record id, e.g. 4264467")
     parser.add_argument("--only", action="append", default=[], help="with --zenodo: file name(s) to fetch")
     parser.add_argument("--out", type=Path, default=Path("."), help="with --zenodo: output folder")
@@ -196,7 +287,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if not (args.url and args.output and args.size):
             parser.error("give URL OUTPUT --size, or --zenodo RECORD")
-        download(args.url, args.output, args.size, args.md5, args.connections)
+        download(args.url, args.output, args.size, args.md5, args.connections, sha256=args.sha256)
         return 0
     except (IOError, ValueError) as exc:
         print(exc, file=sys.stderr)
