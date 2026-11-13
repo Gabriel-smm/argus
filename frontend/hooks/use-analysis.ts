@@ -47,6 +47,8 @@ export type AnalysisSummary = {
   /** Present when the site check ran. */
   site_check?: Record<SiteGroup, number>;
   site_report?: SiteReport | null;
+  /** Set when the result came from the Scan button's built-in scene. */
+  scene?: { title: string; badge: string };
 };
 
 export type AnalysisError = { message: string; field: LayaRole | null };
@@ -58,6 +60,8 @@ type AnalysisState = {
   summary: AnalysisSummary | null;
   error: AnalysisError | null;
   run: (knowledge: File[], data: File[]) => Promise<boolean>;
+  /** Run a built-in scene (no uploads), for the Scan button. */
+  scan: (scene?: string) => Promise<boolean>;
   clear: () => Promise<void>;
   refresh: () => Promise<void>;
   /** Read the pipeline once, without scheduling another read. */
@@ -79,23 +83,16 @@ async function pullAnalysis(set: (partial: Partial<AnalysisState>) => void): Pro
 }
 
 /** Shared by the Library, which starts a run, and the thread, which reflects it. */
-export const useAnalysis = create<AnalysisState>((set, get) => ({
-  running: false,
-  summary: null,
-  error: null,
-
-  run: async (knowledge, data) => {
+export const useAnalysis = create<AnalysisState>((set, get) => {
+  /** POST to the Laya service and make the answer the current result. */
+  const submit = async (path: "classify" | "scan", makeBody: () => Promise<object>) => {
     if (get().running) return false;
     set({ running: true, error: null });
-    const upload = async (file: File) => ({ name: file.name, text: await file.text() });
     try {
-      const res = await fetch("/api/pipeline/classify", {
+      const res = await fetch(`/api/pipeline/${path}`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          knowledge: await Promise.all(knowledge.map(upload)),
-          data: await Promise.all(data.map(upload)),
-        }),
+        body: JSON.stringify(await makeBody()),
       });
       const payload = await res.json().catch(() => null);
       if (!res.ok || !payload?.summary) {
@@ -117,7 +114,22 @@ export const useAnalysis = create<AnalysisState>((set, get) => ({
       });
       return false;
     }
+  };
+
+  return {
+  running: false,
+  summary: null,
+  error: null,
+
+  run: async (knowledge, data) => {
+    const upload = async (file: File) => ({ name: file.name, text: await file.text() });
+    return submit("classify", async () => ({
+      knowledge: await Promise.all(knowledge.map(upload)),
+      data: await Promise.all(data.map(upload)),
+    }));
   },
+
+  scan: async (scene = "campus") => submit("scan", async () => ({ scene })),
 
   clear: async () => {
     set({ summary: null, error: null });
@@ -132,4 +144,5 @@ export const useAnalysis = create<AnalysisState>((set, get) => ({
   sync: async () => {
     await pullAnalysis(set);
   },
-}));
+  };
+});

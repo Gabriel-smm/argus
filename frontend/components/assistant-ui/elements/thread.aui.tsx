@@ -25,6 +25,7 @@ import { TooltipIconButton } from "@/components/assistant-ui/elements/tooltip-ic
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SiteReport } from "@/components/site-report";
+import { ScanHero } from "@/components/scan-hero";
 import { ANALYSIS_POLL_MS, useAnalysis } from "@/hooks/use-analysis";
 import eagleIcon from "@/app/eagle_icon.png";
 import { cn } from "@/lib/utils";
@@ -374,14 +375,37 @@ const ThreadScrollToBottom: FC = () => {
 const ThreadWelcome: FC = () => {
   const running = useAnalysis((s) => s.running);
   const summary = useAnalysis((s) => s.summary);
+  const error = useAnalysis((s) => s.error);
+  const scan = useAnalysis((s) => s.scan);
   const report = running ? null : summary?.site_report;
+
+  // No result yet, or a run in progress: the front page with the Scan button and the sweep.
+  if (running || !summary) {
+    return (
+      <div className="aui-thread-welcome-root mb-6 flex flex-col px-2">
+        <ScanHero scanning={running} onScan={() => void scan()} error={error?.message} />
+      </div>
+    );
+  }
 
   if (report) {
     return (
       <div className="aui-thread-welcome-root mb-6 flex flex-col px-2">
+        {summary.scene && (
+          <div className="text-muted-foreground mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+            <span className="rounded-full border px-3 py-1">{summary.scene.badge}</span>
+            <button
+              type="button"
+              onClick={() => void scan()}
+              className="text-foreground underline-offset-2 hover:underline"
+            >
+              Scan again
+            </button>
+          </div>
+        )}
         <SiteReport report={report} />
         <p className="text-muted-foreground mt-5 text-sm">
-          Ask about any of the {summary?.observations} signals, or start with a question below.
+          Ask about any of the {summary.observations} signals, or start with a question below.
         </p>
       </div>
     );

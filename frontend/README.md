@@ -42,6 +42,10 @@ This is the [assistant-ui](https://github.com/assistant-ui/assistant-ui) starter
 
 ## Using it
 
+The quickest way in is **Scan the area** on the front page: it plays a built-in scene (`SCENES` in `pipeline/server.py`, today the 17 sample campus signals), sweeps the spectrum while Laya and the site check run, then shows the site report. A badge says it is demo data, not a live radio. To demo a real capture, point the scene's `data` at a file made with `python -m pipeline.ingest`.
+
+To use your own files instead:
+
 1. In the Library, open **Knowledge** and add a Laya questions file, such as `data/data-full.json`.
 2. Open **Data** and add observations, such as `data/observations-full.jsonl`. JSON lists and one-object-per-line files both work.
 3. Each file is checked as it is added. One that is not valid JSON, or sits in the wrong tab, says so under its name and cannot be picked.
@@ -61,6 +65,7 @@ app/api/pipeline/       proxy to the Laya service
 backend/agent.ts        LangGraph graph exported as `graph`
 components/library.tsx  file upload, checks and the Run control
 components/site-report.tsx  the site report card above the chat
+components/scan-hero.tsx    the front page: Scan button and spectrum sweep
 hooks/use-analysis.ts   run state shared by the Library and the chat
 langgraph.json          LangGraph CLI config (graph id, node version, env file)
 ```
