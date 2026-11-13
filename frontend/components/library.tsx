@@ -1,5 +1,6 @@
 "use client";
 
+import { DemoControlsSection } from "@/components/demo-controls";
 import { Button } from "@/components/ui/button";
 import { useAnalysis, type AnalysisSummary } from "@/hooks/use-analysis";
 import { inspectFile, MAX_FILE_BYTES, type FileCheck, type LayaRole } from "@/lib/laya-files";
@@ -531,6 +532,7 @@ export function Library() {
             Select a {missing.join(" file and a ")} file
           </p>
         )}
+        <DemoControlsSection />
       </div>
       <input
         ref={inputRef}

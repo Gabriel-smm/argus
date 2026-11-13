@@ -47,6 +47,13 @@ const EN = {
 
   "verdict.jamming": "Possible jamming",
 
+  "demo.badge": "Demo data",
+  "demo.tipCampus": "{scene}: sample campus signals",
+  "demo.tipAndrew": "{scene}: illustrative scenario by Andrew, not a real capture",
+  "demo.controls": "Demo controls",
+  "demo.shortcut": "Shortcut: Shift+D",
+  "demo.close": "Close",
+
   "likely.wifi": "Looks like Wi-Fi or Bluetooth",
   "likely.drone": "Possible drone",
   "likely.gps": "Something on GPS",
@@ -139,6 +146,13 @@ const ES: Messages = {
 
   "verdict.jamming": "Posible bloqueo de señal",
 
+  "demo.badge": "Datos de demostración",
+  "demo.tipCampus": "{scene}: señales de muestra del campus",
+  "demo.tipAndrew": "{scene}: escenario ilustrativo de Andrew, no es una captura real",
+  "demo.controls": "Controles de demostración",
+  "demo.shortcut": "Atajo: Mayús+D",
+  "demo.close": "Cerrar",
+
   "likely.wifi": "Parece Wi-Fi o Bluetooth",
   "likely.drone": "Posible dron",
   "likely.gps": "Algo en la banda GPS",
@@ -227,6 +241,13 @@ const FR: Messages = {
   "scene.jamming": "Brouillage",
 
   "verdict.jamming": "Brouillage possible",
+
+  "demo.badge": "Données de démo",
+  "demo.tipCampus": "{scene} : signaux d'exemple du campus",
+  "demo.tipAndrew": "{scene} : scénario illustratif d'Andrew, pas une capture réelle",
+  "demo.controls": "Commandes de démo",
+  "demo.shortcut": "Raccourci : Maj+D",
+  "demo.close": "Fermer",
 
   "likely.wifi": "Ressemble à du Wi-Fi ou Bluetooth",
   "likely.drone": "Drone possible",

@@ -6,8 +6,8 @@ import { RadarIcon } from "lucide-react";
 import { LocationLine } from "@/components/location-line";
 import { OpenPacketLink } from "@/components/packet";
 import { hasGpsInterference, type SensorLocation } from "@/lib/packet";
-import { SCAN_SWEEP_MS, SCENES, useAnalysis, type SiteGroup } from "@/hooks/use-analysis";
-import { translateBadge, useT, type MessageKey } from "@/lib/i18n";
+import { SCAN_SWEEP_MS, useAnalysis, type SiteGroup } from "@/hooks/use-analysis";
+import { useT, type MessageKey } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 type SceneSignal = {
@@ -124,9 +124,9 @@ export const ScanHero: FC<{
   onShowLast?: () => void;
   error?: string | null;
 }> = ({ scanning, onScan, onShowLast, error }) => {
-  const { t, language } = useT();
+  const { t } = useT();
+  // Picked in Demo controls (Library, or Shift+D); the Scan page itself shows no picker.
   const sceneName = useAnalysis((s) => s.scene);
-  const setSceneName = useAnalysis((s) => s.setScene);
   const [scene, setScene] = useState<Scene | null>(null);
   const reduced = useReducedMotion();
   const elapsed = useElapsed(scanning && !reduced);
@@ -200,35 +200,6 @@ export const ScanHero: FC<{
           )}
         </div>
       </div>
-
-      {!scanning && (
-        <fieldset className="flex flex-wrap items-center gap-2">
-          <legend className="text-muted-foreground mb-1.5 text-xs font-medium tracking-wide uppercase">
-            {t("scene.choose")}
-          </legend>
-          {SCENES.map((name) => (
-            <label
-              key={name}
-              className={cn(
-                "has-[:focus-visible]:ring-ring/50 cursor-pointer rounded-full border px-3 py-1 text-sm transition-colors has-[:focus-visible]:ring-2 motion-reduce:transition-none",
-                sceneName === name
-                  ? "border-foreground bg-foreground text-background"
-                  : "hover:bg-muted/60",
-              )}
-            >
-              <input
-                type="radio"
-                name="scan-scene"
-                value={name}
-                checked={sceneName === name}
-                onChange={() => setSceneName(name)}
-                className="sr-only"
-              />
-              {t(`scene.${name}`)}
-            </label>
-          ))}
-        </fieldset>
-      )}
 
       <div>
         <div
@@ -339,11 +310,6 @@ export const ScanHero: FC<{
           >
             {t("scan.seeLast")}
           </button>
-        )}
-        {scene && (
-          <span className="text-muted-foreground rounded-full border px-3 py-1 text-xs">
-            {translateBadge(scene.badge, language)}
-          </span>
         )}
       </div>
 

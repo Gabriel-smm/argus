@@ -42,6 +42,7 @@ export type JammingAssessment = {
 /** The built-in scenes the Scan button can play (SCENES in pipeline/server.py). */
 export const SCENES = ["campus", "normal", "drone", "jamming"] as const;
 export type SceneName = (typeof SCENES)[number];
+const SCENE_STORAGE_KEY = "argus.scene";
 
 export type AnalysisSummary = {
   knowledge_name: string;
@@ -84,9 +85,11 @@ type AnalysisState = {
    * Laya service still holds an earlier result, and lasts only for this page session.
    */
   showResult: boolean;
-  /** The scene the Scan button plays, picked on the Scan page. */
+  /** The scene the Scan button plays, picked in Demo controls and remembered in this browser. */
   scene: SceneName;
   setScene: (scene: SceneName) => void;
+  /** Read the remembered scene; called once in the browser, after the first render. */
+  restoreScene: () => void;
   run: (knowledge: File[], data: File[]) => Promise<boolean>;
   /** Run a built-in scene (no uploads), for the Scan button. Defaults to the picked one. */
   scan: (scene?: SceneName) => Promise<boolean>;
@@ -157,7 +160,22 @@ export const useAnalysis = create<AnalysisState>((set, get) => {
   scanning: false,
   showResult: false,
   scene: "campus",
-  setScene: (scene) => set({ scene }),
+  setScene: (scene) => {
+    set({ scene });
+    try {
+      window.localStorage.setItem(SCENE_STORAGE_KEY, scene);
+    } catch {
+      // Private windows and blocked storage: the choice lasts until the page reloads.
+    }
+  },
+  restoreScene: () => {
+    try {
+      const saved = window.localStorage.getItem(SCENE_STORAGE_KEY);
+      if (SCENES.includes(saved as SceneName)) set({ scene: saved as SceneName });
+    } catch {
+      // Storage unavailable: stay on the campus sample.
+    }
+  },
 
   run: async (knowledge, data) => {
     const upload = async (file: File) => ({ name: file.name, text: await file.text() });

@@ -29,7 +29,7 @@ import { ScanHero } from "@/components/scan-hero";
 import { PacketExport, PacketView, usePacketView } from "@/components/packet";
 import { locationFromSummary } from "@/lib/packet";
 import { ANALYSIS_POLL_MS, useAnalysis } from "@/hooks/use-analysis";
-import { translateBadge, translateQuestion, useLanguage, useT } from "@/lib/i18n";
+import { translateQuestion, useLanguage, useT } from "@/lib/i18n";
 import eagleIcon from "@/app/eagle_icon.png";
 import { cn } from "@/lib/utils";
 import {
@@ -383,7 +383,7 @@ const ThreadWelcome: FC = () => {
   const scanning = useAnalysis((s) => s.scanning);
   const showResult = useAnalysis((s) => s.showResult);
   const showLastResult = useAnalysis((s) => s.showLastResult);
-  const { t, language } = useT();
+  const { t } = useT();
   const opened = usePacketView((s) => s.opened);
   const closePacket = usePacketView((s) => s.close);
   const sweeping = running || scanning;
@@ -421,9 +421,7 @@ const ThreadWelcome: FC = () => {
       <div className="aui-thread-welcome-root mb-6 flex flex-col px-2">
         {summary.scene && (
           <div className="text-muted-foreground mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-            <span className="rounded-full border px-3 py-1">
-              {translateBadge(summary.scene.badge, language)}
-            </span>
+            {/* Which scene this is lives in the "Demo data" badge's tooltip, at the top right. */}
             <button
               type="button"
               onClick={() => void scan()}
