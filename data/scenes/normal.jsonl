@@ -1,0 +1,2 @@
+{"id": "d1", "center_frequency_hz": 2437000000.0, "bandwidth_hz": 20000000.0, "modulation": "unknown", "hopping": false, "duty_cycle": 0.9, "note": "From Andrew's scenario_normal.json, detection d1; illustrative, not a real capture."}
+{"id": "d2", "center_frequency_hz": 2441000000.0, "bandwidth_hz": 1000000.0, "modulation": "unknown", "hopping": true, "duty_cycle": 0.3, "note": "From Andrew's scenario_normal.json, detection d2; illustrative, not a real capture."}

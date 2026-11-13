@@ -195,3 +195,34 @@ def test_provenance_names_the_site_and_changes_when_a_file_is_edited(tmp_path):
 
     site_file.write_text(json.dumps({"name": "Test field", "latitude": 1.6, "longitude": -2.5}), encoding="utf-8")
     assert lookup.provenance(site_file)["versions"]["site_profile"] != first["versions"]["site_profile"]
+
+
+def test_andrews_detections_become_rows_crediting_him():
+    from context_sources import scenarios
+
+    detection = {"detection_id": "d3", "center_freq_hz": 2.4425e9, "bandwidth_hz": 8e6, "duty_cycle": 0.12}
+    hopping = scenarios.detection_row({**detection, "burst_pattern": "hopping"}, "scenario_drone.json")
+    assert hopping == {
+        "id": "d3",
+        "center_frequency_hz": 2.4425e9,
+        "bandwidth_hz": 8e6,
+        "modulation": "unknown",
+        "hopping": True,
+        "duty_cycle": 0.12,
+        "note": "From Andrew's scenario_drone.json, detection d3; illustrative, not a real capture.",
+    }
+    assert scenarios.detection_row({**detection, "burst_pattern": "continuous"}, "x")["hopping"] is False
+    assert "hopping" not in scenarios.detection_row({**detection, "burst_pattern": "bursty"}, "x")
+
+
+def test_converted_scenes_match_andrews_files():
+    # data/scenes/ must be what the converter makes from data/contract/; rerun it after editing his files.
+    from context_sources import scenarios
+
+    for name in scenarios.NAMES:
+        source = json.loads((scenarios.SOURCE / f"scenario_{name}.json").read_text(encoding="utf-8"))
+        rows, jamming = scenarios.convert(source, f"scenario_{name}.json")
+        saved = (scenarios.SCENES / f"{name}.jsonl").read_text(encoding="utf-8").splitlines()
+        assert [json.loads(line) for line in saved] == rows
+        assessment = scenarios.SCENES / f"{name}-assessment.json"
+        assert (json.loads(assessment.read_text(encoding="utf-8")) if assessment.exists() else None) == jamming

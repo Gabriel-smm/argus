@@ -1,0 +1,4 @@
+{"id": "d1", "center_frequency_hz": 2437000000.0, "bandwidth_hz": 20000000.0, "modulation": "unknown", "hopping": false, "duty_cycle": 0.9, "note": "From Andrew's scenario_drone.json, detection d1; illustrative, not a real capture."}
+{"id": "d2", "center_frequency_hz": 2440000000.0, "bandwidth_hz": 1000000.0, "modulation": "unknown", "hopping": true, "duty_cycle": 0.3, "note": "From Andrew's scenario_drone.json, detection d2; illustrative, not a real capture."}
+{"id": "d3", "center_frequency_hz": 2442500000.0, "bandwidth_hz": 8000000.0, "modulation": "unknown", "hopping": true, "duty_cycle": 0.12, "note": "From Andrew's scenario_drone.json, detection d3; illustrative, not a real capture."}
+{"id": "d4", "center_frequency_hz": 2470000000.0, "bandwidth_hz": 3000000.0, "modulation": "unknown", "duty_cycle": 0.5, "note": "From Andrew's scenario_drone.json, detection d4; illustrative, not a real capture."}

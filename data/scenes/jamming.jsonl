@@ -1,0 +1,1 @@
+{"id": "d1", "center_frequency_hz": 915000000.0, "bandwidth_hz": 26000000.0, "modulation": "unknown", "hopping": false, "duty_cycle": 1.0, "note": "From Andrew's scenario_jamming.json, detection d1; illustrative, not a real capture."}

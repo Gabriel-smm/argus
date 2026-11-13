@@ -1,0 +1,93 @@
+{
+  "schema_version": "0.1.0",
+  "generated_at": "2026-11-13T15:30:00Z",
+  "capture": {
+    "capture_id": "cap-jam-001",
+    "started_at": "2026-11-13T15:00:00Z",
+    "source_type": "sweep_file",
+    "device": "hackrf-one",
+    "freq_range": {
+      "min_hz": 895000000.0,
+      "max_hz": 935000000.0
+    },
+    "site_id": "campus-demo",
+    "sensor_location": {
+      "lat": 41.705,
+      "lon": -86.235,
+      "accuracy_m": 15,
+      "source": "manual"
+    },
+    "passive_only": true,
+    "notes": "ILLUSTRATIVE values, not a real capture"
+  },
+  "detections": [
+    {
+      "detection_id": "d1",
+      "capture_id": "cap-jam-001",
+      "center_freq_hz": 915000000.0,
+      "bandwidth_hz": 26000000.0,
+      "peak_power_dbm": -70,
+      "snr_db": 8,
+      "duty_cycle": 1.0,
+      "burst_pattern": "continuous",
+      "noise_floor_dbm": -78
+    }
+  ],
+  "classifications": [
+    {
+      "detection_id": "d1",
+      "method": "ml",
+      "model_name": "placeholder-6class",
+      "model_version": "0.0",
+      "label": "other",
+      "confidence": 0.55,
+      "top3": [
+        {
+          "label": "other",
+          "confidence": 0.55
+        },
+        {
+          "label": "unknown",
+          "confidence": 0.3
+        },
+        {
+          "label": "ism_iot",
+          "confidence": 0.1
+        }
+      ],
+      "reasons": [
+        "wide, flat, noise-like energy across the band"
+      ]
+    }
+  ],
+  "verdicts": [
+    {
+      "detection_id": "d1",
+      "disposition": "white",
+      "affiliation": "unknown",
+      "reason": "Wide noise-like energy; not enough confidence to call it expected or hostile. See jamming assessment.",
+      "rule_id": "low-confidence-white",
+      "profile_id": "campus-demo",
+      "profile_version": "0.1",
+      "confidence": 0.55,
+      "blue_min_confidence": 0.8,
+      "next_step": "Check the jamming assessment and report a possible interference event.",
+      "use_case": "jamming"
+    }
+  ],
+  "jamming": {
+    "band": {
+      "min_hz": 902000000.0,
+      "max_hz": 928000000.0
+    },
+    "baseline_noise_floor_dbm": -96.0,
+    "observed_noise_floor_dbm": -78.0,
+    "noise_rise_db": 18.0,
+    "expected_missing": [
+      "ism_iot sensor bursts near 915 MHz"
+    ],
+    "flagged": true,
+    "confidence": 0.8,
+    "reason": "Noise floor rose 18 dB over this site's baseline and the usual sensor traffic disappeared."
+  }
+}

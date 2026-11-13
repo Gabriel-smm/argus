@@ -1,0 +1,14 @@
+{
+  "band": {
+    "min_hz": 902000000.0,
+    "max_hz": 928000000.0
+  },
+  "noise_rise_db": 18.0,
+  "expected_missing": [
+    "ism_iot sensor bursts near 915 MHz"
+  ],
+  "flagged": true,
+  "confidence": 0.8,
+  "reason": "Noise floor rose 18 dB over this site's baseline and the usual sensor traffic disappeared.",
+  "source": "Andrew's scenario_jamming.json"
+}

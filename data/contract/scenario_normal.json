@@ -1,0 +1,105 @@
+{
+  "schema_version": "0.1.0",
+  "generated_at": "2026-11-13T16:00:00Z",
+  "capture": {
+    "capture_id": "cap-normal-001",
+    "started_at": "2026-11-13T15:00:00Z",
+    "source_type": "sweep_file",
+    "device": "hackrf-one",
+    "freq_range": {
+      "min_hz": 2400000000.0,
+      "max_hz": 2500000000.0
+    },
+    "site_id": "campus-demo",
+    "sensor_location": {
+      "lat": 41.705,
+      "lon": -86.235,
+      "accuracy_m": 15,
+      "source": "manual"
+    },
+    "passive_only": true,
+    "notes": "ILLUSTRATIVE values, not a real capture"
+  },
+  "detections": [
+    {
+      "detection_id": "d1",
+      "capture_id": "cap-normal-001",
+      "center_freq_hz": 2437000000.0,
+      "bandwidth_hz": 20000000.0,
+      "snr_db": 32,
+      "duty_cycle": 0.9,
+      "burst_pattern": "continuous"
+    },
+    {
+      "detection_id": "d2",
+      "capture_id": "cap-normal-001",
+      "center_freq_hz": 2441000000.0,
+      "bandwidth_hz": 1000000.0,
+      "snr_db": 20,
+      "duty_cycle": 0.3,
+      "burst_pattern": "hopping",
+      "hop_count": 38
+    }
+  ],
+  "classifications": [
+    {
+      "detection_id": "d1",
+      "method": "ml",
+      "model_name": "placeholder-6class",
+      "model_version": "0.0",
+      "label": "wifi",
+      "confidence": 0.96,
+      "top3": [
+        {
+          "label": "wifi",
+          "confidence": 0.96
+        }
+      ],
+      "reasons": []
+    },
+    {
+      "detection_id": "d2",
+      "method": "ml",
+      "model_name": "placeholder-6class",
+      "model_version": "0.0",
+      "label": "bluetooth",
+      "confidence": 0.88,
+      "top3": [
+        {
+          "label": "bluetooth",
+          "confidence": 0.88
+        }
+      ],
+      "reasons": []
+    }
+  ],
+  "verdicts": [
+    {
+      "detection_id": "d1",
+      "disposition": "blue",
+      "affiliation": "civilian",
+      "reason": "Wi-Fi on a channel this site expects.",
+      "rule_id": "expected-wifi-24",
+      "profile_id": "campus-demo",
+      "profile_version": "0.1",
+      "confidence": 0.96,
+      "blue_min_confidence": 0.8,
+      "next_step": "No action.",
+      "use_case": "site_baseline"
+    },
+    {
+      "detection_id": "d2",
+      "disposition": "blue",
+      "affiliation": "civilian",
+      "reason": "Bluetooth hopping, normal for a campus.",
+      "rule_id": "expected-bluetooth",
+      "profile_id": "campus-demo",
+      "profile_version": "0.1",
+      "confidence": 0.88,
+      "blue_min_confidence": 0.8,
+      "next_step": "No action.",
+      "use_case": "site_baseline"
+    }
+  ],
+  "jamming": null
+}
