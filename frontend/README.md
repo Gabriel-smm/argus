@@ -44,6 +44,10 @@ This is the [assistant-ui](https://github.com/assistant-ui/assistant-ui) starter
 
 The quickest way in is **Scan the area** on the front page: it plays a built-in scene (`SCENES` in `pipeline/server.py`, today the 17 sample campus signals), sweeps the spectrum while Laya and the site check run, then shows the site report. A badge says it is demo data, not a live radio. To demo a real capture, point the scene's `data` at a file made with `python -m pipeline.ingest`.
 
+During the sweep each dot is colored by the site check (red needs a closer look, amber unknown, green normal), the newest one is named as a likely match ("Looks like Wi-Fi or Bluetooth", "Possible drone", "Something on GPS", "Mystery signal"), and a **Heard so far** list grows underneath. These come from `GET /scene`, which runs the site check up front: it is plain rules, so it needs no GPU. With reduced motion turned on in the system settings, there is no sweep: all the dots and the list appear at once.
+
+The globe button at the top right switches the scan page, the site report and the chat between **English, Español and Français**. The choice is kept in the browser. Fixed text is translated from a dictionary in `lib/i18n.ts`, with no online service. The chat model is told the language through the run config (`configurable.language`, read in `backend/agent.ts`) and keeps all its guardrails. The detailed reason and "Next" text from `data/context/bands.csv` stay in English for now, and the report says so.
+
 To use your own files instead:
 
 1. In the Library, open **Knowledge** and add a Laya questions file, such as `data/data-full.json`.
@@ -66,7 +70,9 @@ backend/agent.ts        LangGraph graph exported as `graph`
 components/library.tsx  file upload, checks and the Run control
 components/site-report.tsx  the site report card above the chat
 components/scan-hero.tsx    the front page: Scan button and spectrum sweep
+components/language-menu.tsx  the language button, and passing the language to the chat
 hooks/use-analysis.ts   run state shared by the Library and the chat
+lib/i18n.ts             English, Spanish and French text for the scan page and site report
 langgraph.json          LangGraph CLI config (graph id, node version, env file)
 ```
 
