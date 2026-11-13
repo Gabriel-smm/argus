@@ -56,6 +56,19 @@ def test_array_job_caps_concurrent_downloads():
     assert "--only" in text and "--connections" in text
 
 
-def test_no_training_job_yet():
-    # Training jobs are written later, on request.
-    assert not [p for p in SCRIPTS if "train" in p.name]
+def test_training_job_trains_then_calibrates_then_evaluates():
+    # Written on request (Nov 12): one job per config, weights saved every epoch, plot emailed.
+    text = (ROOT / "crc" / "train.job").read_text()
+    order = [text.index(s) for s in ("python -m mcls.train --config", "python -m mcls.evaluate.calibrate --run",
+                                     "python -m mcls.evaluate --run")]
+    assert order == sorted(order)
+    assert "--manifest" in text  # evaluate refuses to report test without it
+    assert "--resume" in text and "last.pt" in text
+    assert "MCLS_EMAIL_EVERY_EPOCHS" in text and "progress.png" in text and "train_log.txt" in text
+
+
+def test_wave_sends_one_start_and_one_end_email():
+    text = (ROOT / "crc" / "submit_wave.sh").read_text()
+    assert "-v MCLS_MAIL_TO=" in text  # training jobs stay quiet
+    assert "-m b" in text and "crc/wave_summary.job" in text
+    assert "mailx" in (ROOT / "crc" / "wave_summary.job").read_text()

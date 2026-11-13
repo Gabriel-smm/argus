@@ -43,6 +43,7 @@ from mcls.train.ema import EMA
 from mcls.train.losses import classification_loss, family_loss
 from mcls.train.optimizers import make_optimizer, make_scheduler
 from mcls.train.options import options
+from mcls.train.progress import write_plot
 from mcls.train.stopping import EarlyStopper, macro_f1
 
 PREDICTION_SPLITS = ("val", "test", "cross_test", "generalization")
@@ -221,6 +222,10 @@ def fit(config: dict, run_dir: Path, resume: bool = False, data: RunData | None 
             "optimizer": optimizer.state_dict(), "scheduler": scheduler.state_dict(),
             "scaler": scaler.state_dict(), "stopper": stopper.state_dict(), "rng": _get_rng_state(),
         })
+        try:  # progress.png: redrawn every epoch; a plotting problem must never stop training
+            write_plot(run_dir, total_epochs=epochs)
+        except Exception as exc:
+            print(f"progress plot skipped: {exc}", flush=True)
         print(f"epoch {epoch}: train_loss {record['train_loss']:.4f} val_loss {val_loss:.4f} "
               f"val_macro_f1 {val_f1:.4f}{' (best)' if improved else ''}", flush=True)
         if finished:

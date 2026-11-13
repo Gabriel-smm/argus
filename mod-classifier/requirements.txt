@@ -22,3 +22,4 @@ scikit-learn>=1.4      # softmax-regression and kNN baselines, metrics
 lightgbm>=4.3          # gradient-boosted baseline
 unrar-cffi>=0.2        # DroneRF archives, read without extraction
 pytest>=8              # tests
+matplotlib>=3.8        # progress.png during training, evaluation plots

@@ -40,6 +40,10 @@
 #                      (GATEMAN's rawdata.zip). Peak /tmp use is then archive + contents.
 #   MCLS_UNPACKED_GB   extracted size in GB, when the catalog gives no `unpacked_size`
 #                      for the archive (the free-space check below needs one of the two)
+#   MCLS_MAX_WINDOWS_PER_RECORDING  if set, passed to mcls.preprocess as
+#                      --max-windows-per-recording: keeps the first N windows of each recording.
+#                      Needed for NIST Wi-Fi/Bluetooth, whose 180 one-second captures per file
+#                      would otherwise give about 28 GB of windows per file
 #   MCLS_KEEP_FAILED=1 keep raw and scratch of a failed task in /tmp for debugging
 #   MCLS_NODE_TMP      node-local scratch (default /tmp/$USER); only tests change it
 #
@@ -189,7 +193,13 @@ fi
 
 # ---- 2. preprocess ---------------------------------------------------------
 echo "[$(date +%T)] preprocess"
-python -m mcls.preprocess --dataset "$DATASET" --raw "$MCLS_RAW" --out "$WORK"
+PREPROCESS=(python -m mcls.preprocess --dataset "$DATASET" --raw "$MCLS_RAW" --out "$WORK")
+case "${MCLS_MAX_WINDOWS_PER_RECORDING:-}" in
+    '') ;;
+    *[!0-9]*) die "MCLS_MAX_WINDOWS_PER_RECORDING must be a whole number, got '$MCLS_MAX_WINDOWS_PER_RECORDING'" ;;
+    *) PREPROCESS+=(--max-windows-per-recording "$MCLS_MAX_WINDOWS_PER_RECORDING") ;;
+esac
+"${PREPROCESS[@]}"
 
 # ---- 3. copy outputs only, atomically --------------------------------------
 if [ -z "$(ls -A "$WORK")" ]; then
