@@ -59,9 +59,18 @@ type AnalysisState = {
   /** The classification the chat currently answers from, if any. */
   summary: AnalysisSummary | null;
   error: AnalysisError | null;
+  /** The Scan button's sweep is on screen: from the click until the result, and at least SCAN_MIN_MS. */
+  scanning: boolean;
+  /**
+   * Show the result instead of the Scan page. Starts false on every page load, even when the
+   * Laya service still holds an earlier result, and lasts only for this page session.
+   */
+  showResult: boolean;
   run: (knowledge: File[], data: File[]) => Promise<boolean>;
   /** Run a built-in scene (no uploads), for the Scan button. */
   scan: (scene?: string) => Promise<boolean>;
+  /** The "See last result" link: show a result left from an earlier run. */
+  showLastResult: () => void;
   clear: () => Promise<void>;
   refresh: () => Promise<void>;
   /** Read the pipeline once, without scheduling another read. */
@@ -69,6 +78,10 @@ type AnalysisState = {
 };
 
 export const ANALYSIS_POLL_MS = 2000;
+/** One left-to-right pass of the scan animation (components/scan-hero.tsx). */
+export const SCAN_SWEEP_MS = 3200;
+/** The sweep stays on screen at least this long, so a fast result never makes it flash by. */
+export const SCAN_MIN_MS = SCAN_SWEEP_MS + 400;
 
 async function pullAnalysis(set: (partial: Partial<AnalysisState>) => void): Promise<boolean> {
   const res = await fetch("/api/pipeline/context").catch(() => null);
@@ -120,19 +133,37 @@ export const useAnalysis = create<AnalysisState>((set, get) => {
   running: false,
   summary: null,
   error: null,
+  scanning: false,
+  showResult: false,
 
   run: async (knowledge, data) => {
     const upload = async (file: File) => ({ name: file.name, text: await file.text() });
-    return submit("classify", async () => ({
+    const ok = await submit("classify", async () => ({
       knowledge: await Promise.all(knowledge.map(upload)),
       data: await Promise.all(data.map(upload)),
     }));
+    // A Library run was asked for in this session, so its result is shown.
+    if (ok) set({ showResult: true });
+    return ok;
   },
 
-  scan: async (scene = "campus") => submit("scan", async () => ({ scene })),
+  scan: async (scene = "campus") => {
+    if (get().running || get().scanning) return false;
+    const started = Date.now();
+    set({ scanning: true, showResult: false });
+    const ok = await submit("scan", async () => ({ scene }));
+    const left = SCAN_MIN_MS - (Date.now() - started);
+    if (left > 0) await new Promise((resolve) => setTimeout(resolve, left));
+    set({ scanning: false, showResult: ok });
+    return ok;
+  },
+
+  showLastResult: () => {
+    if (get().summary) set({ showResult: true });
+  },
 
   clear: async () => {
-    set({ summary: null, error: null });
+    set({ summary: null, error: null, showResult: false });
     await fetch("/api/pipeline/context", { method: "DELETE" }).catch(() => undefined);
   },
 

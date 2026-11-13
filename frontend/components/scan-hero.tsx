@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type FC } from "react";
 import { RadarIcon } from "lucide-react";
 
-import type { SiteGroup } from "@/hooks/use-analysis";
+import { SCAN_SWEEP_MS, type SiteGroup } from "@/hooks/use-analysis";
 import { translateBadge, useT, type MessageKey } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -25,7 +25,7 @@ type Scene = {
 // The strip covers the band table: 88 MHz to 6 GHz, on a log scale so FM and 5.8 GHz both fit.
 const LOW_HZ = 88e6;
 const HIGH_HZ = 6e9;
-const SWEEP_MS = 3200;
+const SWEEP_MS = SCAN_SWEEP_MS;
 const HEARD_SHOWN = 6;
 const TICKS = [
   { hz: 100e6, label: "100 MHz" },
@@ -115,8 +115,10 @@ function useElapsed(active: boolean) {
 export const ScanHero: FC<{
   scanning: boolean;
   onScan: () => void;
+  /** Set when an earlier result exists; shows a "See last result" link instead of jumping to it. */
+  onShowLast?: () => void;
   error?: string | null;
-}> = ({ scanning, onScan, error }) => {
+}> = ({ scanning, onScan, onShowLast, error }) => {
   const { t, language } = useT();
   const [scene, setScene] = useState<Scene | null>(null);
   const reduced = useReducedMotion();
@@ -284,6 +286,15 @@ export const ScanHero: FC<{
             className="bg-foreground text-background rounded-full px-5 py-2 text-sm font-medium transition-opacity hover:opacity-90 motion-reduce:transition-none"
           >
             {t("scan.start")}
+          </button>
+        )}
+        {!scanning && onShowLast && (
+          <button
+            type="button"
+            onClick={onShowLast}
+            className="text-foreground text-sm underline-offset-2 hover:underline"
+          >
+            {t("scan.seeLast")}
           </button>
         )}
         {scene && (

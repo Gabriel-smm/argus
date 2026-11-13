@@ -42,7 +42,7 @@ This is the [assistant-ui](https://github.com/assistant-ui/assistant-ui) starter
 
 ## Using it
 
-The quickest way in is **Scan the area** on the front page: it plays a built-in scene (`SCENES` in `pipeline/server.py`, today the 17 sample campus signals), sweeps the spectrum while Laya and the site check run, then shows the site report. A badge says it is demo data, not a live radio. To demo a real capture, point the scene's `data` at a file made with `python -m pipeline.ingest`.
+The quickest way in is **Scan the area** on the front page: it plays a built-in scene (`SCENES` in `pipeline/server.py`, today the 17 sample campus signals), sweeps the spectrum while Laya and the site check run, then shows the site report. A badge says it is demo data, not a live radio. The Scan page is always what opens: after a reload it does not jump to an earlier result, but offers a **See last result** link. The sweep stays on screen for at least one full pass (`SCAN_MIN_MS` in `hooks/use-analysis.ts`), even when the result is quicker. To demo a real capture, point the scene's `data` at a file made with `python -m pipeline.ingest`.
 
 During the sweep each dot is colored by the site check (red needs a closer look, amber unknown, green normal), the newest one is named as a likely match ("Looks like Wi-Fi or Bluetooth", "Possible drone", "Something on GPS", "Mystery signal"), and a **Heard so far** list grows underneath. These come from `GET /scene`, which runs the site check up front: it is plain rules, so it needs no GPU. With reduced motion turned on in the system settings, there is no sweep: all the dots and the list appear at once.
 

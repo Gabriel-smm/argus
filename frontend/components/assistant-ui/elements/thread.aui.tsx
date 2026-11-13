@@ -378,14 +378,24 @@ const ThreadWelcome: FC = () => {
   const summary = useAnalysis((s) => s.summary);
   const error = useAnalysis((s) => s.error);
   const scan = useAnalysis((s) => s.scan);
+  const scanning = useAnalysis((s) => s.scanning);
+  const showResult = useAnalysis((s) => s.showResult);
+  const showLastResult = useAnalysis((s) => s.showLastResult);
   const { t, language } = useT();
-  const report = running ? null : summary?.site_report;
+  const sweeping = running || scanning;
+  const report = sweeping ? null : summary?.site_report;
 
-  // No result yet, or a run in progress: the front page with the Scan button and the sweep.
-  if (running || !summary) {
+  // The Scan page is the main page: on every load, while a scan runs, and until a result is
+  // asked for in this page session. A result left from earlier is one click away.
+  if (sweeping || !summary || !showResult) {
     return (
       <div className="aui-thread-welcome-root mb-6 flex flex-col px-2">
-        <ScanHero scanning={running} onScan={() => void scan()} error={error?.message} />
+        <ScanHero
+          scanning={sweeping}
+          onScan={() => void scan()}
+          onShowLast={summary && !sweeping ? showLastResult : undefined}
+          error={error?.message}
+        />
       </div>
     );
   }
@@ -457,7 +467,8 @@ const SUGGESTION_MARK =
   "text-muted-foreground/60 group-hover:text-foreground font-mono text-xs transition-colors motion-reduce:transition-none";
 
 const ThreadSuggestions: FC = () => {
-  const grounded = useAnalysis((s) => s.summary !== null && !s.running);
+  // Only next to a result on screen, not on the Scan page.
+  const grounded = useAnalysis((s) => s.summary !== null && s.showResult && !s.running && !s.scanning);
   // Questions built from this run's site report, when there is one.
   const reportQuestions = useAnalysis((s) => s.summary?.site_report?.questions);
   const language = useLanguage((s) => s.language);
