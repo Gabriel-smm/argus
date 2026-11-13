@@ -143,3 +143,16 @@ def test_excluded_files_are_skipped(tmp_path):
     )
     recs = list(Gateman(root=tmp_path, taxonomy=t).recordings())
     assert [(r.source_file, r.emitter_id) for r in recs] == [("rawdata/GPSL1+AMtone/AMtone@20MSps.bin", "vst")]
+
+
+def test_real_zip_file_names_with_16bit_suffix(tmp_path):
+    # Names inside rawdata.zip (central directory read Nov 12): <scenario>/<signal>@20MSps-16bit.bin
+    raw = interleave(IQ, ">i2")
+    folder = tmp_path / "GPSL1+AMtone"
+    folder.mkdir()
+    (folder / "AMtone@20MSps-16bit.bin").write_bytes(raw)
+    (folder / "GPSL1@20MSps-16bit.bin").write_bytes(raw)
+    assert parse(folder / "AMtone@20MSps-16bit.bin") is not None
+    labelled = list(Gateman(root=tmp_path, taxonomy=load()).recordings())
+    assert [r.source_file for r in labelled] == ["GPSL1+AMtone/AMtone@20MSps-16bit.bin"]
+    assert labelled[0].label == "gnss_jammer"

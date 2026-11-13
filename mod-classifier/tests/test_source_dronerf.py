@@ -153,3 +153,17 @@ def test_check_reports_a_missing_half(tmp_path):
 
 def test_registered():
     assert type(get("dronerf", root=".", taxonomy=taxonomy())) is DroneRF
+
+
+def test_background_session_is_cut_into_time_blocks_with_gaps():
+    from mcls.sources.dronerf import recording_id_for
+
+    def rid(segment, bui="00000"):
+        return recording_id_for({"bui": bui, "segment": segment})
+
+    assert [rid(s) for s in (0, 6)] == ["00000_blk0"] * 2
+    assert rid(7) is None and rid(15) is None and rid(31) is None  # 0.25 s gaps between blocks
+    assert rid(8) == "00000_blk1" and rid(24) == "00000_blk3"
+    assert [rid(s) for s in (32, 39, 40)] == ["00000_blk4"] * 3  # last block keeps its end
+    assert len({rid(s) for s in range(41)} - {None}) == 5
+    assert rid(7, bui="10111") == "10111"  # drone sessions keep one id per flight mode

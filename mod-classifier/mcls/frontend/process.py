@@ -31,6 +31,16 @@ READ_CHUNK = 1 << 21
 #: 20 MS/s samples per detect_bursts call: about 0.21 s, as pipeline/iq.py.
 DETECT_BLOCK = 1 << 22
 BACKGROUND = "background"
+#: Labels of always-on signals. Burst detection treats a signal that fills every
+#: block as the noise floor, so the activity test rejects all its windows (GATEMAN
+#: on CRC, Nov 12: 575,718 of 575,718 rejected per file). Their windows are spread
+#: evenly over each block instead, with no detection.
+CONTINUOUS = frozenset({"gnss_jammer"})
+#: Least active share of a window, per label, where the default (FrontendParams.min_active)
+#: is too strict. Radar pulses last 4-50 us, under 25% of a 205 us window, so the
+#: default rejected nearly every Drexel radar window (CRC, Nov 12). Windows still
+#: come only from detected bursts, so they sit on the pulses.
+MIN_ACTIVE_BY_LABEL = {"pulsed_radar": 0.01}
 
 
 @dataclass
@@ -87,9 +97,12 @@ class WindowEngine:
     the block that holds it whole). Bursts that yield no window keep their number.
     """
 
-    def __init__(self, centre_hz: float, background: bool, params: FrontendParams):
+    def __init__(self, centre_hz: float, background: bool, params: FrontendParams, continuous: bool = False,
+                 min_active: float | None = None):
         self.centre_hz = centre_hz
         self.background = background
+        self.continuous = continuous
+        self.min_active = params.min_active if min_active is None else min_active
         self.params = params
         self.bursts: list[dict] = []
         self.windows = 0
@@ -103,7 +116,7 @@ class WindowEngine:
 
     def _handle(self, block: np.ndarray, final: bool) -> tuple[int, np.ndarray, list]:
         t0 = time.perf_counter()
-        bursts = W.detect(block, self.centre_hz)
+        bursts = [] if self.continuous else W.detect(block, self.centre_hz)
         self.detect_s += time.perf_counter() - t0
         consume = len(block)
         if not final:
@@ -116,11 +129,11 @@ class WindowEngine:
         first = len(self.bursts)
         for i, b in enumerate(bursts):
             b["burst_index"] = first + i
-        if self.background:
+        if self.background or self.continuous:  # continuous: no bursts, so windows spread over the block
             wins = W.idle_windows(block[:consume], bursts, self.params.max_windows_per_burst)
         else:
             wins, rejected = W.burst_windows(block, bursts, self.params.max_windows_per_burst,
-                                             self.params.min_active, floor=W.noise_floor(block))
+                                             self.min_active, floor=W.noise_floor(block))
             self.rejected += rejected
         cap = self.params.max_windows_per_recording
         if cap is not None and self.windows + len(wins) >= cap:
@@ -267,7 +280,8 @@ def process_recording(rec: Recording, out_dir: Path, stem: str | None = None,
     ch = Channelizer(rec.sample_rate_hz, offset)
     centre = rec.center_frequency_hz + ch.offset_hz
     template = base_row(rec, centre)
-    engine = WindowEngine(centre, rec.label == BACKGROUND, params)
+    engine = WindowEngine(centre, rec.label == BACKGROUND, params, continuous=rec.label in CONTINUOUS,
+                          min_active=MIN_ACTIVE_BY_LABEL.get(rec.label))
     writer = ShardWriter(out_dir, stem, params.max_windows_per_shard)
     produced = 0
 

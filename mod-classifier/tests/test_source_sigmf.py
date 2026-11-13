@@ -102,6 +102,16 @@ def test_loraiq_groups_the_four_receivers_of_one_measurement(tmp_path):
     assert recs[0].label == "lora"
 
 
+
+def test_loraiq_groups_lower_case_receiver_folders(tmp_path):
+    # The real zip (central directory read Nov 12) uses sigmfs/25_01_15-10_17/rrh1/10.sigmf-data.
+    raw = interleave(IQ, "<f4")
+    for rrh in ("rrh1", "rrh2"):
+        write_sigmf(tmp_path / "sigmfs" / "25_01_15-10_17" / rrh, "10", "cf32_le", raw, captures=[{"core:sample_start": 0}])
+    write_sigmf(tmp_path / "sigmfs" / "25_09_18-14_15" / "rrh1", "10", "cf32_le", raw, captures=[{"core:sample_start": 0}])
+    ids = [r.recording_id for r in LoRaIQ(root=tmp_path, taxonomy=taxonomy()).recordings()]
+    assert ids[0] == ids[1] != ids[2]
+
 def test_occupancy_needs_a_frequency(tmp_path):
     write_sigmf(tmp_path / "Home" / "iq", "ISM_2400_t01_wifi0_20260822T004844_s0000", "ci16_le", interleave(IQ, "<i2"), captures=[{"core:sample_start": 0}])
     with pytest.raises(ValueError, match="core:frequency"):
@@ -140,3 +150,14 @@ def test_excluded_files_are_skipped(tmp_path):
              "overrides": [{"match": "drop", "exclude": True, "note": "test"}]}
     t = Taxonomy({"classes": {"v1": ["lora"]}, "datasets": {"loraiq": entry}})
     assert [r.source_file for r in LoRaIQ(root=tmp_path, taxonomy=t).recordings()] == ["keep.sigmf-meta#0"]
+
+
+def test_loraiq_keeps_every_nth_frame_and_reads_mhz(tmp_path, monkeypatch):
+    raw = interleave(IQ, "<f4")
+    folder = tmp_path / "sigmfs" / "25_01_15-10_17" / "rrh1"
+    for i in range(1, 11):
+        write_sigmf(folder, str(i), "cf32_le", raw, captures=[{"core:sample_start": 0, "core:frequency": 862.5}])
+    monkeypatch.setenv("MCLS_LORAIQ_STRIDE", "4")
+    recs = list(LoRaIQ(root=tmp_path, taxonomy=taxonomy()).recordings())
+    assert [r.source_file.split("/")[-1] for r in recs] == ["1.sigmf-meta#0", "5.sigmf-meta#0", "9.sigmf-meta#0"]
+    assert recs[0].center_frequency_hz == 862.5e6  # the files state MHz

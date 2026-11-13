@@ -14,9 +14,9 @@ with open(DEFAULT_PATH, "rb") as handle:
 #: Names fixed by loaders, plus the ones engineer 1 chose.
 DATASETS = (
     "tampere", "dronerf", "nist_wifi_bt", "occupancy", "dronedetect", "fgi_jammer",
-    "gateman", "triangular_l1", "loraiq", "drexel_radar", "adsb", "nist_radar", "rtl_433",
+    "gateman", "triangular_l1", "loraiq", "drexel_cbrs_radar", "adsb", "nist_radar", "rtl_433",
 )
-SIMULATED = {"drexel_radar", "nist_radar"}
+SIMULATED = {"drexel_cbrs_radar", "nist_radar"}
 
 
 def test_every_dataset_is_present():
@@ -127,4 +127,5 @@ def test_other_defaults():
     assert TAX.label_for("nist_wifi_bt", "5ghz_outdoor.h5").label == "wifi"
     assert TAX.label_for("dronedetect", "MIN_1100_00.dat").emitter_id == "DJI_mavic_mini"
     assert TAX.label_for("dronedetect", "XYZ_0000_00.dat").excluded
-    assert TAX.label_for("rtl_433", "g001_433.92M_250k.cu8").excluded
+    # Included by Odon's decision on Nov 12, though the repository states no licence.
+    assert TAX.label_for("rtl_433", "tests/6sc2/01/g001_433.92M_250k.cu8").label == "other_ism"

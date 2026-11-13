@@ -2,7 +2,7 @@
 
     python -m mcls.dataset.build_manifest --shards DIR [--shards DIR ...] \
         --out data/manifest.jsonl --seed S [--cross-test DATASET ...] [--cap-per-class N] \
-        [--holdout-emitter ID ...] [--holdout-split generalization] [--classes v1|v2|all]
+        [--holdout-emitter ID ...] [--holdout-split generalization] [--classes v1|v2|<subset>|all]
 
 Collects rows, keeps only labels in the class set (default v1) and reports
 the dropped ones, caps each class per dataset (PLAN 3.6), holds out whole
@@ -37,15 +37,20 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         help="split that held-out emitters go to (default generalization)")
     parser.add_argument("--holdout-match", choices=("emitter", "recording"), default="emitter",
                         help="match emitter_id exactly, or a substring of recording_id")
-    parser.add_argument("--classes", choices=("v1", "v2", "all"), default="v1",
-                        help="keep only labels in this class set from configs/taxonomy.toml (all = keep every label)")
+    parser.add_argument("--classes", default="v1",
+                        help="keep only labels in this class set from configs/taxonomy.toml: v1, v2, a named "
+                             "subset such as v2a, or all (keep every label)")
     parser.add_argument("--no-hash-audit", action="store_true", help="skip hashing window samples")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    classes = None if args.classes == "all" else taxonomy.load().classes(args.classes)
+    try:
+        classes = None if args.classes == "all" else taxonomy.load().classes(args.classes)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
     try:
         rows, report = build_with_report(args.shards, args.seed, args.cross_test, args.cap_per_class,
                                          args.holdout_emitter, args.holdout_split, args.holdout_match, classes)

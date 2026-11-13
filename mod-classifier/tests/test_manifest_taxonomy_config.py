@@ -105,3 +105,19 @@ def test_config_errors_are_specific():
         change(broken)
         with pytest.raises(ValueError, match=message):
             config.validate(broken)
+
+
+def test_named_class_subset_v2a():
+    tax = taxonomy.load()
+    assert tax.classes("v2a") == ("drone_link", "wifi", "bluetooth", "background", "gnss_jammer", "lora")
+    assert "v2a" in tax.class_set_names
+    with pytest.raises(ValueError, match="known: v1, v2"):
+        tax.classes("v9")
+    good = config.load(CONFIGS / "cnn2d.toml")
+    good["data"]["classes"] = "v2a"
+    config.validate(good)
+
+
+def test_class_subset_must_use_known_classes():
+    with pytest.raises(ValueError, match="must list distinct v1/v2 classes"):
+        taxonomy.Taxonomy({"classes": {"v1": ["a"], "v2": ["b"], "mix": ["a", "c"]}, "datasets": {}})

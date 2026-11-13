@@ -17,7 +17,7 @@ Every row comes from the source page named in it, opened on Nov 11-12, 2026. Lab
 | `gateman` | GATEMAN project: GNSS and jammer raw data | CC BY 4.0 | Yes | Real (lab generators recorded by a USRP) | https://zenodo.org/records/2654322, API https://zenodo.org/api/records/2654322 |
 | `triangular_l1` | GNSS L1 jammed signal, 10 MHz, triangular (part 1) | CC BY 4.0 | Yes | Real | https://zenodo.org/records/14859381, API https://zenodo.org/api/records/14859381 |
 | `loraiq` | LoRaIQ: experimental LoRa dataset with annotated IQ samples (EPFL) | CC BY 4.0 | Yes | Real | https://zenodo.org/records/17708397, API https://zenodo.org/api/records/17708397 |
-| `drexel_radar` | CBRS band experimental waveform dataset for testing radar detection models (Drexel) | CC BY 4.0 | Yes | **Simulated waveforms** sent through a real USRP over cable (`is_real = false`) | https://zenodo.org/records/4521678, API https://zenodo.org/api/records/4521678 |
+| `drexel_cbrs_radar` | CBRS band experimental waveform dataset for testing radar detection models (Drexel) | CC BY 4.0 | Yes | **Simulated waveforms** sent through a real USRP over cable (`is_real = false`) | https://zenodo.org/records/4521678, API https://zenodo.org/api/records/4521678 |
 | `adsb` | 24-hour signal recording dataset with labels (ADS-B, IEEE DataPort) | "Creative Commons Attribution" (**version not stated**) | Yes | Real | https://ieee-dataport.org/open-access/24-hour-signal-recording-dataset-labels-cybersecurity-and-iot |
 | `nist_radar` | RF dataset of incumbent radar systems in the 3.5 GHz CBRS band (NIST, mds2-2116) | NIST open licence (https://www.nist.gov/open/license). NIST employees' works "are not subject to copyright protection in the United States" but "may be subject to foreign copyright" | Yes (acknowledge NIST) | **Simulated** ("synthetically generated radar waveforms with added white Gaussian noise") | https://data.nist.gov/od/id/mds2-2116 (record via https://data.nist.gov/rmm/records?@id=ark:/88434/mds2-2116); terms https://www.nist.gov/open/license |
 
@@ -40,4 +40,4 @@ Every row comes from the source page named in it, opened on Nov 11-12, 2026. Lab
 ## Notes
 
 - "Version not stated" rows (`occupancy`, `dronedetect`, `adsb`, CardRF): IEEE DataPort shows only "Creative Commons Attribution". Before publishing a model trained on them, confirm the version with the dataset authors or in the files' own licence text.
-- `is_real = false` rows (`drexel_radar`, `nist_radar`) may appear in training only. Every report prints metrics with and without them (PLAN 3.4).
+- `is_real = false` rows (`drexel_cbrs_radar`, `nist_radar`) may appear in training only. Every report prints metrics with and without them (PLAN 3.4).

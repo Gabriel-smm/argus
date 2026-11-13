@@ -109,8 +109,15 @@ def _span(burst: dict, sample_rate_hz: float, total: int) -> tuple[int, int]:
 
 
 def burst_windows(iq: np.ndarray, sample_rate_hz: float, center_frequency_hz: float, burst: dict,
-                  max_windows: int = MAX_WINDOWS) -> np.ndarray:
-    """(n, 4096) unit-RMS windows of one requested burst, cut by Engineer 4's `windows_from_iq`."""
+                  max_windows: int = MAX_WINDOWS, min_active: float | None = None) -> np.ndarray:
+    """(n, 4096) unit-RMS windows of one requested burst, cut by Engineer 4's `windows_from_iq`.
+
+    `min_active` overrides the front end's activity test (FrontendParams.min_active).
+    0.0 keeps every window inside the burst: the retry for an always-on signal (a
+    jammer), whose windows the test rejects because the whole block looks like the
+    noise floor. Training cut such signals evenly for the same reason (CONTINUOUS
+    in mcls.frontend.process), but at inference the class is not known in advance.
+    """
     from mcls.frontend.process import FrontendParams, windows_from_iq  # Engineer 4
 
     total = len(iq)
@@ -122,7 +129,8 @@ def burst_windows(iq: np.ndarray, sample_rate_hz: float, center_frequency_hz: fl
     burst_hz = float(burst.get("center_frequency_hz", center_frequency_hz))
     result = windows_from_iq(iq[ctx_lo:ctx_hi], sample_rate_hz, center_frequency_hz,
                              offset_hz=burst_hz - center_frequency_hz,
-                             params=FrontendParams(max_windows_per_burst=max_windows))
+                             params=(FrontendParams(max_windows_per_burst=max_windows) if min_active is None
+                                     else FrontendParams(max_windows_per_burst=max_windows, min_active=min_active)))
     a, b = lo - ctx_lo, hi - ctx_lo
     hits = {d["burst_index"] for d in result.bursts if min(d["native_end"], b) > max(d["native_start"], a)}
     keep = [i for i, k in enumerate(result.window_burst) if k in hits]

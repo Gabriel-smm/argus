@@ -98,20 +98,27 @@ def assign_splits_stratified(
     recordings and the seed, not on row order. A smaller group falls back to
     `split_of` per recording and adds a warning naming it. Datasets in
     `cross_test_datasets` go whole to `cross_test`. Rows already in a split
-    named in `skip_splits` (held-out emitters) are left alone.
+    named in `skip_splits` (held-out emitters) are left alone. Recordings with
+    `is_real = false` (simulated) always go to `train`: real data only in val
+    and test (PLAN 3.4).
     """
     held_out = set(cross_test_datasets)
     skip = set(skip_splits)
     labels_of: dict[tuple[str, str], set[str]] = defaultdict(set)
+    simulated: set[tuple[str, str]] = set()
     for row in rows:
         if row.split in skip:
             continue
         labels_of[(row.dataset, row.recording_id)].add(row.label)
+        if not row.is_real:
+            simulated.add((row.dataset, row.recording_id))
     groups: dict[tuple[str, tuple[str, ...]], list[str]] = defaultdict(list)
     split_by_recording: dict[tuple[str, str], str] = {}
     for (dataset, recording_id), labels in labels_of.items():
         if dataset in held_out:
             split_by_recording[(dataset, recording_id)] = "cross_test"
+        elif (dataset, recording_id) in simulated:
+            split_by_recording[(dataset, recording_id)] = "train"
         else:
             groups[(dataset, tuple(sorted(labels)))].append(recording_id)
     warnings: list[str] = []

@@ -50,3 +50,41 @@ def test_front_end_rows_build_into_a_manifest(tmp_path):
     assert target.read_bytes() == first
     reread = manifest.read(target, CLASSES)
     assert np.array_equal(WindowStore(target.parent).windows(reread), store.windows(sorted(rows, key=lambda r: r.window_id)))
+
+
+def test_always_on_jammer_gets_windows_where_burst_logic_gives_none(tmp_path):
+    # A constant-power tone over the whole recording, as GATEMAN's jammer files are.
+    rate, total = 20e6, 8_400_000
+    t = np.arange(total)
+    tone = (np.exp(2j * np.pi * 1e6 / rate * t) + 0.01 * np.random.default_rng(0).standard_normal(total)).astype(np.complex64)
+
+    def rec(label):
+        return Recording(
+            dataset="fake", recording_id=f"jam_{label}", source_file=f"jam_{label}.bin", sample_rate_hz=rate,
+            center_frequency_hz=1.57542e9, num_samples=total, label=label, label_strength="weak", is_real=True,
+            license="CC BY 4.0", read=lambda s, c: tone[s:s + c].copy(),
+        )
+
+    jammer = process_recording(rec("gnss_jammer"), tmp_path / "a", None, FrontendParams(max_windows_per_burst=8))
+    assert jammer["windows"] > 0
+    as_burst = process_recording(rec("lora"), tmp_path / "b", None, FrontendParams(max_windows_per_burst=8))
+    assert as_burst["windows"] == 0  # the burst path rejects an always-on signal: why CONTINUOUS exists
+
+
+def test_short_radar_pulses_get_windows(tmp_path):
+    # 10 us pulses every 300 us in noise: a few percent of each 205 us window is active.
+    rate, total = 10e6, 800_000
+    rng = np.random.default_rng(1)
+    x = (0.01 * (rng.standard_normal(total) + 1j * rng.standard_normal(total))).astype(np.complex64)
+    for start in range(1000, total - 200, 3000):
+        x[start:start + 100] += np.exp(2j * np.pi * 0.1 * np.arange(100)).astype(np.complex64)
+
+    def rec(label):
+        return Recording(
+            dataset="fake", recording_id=f"radar_{label}", source_file=f"radar_{label}.bin", sample_rate_hz=rate,
+            center_frequency_hz=3.6e9, num_samples=total, label=label, label_strength="weak", is_real=False,
+            license="CC BY 4.0", read=lambda s, c: x[s:s + c].copy(),
+        )
+
+    radar = process_recording(rec("pulsed_radar"), tmp_path / "a", None, FrontendParams(max_windows_per_burst=8))
+    assert radar["windows"] > 0

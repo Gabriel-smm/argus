@@ -267,3 +267,14 @@ def test_cli_fails_on_identical_windows_across_splits(tmp_path, capsys):
     code = build_manifest.main(["--shards", str(tmp_path / "s"), "--out", str(tmp_path / "m.jsonl"), "--seed", str(seed)])
     assert code == 1
     assert "identical windows" in capsys.readouterr().err
+
+
+def test_stratified_puts_simulated_recordings_in_train_only(tmp_path):
+    make_fake_shards(tmp_path, recordings_per_class=10, windows_per_recording=2)
+    rows = collect_rows([tmp_path])
+    fake = {r.recording_id for r in rows[: len(rows) // 2]}
+    for row in rows:
+        row.is_real = row.recording_id not in fake
+    manifest.assign_splits_stratified(rows, 3)
+    assert {r.split for r in rows if not r.is_real} == {"train"}
+    assert {"val", "test"} <= {r.split for r in rows if r.is_real}

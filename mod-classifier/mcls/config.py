@@ -99,8 +99,11 @@ def _check_choices(config: dict, name: str) -> None:
     model = config["model"]["name"]
     if model not in MODELS:
         raise ValueError(f"{name}: model.name must be one of {MODELS}")
-    if config["data"]["classes"] not in ("v1", "v2"):
-        raise ValueError(f"{name}: data.classes must be v1 or v2")
+    from mcls import taxonomy  # here, not at the top: taxonomy is only needed for this check
+
+    known = taxonomy.load().class_set_names
+    if config["data"]["classes"] not in known:
+        raise ValueError(f"{name}: data.classes must be one of {', '.join(known)}")
     device = config["run"].get("device", "auto")
     if device not in DEVICES:
         raise ValueError(f"{name}: run.device must be one of {DEVICES}")

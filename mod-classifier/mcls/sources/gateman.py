@@ -16,7 +16,9 @@ from a dataset file (nothing has been downloaded):
   I\\Q rate of 20 MS/s."
 
 The loader reads the EXTRACTED layout: it searches below `root` for
-`<scenario>/<signal>@20MSps.bin` with rglob, so a top folder inside the zip
+`<scenario>/<signal>@20MSps-16bit.bin` (the names inside the real zip, read Nov 12;
+the shorter `<signal>@20MSps.bin` of the record page is accepted too) with rglob,
+so a top folder inside the zip
 (e.g. `rawdata/`) does not matter. It does not read the zip itself.
 
 INFERRED, not stated by the record:
@@ -54,7 +56,7 @@ JAMMERS = ("AMtone", "Chirp10MHz", "Chirp20MHz")
 SCENARIOS = tuple(f"{g}+{j}" for g in ("GALE1", "GPSL1", "GPSL5") for j in JAMMERS)
 
 SCENARIO = re.compile(r"^(?P<gnss>GALE1|GPSL1|GPSL5)\+(?P<jammer>AMtone|Chirp10MHz|Chirp20MHz)$")
-FILE = re.compile(r"^(?P<signal>GALE1|GPSL1|GPSL5|AMtone|Chirp10MHz|Chirp20MHz)@20MSps\.bin$")
+FILE = re.compile(r"^(?P<signal>GALE1|GPSL1|GPSL5|AMtone|Chirp10MHz|Chirp20MHz)@20MSps(?:-16bit)?\.bin$")
 CENTRE_NOTE = "inferred from the GNSS band in the scenario folder name; the dataset does not state a centre frequency"
 
 
@@ -80,7 +82,7 @@ class Gateman(Source):
     name = "gateman"
 
     def files(self) -> list[Path]:
-        return sorted(p for p in self.root.rglob("*@20MSps.bin") if parse(p))
+        return sorted(p for p in self.root.rglob("*@20MSps*.bin") if parse(p))
 
     def recordings(self) -> Iterator[Recording]:
         info = self.taxonomy.dataset(self.name)

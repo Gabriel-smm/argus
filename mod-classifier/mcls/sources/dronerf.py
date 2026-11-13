@@ -30,6 +30,14 @@ segments are 10.25 s and the Bebop's 84 segments over 4 modes are 21 x 0.25 s
 one session, and splitting them would leak (PLAN 3.5). The L and H files of one
 segment are the two receivers at the same moment and share the id too.
 
+Exception, the no-drone session (`00000`, 41 segments, 10.25 s): it is the only
+real background data, and one id would put all of it in one split, so background
+could never be validated or tested. It is cut into time blocks of
+`BACKGROUND_BLOCK` consecutive segments (`00000_blk0` ... `00000_blk4`), and the
+last segment of each block but the final one is dropped as a 0.25 s gap, so no
+two blocks touch in time. Adjacent blocks still come from the same session and
+room, so a background score measures new moments of one lab, not a new place.
+
 Labels and emitter ids come from the taxonomy (the drones' links are Wi-Fi);
 files the taxonomy excludes, including names with an unknown BUI, are skipped.
 The parsed drone name is only the fallback emitter id.
@@ -117,6 +125,22 @@ def open_rar(path: Path):
     return rarfile.RarFile(str(path))
 
 
+
+#: No-drone segments per background block; see the module docstring.
+BACKGROUND_BUI = "00000"
+BACKGROUND_BLOCK = 8
+BACKGROUND_BLOCKS = 5  # segments 32-40 form the last block (no gap after it)
+
+
+def recording_id_for(parsed: dict) -> str | None:
+    """The split key of one file: the BUI, or a time block of the no-drone session; None for a gap segment."""
+    if parsed["bui"] != BACKGROUND_BUI:
+        return parsed["bui"]
+    block = min(parsed["segment"] // BACKGROUND_BLOCK, BACKGROUND_BLOCKS - 1)
+    is_gap = parsed["segment"] % BACKGROUND_BLOCK == BACKGROUND_BLOCK - 1 and block < BACKGROUND_BLOCKS - 1
+    return None if is_gap else f"{BACKGROUND_BUI}_blk{block}"
+
+
 @register
 class DroneRF(Source):
     name = "dronerf"
@@ -173,9 +197,12 @@ class DroneRF(Source):
             if label.excluded:
                 continue
             key = f"{path.name}/{member}" if member else path.name
+            recording_id = recording_id_for(parsed)
+            if recording_id is None:  # a gap segment between background blocks
+                continue
             recording = Recording(
                 dataset=self.name,
-                recording_id=parsed["bui"],
+                recording_id=recording_id,
                 source_file=key,
                 sample_rate_hz=REAL_RATE_HZ / 2,
                 center_frequency_hz=BAND_START_HZ[parsed["band"]] + REAL_RATE_HZ / 4,

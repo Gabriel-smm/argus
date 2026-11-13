@@ -13,6 +13,18 @@
 [classes]
 v1 = ["drone_link", "wifi", "bluetooth", "background"]
 v2 = ["pulsed_radar", "gnss_jammer", "adsb", "lora", "other_ism"]
+# Named subsets (each a full class list, drawn from v1 + v2). A config's
+# data.classes and build_manifest --classes accept these names too.
+# v2a: v1 plus the v2 classes whose data can be loaded today (Nov 12): GATEMAN and
+# the triangular set for gnss_jammer, LoRaIQ for lora. pulsed_radar, adsb and
+# other_ism wait for their loaders.
+v2a = ["drone_link", "wifi", "bluetooth", "background", "gnss_jammer", "lora"]
+# v2b: v2a plus pulsed_radar (Drexel CBRS through a USRP; simulated waveforms, so
+# trained on but never in a reported test). adsb and other_ism still need data.
+v2b = ["drone_link", "wifi", "bluetooth", "background", "gnss_jammer", "lora", "pulsed_radar"]
+# v2c: v2b plus other_ism (rtl_433_tests; no licence stated, used by Odon's decision).
+# Every v2 class but adsb, which waits for an IEEE DataPort login.
+v2c = ["drone_link", "wifi", "bluetooth", "background", "gnss_jammer", "lora", "pulsed_radar", "other_ism"]
 
 # Each dataset: its licence, whether it is real, its default label, and file
 # overrides. `match` is a substring of the file name (or of the path a loader
@@ -451,18 +463,18 @@ default_strength = "weak"
 # The file layout inside Group6_data.tar is not opened: the "noise" match is a
 # guess that the engineer writing the loader must confirm.
 # ---------------------------------------------------------------------------
-[datasets.drexel_radar]
+[datasets.drexel_cbrs_radar]
 license = "CC BY 4.0"
 is_real = false
 url = "https://zenodo.org/records/4521678"
 default_label = "pulsed_radar"
 default_strength = "weak"
 
-[[datasets.drexel_radar.overrides]]
+[[datasets.drexel_cbrs_radar.overrides]]
 match = "noise"
 label = "background"
 strength = "weak"
-note = "simulated noise through the USRP; file naming not confirmed"
+note = "noise-only waveform (radarStatus 0) through the USRP; the loader looks each waveform up as <file>#noise or <file>#radar"
 
 # ---------------------------------------------------------------------------
 # ADS-B 24-hour recording, USRP B210 at 8 MHz, 1090 MHz, 130+ aircraft.
@@ -495,8 +507,11 @@ default_strength = "weak"
 # https://github.com/merbanan/rtl_433_tests
 # ---------------------------------------------------------------------------
 [datasets.rtl_433]
-license = "none stated (unconfirmed)"
+license = "none stated (used by decision of Odon, Nov 12 2026; not cleared for redistribution)"
 is_real = true
 url = "https://github.com/merbanan/rtl_433_tests"
-default_exclude = true
-note = "no licence stated in the repository; would be other_ism"
+default_label = "other_ism"
+default_strength = "weak"
+# The repository states no licence (GitHub API, Nov 12). It was excluded until
+# Odon decided on Nov 12 to train on it; models trained with it carry that
+# licence string per window. Check with the team before sharing such a model.

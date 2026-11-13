@@ -106,6 +106,10 @@ class SigMFSource(Source):
     def meta_files(self) -> list[Path]:
         return sorted(self.root.glob(self.pattern))
 
+    def frequency_hz(self, value: float) -> float:
+        """A capture's core:frequency in Hz. SigMF says Hz; a subclass may correct a dataset that is not."""
+        return float(value)
+
     def group_id(self, meta_path: Path) -> str:
         """The split key of a file: its path below root, without the suffix."""
         return meta_path.relative_to(self.root).as_posix()[: -len(".sigmf-meta")].replace("/", "_")
@@ -125,7 +129,7 @@ class SigMFSource(Source):
             for seg in segments(meta, data.stat().st_size):
                 if seg["num_samples"] <= 0:
                     continue
-                frequency = seg["frequency"] if seg["frequency"] is not None else self.default_frequency_hz
+                frequency = self.frequency_hz(seg["frequency"]) if seg["frequency"] is not None else self.default_frequency_hz
                 if frequency is None:
                     raise ValueError(f"{relative}: capture {seg['index']} has no core:frequency and no default is set")
                 lo, hi = seg["sample_start"], seg["sample_start"] + seg["num_samples"]
@@ -195,6 +199,8 @@ class LoRaIQ(SigMFSource):
     """LoRaIQ (EPFL), https://zenodo.org/records/17708397 (CC BY 4.0).
 
     Layout from the record page (not a file): `sigmfs/<measurement date-time>/RRH1..RRH4/<n>.sigmf-{data,meta}`
+    (the zip itself, read Nov 12, names the receiver folders in lower case, `rrh1`..`rrh4`;
+    either case is accepted)
     plus `dataset.csv` describing every frame (sigmf_file, sigmf_file_offset, ...).
     The four RRHs receive the same frames at the same time, so every file of one
     measurement folder shares a recording_id. Datatype and centre come from each
@@ -203,10 +209,38 @@ class LoRaIQ(SigMFSource):
 
     name = "loraiq"
     default_frequency_hz = 862.5e6
+    #: Keep every N-th frame file of each receiver folder (MCLS_LORAIQ_STRIDE overrides).
+    #: Measured on CRC, Nov 12: a frame file (about 64 ms at 250 kS/s, cf32) gives 64
+    #: windows and takes about 0.65 s to prepare, so all ~71,600 would be about 4.6
+    #: million windows (~147 GB) and 13 hours. Every 50th keeps ~1,430 frames from
+    #: every session and receiver (~92,000 windows, ~3 GB), more than the class cap.
+    frame_stride = 50
+
+    def meta_files(self) -> list[Path]:
+        import os
+
+        stride = int(os.environ.get("MCLS_LORAIQ_STRIDE", self.frame_stride))
+        if stride < 1:
+            raise ValueError(f"MCLS_LORAIQ_STRIDE must be 1 or more, got {stride}")
+        by_folder: dict[Path, list[Path]] = {}
+        for path in super().meta_files():
+            by_folder.setdefault(path.parent, []).append(path)
+        number = lambda p: (int(p.name.split(".")[0]) if p.name.split(".")[0].isdigit() else 0, p.name)  # noqa: E731
+        kept = []
+        for folder in sorted(by_folder):
+            files = sorted(by_folder[folder], key=number)
+            # Only the receiver folders (rrh1..rrh4) of the real layout are thinned.
+            kept += files[::stride] if re.fullmatch(r"rrh\d+", folder.name, re.IGNORECASE) else files
+        return kept
+
+    def frequency_hz(self, value: float) -> float:
+        # The real meta files (read Nov 12) give core:frequency = 862.5: MHz, not the Hz SigMF requires.
+        value = float(value)
+        return value * 1e6 if value < 1e5 else value
 
     def group_id(self, meta_path: Path) -> str:
         parts = meta_path.relative_to(self.root).parts
-        rrh = next((i for i, p in enumerate(parts) if re.fullmatch(r"RRH\d+", p)), None)
+        rrh = next((i for i, p in enumerate(parts) if re.fullmatch(r"rrh\d+", p, re.IGNORECASE)), None)
         if rrh is None or rrh == 0:
             return super().group_id(meta_path)
         return "_".join(parts[:rrh])

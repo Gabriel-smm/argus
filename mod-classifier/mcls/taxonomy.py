@@ -56,6 +56,16 @@ class Taxonomy:
             raise ValueError(f"taxonomy: classes in both v1 and v2: {sorted(overlap)}")
         if EXCLUDED in self.all_classes:
             raise ValueError(f"taxonomy: {EXCLUDED!r} is reserved and cannot be a class")
+        # Named subsets: every other key of [classes], a full class list drawn from v1 + v2.
+        self.subsets: dict[str, tuple[str, ...]] = {}
+        for key, value in classes.items():
+            if key in ("v1", "v2"):
+                continue
+            subset = tuple(value)
+            unknown = [c for c in subset if c not in self.all_classes]
+            if not subset or unknown or len(set(subset)) != len(subset):
+                raise ValueError(f"taxonomy: [classes] {key} must list distinct v1/v2 classes; unknown: {unknown}")
+            self.subsets[key] = subset
         self._datasets = data.get("datasets", {})
         for name in self._datasets:
             self._check_dataset(name)
@@ -68,13 +78,19 @@ class Taxonomy:
     def dataset_names(self) -> tuple[str, ...]:
         return tuple(self._datasets)
 
+    @property
+    def class_set_names(self) -> tuple[str, ...]:
+        return ("v1", "v2", *self.subsets)
+
     def classes(self, version: str = "v1") -> tuple[str, ...]:
-        """The class list a model trains on: "v1", or "v2" for v1 plus v2."""
+        """The class list a model trains on: "v1", "v2" for v1 plus v2, or a named subset."""
         if version == "v1":
             return self.v1
         if version == "v2":
             return self.all_classes
-        raise ValueError(f"unknown class version {version!r}")
+        if version in self.subsets:
+            return self.subsets[version]
+        raise ValueError(f"unknown class version {version!r} (known: {', '.join(self.class_set_names)})")
 
     def dataset(self, name: str) -> DatasetInfo:
         entry = self._entry(name)
