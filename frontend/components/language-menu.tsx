@@ -99,6 +99,9 @@ export const LanguageSync: FC = () => {
   const language = useLanguage((s) => s.language);
   const restore = useLanguage((s) => s.restore);
   const sent = useAuiState((s) => s.composer.runConfig?.custom?.language);
+  // Before the first thread exists, assistant-ui shows a placeholder that refuses every
+  // action and reports itself as loading. Wait for the real thread.
+  const loading = useAuiState((s) => s.thread.isLoading);
 
   useEffect(() => restore(), [restore]);
 
@@ -107,8 +110,13 @@ export const LanguageSync: FC = () => {
   }, [language]);
 
   useEffect(() => {
-    if (sent !== language) aui.composer().setRunConfig({ custom: { language } });
-  }, [aui, sent, language]);
+    if (loading || sent === language) return;
+    try {
+      aui.composer().setRunConfig({ custom: { language } });
+    } catch {
+      // Thread not ready yet; this runs again when it is.
+    }
+  }, [aui, loading, sent, language]);
 
   return null;
 };
