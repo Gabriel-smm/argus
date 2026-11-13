@@ -344,3 +344,70 @@ def test_scene_still_plays_when_the_site_check_cannot_load(client, monkeypatch):
     assert res.status_code == 200
     signals = res.json()["signals"]
     assert signals and all("triage" not in signal for signal in signals)
+
+
+def fake_run_with_site_check(questions, observations):
+    # Laya is faked; the site check is the real one, since it decides the verdict.
+    return [
+        {**row, "lookup": result}
+        for row, result in zip(fake_run(questions, observations), lookup.check_all(observations))
+    ]
+
+
+@pytest.fixture
+def scene_client(client, monkeypatch):
+    monkeypatch.setattr(analysis, "run", fake_run_with_site_check)
+    return client
+
+
+ANDREW = "Demo: illustrative scenario by Andrew, not a real capture"
+
+
+def test_normal_day_is_normal_activity(scene_client):
+    summary = scene_client.post("/scan", json={"scene": "normal"}).json()["summary"]
+    report = summary["site_report"]
+    assert (report["verdict"], report["headline"]) == ("normal", "Normal activity")
+    assert report["counts"] == {"needs_review": 0, "unknown": 0, "expected": 2}
+    assert "jamming" not in report
+    assert summary["scene"] == {"name": "normal", "title": "Notre Dame campus", "badge": ANDREW}
+
+
+def test_drone_nearby_has_one_signal_needing_a_closer_look(scene_client):
+    report = scene_client.post("/scan", json={"scene": "drone"}).json()["summary"]["site_report"]
+    assert (report["verdict"], report["headline"]) == ("review", "1 signal needs a closer look")
+    assert report["counts"]["needs_review"] == 1
+    flagged = [item for item in report["signals"] if item["group"] == "needs_review"]
+    assert [(item["id"], item["kind"]) for item in flagged] == [("d3", "Drones")]
+
+
+def test_jamming_is_possible_jamming_with_andrews_reason_and_a_tile(scene_client):
+    report = scene_client.post("/scan", json={"scene": "jamming"}).json()["summary"]["site_report"]
+    reason = "Noise floor rose 18 dB over this site's baseline and the usual sensor traffic disappeared."
+    assert (report["verdict"], report["headline"], report["explain"]) == ("review", "Possible jamming", reason)
+    assert report["kinds"][0] == {"kind": "Jamming", "count": 1, "worst": "needs_review"}
+    entry = report["signals"][0]
+    assert (entry["id"], entry["group"], entry["title"], entry["kind"]) == (
+        "jamming",
+        "needs_review",
+        "Possible jamming",
+        "Jamming",
+    )
+    assert "18 dB" in entry["reason"] and "ism_iot sensor bursts near 915 MHz" in entry["reason"]
+    assert report["jamming"]["noise_rise_db"] == 18.0
+    assert report["jamming"]["expected_missing"] == ["ism_iot sensor bursts near 915 MHz"]
+    # Jamming is the band as a whole: the per-signal counts still add up to the signals.
+    assert sum(report["counts"].values()) == report["total"] == 1
+
+
+def test_jamming_reaches_the_chat_and_survives_a_reclassify(scene_client):
+    scene_client.post("/scan", json={"scene": "jamming"})
+    assert "possible jamming" in scene_client.get("/context").json()["context"]
+    again = scene_client.post("/reclassify", json={"count": 1}).json()["summary"]["site_report"]
+    assert again["headline"] == "Possible jamming"
+
+
+def test_each_andrew_scene_plays_on_the_scan_page(client):
+    for name, count in (("normal", 2), ("drone", 4), ("jamming", 1)):
+        scene = client.get("/scene", params={"name": name}).json()
+        assert scene["badge"] == ANDREW
+        assert len(scene["signals"]) == count

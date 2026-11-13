@@ -1,5 +1,6 @@
 """HTTP service the dashboard uses to run Laya and read back what it found."""
 
+import json
 import threading
 import time
 from pathlib import Path
@@ -40,12 +41,34 @@ class ScanRequest(BaseModel):
 # Built-in scenes for the Scan button: files shipped in data/, so a demo needs no uploads.
 # The badge says plainly what is being shown; it is not a live radio.
 ROOT = Path(__file__).resolve().parent.parent
+ANDREW_BADGE = "Demo: illustrative scenario by Andrew, not a real capture"
 SCENES = {
     "campus": {
         "title": "Notre Dame campus",
         "badge": "Demo mode: sample campus signals, not a live radio",
         "knowledge": ROOT / "data" / "data-full.json",
         "data": ROOT / "data" / "observations-site-demo.jsonl",
+    },
+    # Andrew's scenarios (data/contract/), converted by context_sources/scenarios.py.
+    "normal": {
+        "title": "Notre Dame campus",
+        "badge": ANDREW_BADGE,
+        "knowledge": ROOT / "data" / "data-full.json",
+        "data": ROOT / "data" / "scenes" / "normal.jsonl",
+    },
+    "drone": {
+        "title": "Notre Dame campus",
+        "badge": ANDREW_BADGE,
+        "knowledge": ROOT / "data" / "data-full.json",
+        "data": ROOT / "data" / "scenes" / "drone.jsonl",
+    },
+    "jamming": {
+        "title": "Notre Dame campus",
+        "badge": ANDREW_BADGE,
+        "knowledge": ROOT / "data" / "data-full.json",
+        "data": ROOT / "data" / "scenes" / "jamming.jsonl",
+        # Jamming is judged on the band as a whole, so it comes with its own assessment.
+        "jamming": ROOT / "data" / "scenes" / "jamming-assessment.json",
     },
 }
 
@@ -130,8 +153,12 @@ def _location():
     return location
 
 
-def _execute(questions, observations, names, total, offset, knowledge, data):
-    """Classify one slice and, only if that succeeds, make it the current result."""
+def _execute(questions, observations, names, total, offset, knowledge, data, jamming=None):
+    """Classify one slice and, only if that succeeds, make it the current result.
+
+    `jamming` is a scene's jamming assessment, if it has one; it is kept with the source so
+    a later slice of the same scene is judged the same way.
+    """
     global _active, _source
     if not _lock.acquire(blocking=False):
         return _error(409, "Laya is already classifying. Wait for it to finish.")
@@ -147,15 +174,15 @@ def _execute(questions, observations, names, total, offset, knowledge, data):
         return _error(500, f"Laya failed: {exc}")
     finally:
         _lock.release()
-    summary = build_summary(names, questions, rows, total, seconds, offset)
+    summary = build_summary(names, questions, rows, total, seconds, offset, jamming)
     summary["provenance"] = _provenance()
     _active = {
         "summary": summary,
-        "context": build_context(names, questions, rows, total, offset),
+        "context": build_context(names, questions, rows, total, offset, jamming),
         "offset": offset,
         "count": len(rows),
     }
-    _source = {"knowledge": knowledge, "data": data, "names": names}
+    _source = {"knowledge": knowledge, "data": data, "names": names, "jamming": jamming}
     return {"summary": summary}
 
 
@@ -239,7 +266,8 @@ def scan(request: ScanRequest):
         data_parts = [(found["data"].name, found["data"].read_text(encoding="utf-8"))]
         questions = merge_knowledge(knowledge_parts)
         observations, total = combine_observations(data_parts)
-    except OSError as exc:
+        jamming = json.loads(found["jamming"].read_text(encoding="utf-8")) if "jamming" in found else None
+    except (OSError, json.JSONDecodeError) as exc:
         return _error(500, f"The demo scene could not be read: {exc}")
     except InputError as exc:
         return _error(400, str(exc), exc.field)
@@ -251,9 +279,10 @@ def scan(request: ScanRequest):
         0,
         knowledge_parts,
         data_parts,
+        jamming,
     )
     if isinstance(response, dict) and _active:
-        badge = {"title": found["title"], "badge": found["badge"]}
+        badge = {"name": request.scene, "title": found["title"], "badge": found["badge"]}
         _active["summary"]["scene"] = badge
         response["summary"]["scene"] = badge
     return response
@@ -293,4 +322,5 @@ def reclassify(request: ReclassifyRequest):
         offset,
         _source["knowledge"],
         _source["data"],
+        _source.get("jamming"),
     )
