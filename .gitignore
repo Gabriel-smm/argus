@@ -12,3 +12,5 @@ __MACOSX/
 # mod-classifier: raw recordings, processed windows and training runs stay out of git
 mod-classifier/data/
 mod-classifier/runs/
+mod-classifier/.venv-ui/
+mod-classifier/ui/samples/
