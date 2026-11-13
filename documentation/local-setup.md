@@ -30,8 +30,8 @@ The chat model the app expects is `qwen2.5:14b`. The chat uses it to call a tool
 ## 2. Clone and Python environment
 
 ```bash
-git clone https://github.com/jlimaz/undefined-sprint-hack.git
-cd undefined-sprint-hack
+git clone https://github.com/Gabriel-smm/argus.git
+cd argus
 python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -97,7 +97,7 @@ export LAYA_CHECKPOINT=/path/to/laya-rf-modes
 
 ### Option B. Train the checkpoint
 
-Stay at the repository root with the virtual environment active. Do not run `git checkout laya`. That step is in `finetune/README.md` and is out of date; this tree already contains the pipeline and the fine-tuning code.
+Stay at the repository root with the virtual environment active.
 
 Build the training items. This takes a few seconds and should report 6,964 training rows and 774 test rows:
 

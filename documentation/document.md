@@ -8,7 +8,7 @@
 |---|---|
 | Event | SprintHack@ND |
 | Team | Gabriel Marques, José Lima |
-| Repository | <https://github.com/jlimaz/undefined-sprint-hack> |
+| Repository | <https://github.com/Gabriel-smm/argus> |
 | Runs on | One computer, with no cloud service |
 
 ## Where to find each judging criterion

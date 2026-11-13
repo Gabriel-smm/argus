@@ -1,5 +1,7 @@
 # Overnight plan, Nov 12-13 2026
 
+> **Historical record.** Kept as written; paths are relative to `mod-classifier/` as it was then. For the current state read [STATUS.md](../../STATUS.md).
+
 Written at Odon's request before he went to sleep. Claude follows this file step by
 step; an hourly check (cron, "13 * * * *") re-reads it and continues from the
 first step not marked done. Progress goes in the log at the bottom, newest last.

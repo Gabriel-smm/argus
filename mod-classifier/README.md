@@ -1,43 +1,76 @@
 # mod-classifier
 
-The training pipeline for Argus's signal classifier: raw IQ windows in, class probabilities out. **This folder builds the pipeline; it does not train on the laptop.** Training runs on Notre Dame's CRC through shell scripts (to be added under `crc/`). The full design is in [PLAN.md](PLAN.md).
+Argus's signal classifier for raw IQ recordings: short windows of samples in, a signal class and a confidence out. It is separate from the Laya model in the main app, which reads three text fields per signal. It classifies a waveform; it never decodes content.
 
-## What exists (wave 0)
+**State (Nov 13, 2026):** wave 5 is trained and its weights are committed. Current numbers, data gaps and next steps are in [STATUS.md](STATUS.md).
+
+| Read | For |
+| --- | --- |
+| [STATUS.md](STATUS.md) | What is trained, how good it is, what the data lacks, what comes next |
+| [ui/README.md](ui/README.md) | The Burst Router page: upload a recording, see each burst classified |
+| [crc/README.md](crc/README.md) | Preparing data and training on Notre Dame's CRC |
+| [DATA_ACQUISITION.md](DATA_ACQUISITION.md), [LICENCES.md](LICENCES.md) | Where each dataset comes from, how it is fetched, and its licence |
+| [PLAN.md](PLAN.md) | The original design (Nov 11). Read it for the reasoning, not for the current state |
+| [docs/history/](docs/history/) | The Nov 11 handoff and the Nov 12-13 overnight log, kept unchanged as a record |
+
+## What it classifies
+
+Eight classes (class set `v2c` in [configs/taxonomy.toml](configs/taxonomy.toml)): `drone_link`, `wifi`, `bluetooth`, `background`, `gnss_jammer`, `lora`, `pulsed_radar`, `other_ism`. A burst whose confidence falls under the model's threshold is reported as `unknown`.
+
+Three wave 5 models are in `runs/crc/`, each with its `calibration.json`, `metrics.json`, `config.toml` and `meta.json`:
+
+| Model | Run folder | Test accuracy | Test macro-F1 |
+| --- | --- | --- | --- |
+| 2D CNN on a spectrogram (also as ONNX) | `cnn2d_v1_w5` | 0.914 | 0.871 |
+| kNN on 19 measurements | `baseline_knn_v1_w5` | 0.861 | 0.825 |
+| LightGBM on the same measurements | `baseline_lightgbm_v1_w5` | 0.827 | 0.758 |
+
+`runs/crc/routing_w5.json` says which model decides for each frequency band. All of this is measured on public lab recordings only, and `pulsed_radar` has no test recordings; see the limits in [STATUS.md](STATUS.md).
+
+## Layout
 
 | Path | What |
 | --- | --- |
-| `mcls/contracts.py` | The shared formats: `Recording` (what a loader yields), `ManifestRow` (one training window), `Classifier` (what a trained model offers Argus), the canonical 20 MS/s, 4096-sample complex64 window, and `band_of()` |
-| `mcls/taxonomy.py`, `configs/taxonomy.toml` | The class set (v1: `drone_link`, `wifi`, `bluetooth`, `background`) and the label, strength and licence of every dataset's files |
-| `mcls/manifest.py` | The JSONL manifest, splits by recording (never by window), `cross_test` hold-outs, and the leakage check |
-| `mcls/config.py`, `configs/*.toml` | Run configs, checked key by key so a typo fails on the laptop, not in the CRC queue |
-| `mcls/sources/` | Dataset loaders. `tampere.py` is the reference loader; the others follow its shape |
-| `mcls/fetch.py` | Parallel, resumable, md5-verified downloads (see "Zenodo" below) |
-| `requirements.txt` | What CRC needs. The laptop needs only numpy and pytest |
-| `tests/` | pytest. Runs on the laptop with no torch |
+| `mcls/contracts.py` | The shared formats: `Recording`, `ManifestRow`, `Classifier`, the 20 MS/s, 4096-sample complex64 window, and `band_of()` |
+| `mcls/taxonomy.py`, `configs/taxonomy.toml` | Class sets (v1, v2, v2a to v2c) and the label, strength and licence of every dataset's files |
+| `mcls/acquire.py`, `mcls/fetch.py`, `configs/catalog.toml` | Downloads: only files listed in the catalog, resumable, checksum-verified |
+| `mcls/sources/` | One loader per dataset format (Tampere, DroneRF, NIST Wi-Fi/BT, SigMF, GATEMAN, Triangular L1, Drexel radar, rtl_433) |
+| `mcls/frontend/`, `mcls/preprocess.py` | Resample, find bursts, cut and normalize windows. Inference uses the same code |
+| `mcls/dataset/`, `mcls/manifest.py` | The JSONL manifest, splits by recording (never by window), the leakage check, samplers and augmentation |
+| `mcls/baselines/`, `mcls/models/`, `mcls/train/` | kNN, LightGBM and softmax baselines; the 1D, 2D and fused CNNs; training |
+| `mcls/evaluate/` | Metrics, calibration (temperature and the `unknown` threshold) |
+| `mcls/infer/` | Classify bursts with a trained run; used by the UI and by `python -m pipeline.ingest --classify` |
+| `configs/` | Run configs, checked key by key so a typo fails before the job is queued |
+| `crc/` | CRC setup, data preparation and training jobs |
+| `scripts/` | Helpers: `build_routing.py`, `export_onnx.py`, `fetch_ui_samples.py`, file lists, shard merging |
+| `ui/` | The Burst Router (FastAPI and one static page) |
+| `runs/crc/` | The trained runs, committed on purpose. Everything else under `runs/` is git-ignored |
+| `tests/` | pytest; torch, scikit-learn and LightGBM tests are skipped where those are not installed |
 
-## The contract in one paragraph
+## Use the trained models
 
-Every dataset has its own format. Each loader in `mcls/sources/` turns its files into `Recording`s that read complex64 samples on demand at the native rate. The front end (next wave) resamples to 20 MS/s, finds bursts, cuts 4096-sample windows, normalizes them, and writes shards plus one `ManifestRow` per window. Training and evaluation read only shards and the manifest. A trained model implements `Classifier.classify(windows) -> probabilities`.
+Start the Burst Router as described in [ui/README.md](ui/README.md). It needs its own environment, `.venv-ui`, with library versions pinned to the ones used in training, because the kNN and LightGBM models are pickles.
 
-## Run the tests (laptop)
+From the main app's command line, add the class to each burst found in an IQ file:
+
+```bash
+# from the repository root
+python -m pipeline.ingest capture.cu8 --sample-rate 20M --center-freq 2.437G \
+    --classify --model mod-classifier/runs/crc/baseline_lightgbm_v1_w5 -o signals.jsonl
+```
+
+## Run the tests
 
 ```bash
 cd mod-classifier && ../.venv/bin/python -m pytest tests -q
 ```
 
-The real-file test runs only when the Tampere sample is in `data/raw/tampere/` (git-ignored).
+The tests must run from `mod-classifier/` (`conftest.py` puts it on the import path). The repository CI does not run them yet; [crc/CI_PROPOSAL.md](crc/CI_PROPOSAL.md) is the draft for adding them.
 
-## Zenodo downloads
+## Retrain
 
-Zenodo caps each connection at about 0.6 MB/s; parallel byte ranges add up (4 connections gave 2.4 MB/s). `mcls.fetch` uses up to 8 ranges per file, resumes after drops, and refuses a file whose md5 does not match.
+Training runs on CRC, not on a laptop: see [crc/README.md](crc/README.md). The prepared windows and `data/manifest_w5.jsonl` are not in git; what is needed to get them is listed in [STATUS.md](STATUS.md#6-replicating-on-crc).
 
-```bash
-python -m mcls.fetch --zenodo 4264467 --list
-python -m mcls.fetch --zenodo 4264467 --only DJI_phantom_4_2G.bin --out data/raw/tampere --connections 4
-```
+## Not in git
 
-On CRC, measure the speed once before any large download, keep to 4 to 8 connections per file, and let array jobs fetch different files at the same time. Raw files are streamed through a node's `/tmp` and deleted once their windows are cut (PLAN.md section 3.7).
-
-## Data on the laptop
-
-`data/` and `runs/` are git-ignored. Keep raw data here small (under about 1 GB): it exists to test loaders, not to train.
+`data/` (raw recordings, windows, manifests), `runs/` other than `runs/crc/`, `.venv-ui/` and `ui/samples/`.

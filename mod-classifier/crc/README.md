@@ -1,8 +1,6 @@
 # mod-classifier on CRC
 
-Shell scripts to set up and check Notre Dame's CRC before any bulk data preparation. **None of these scripts has been run on CRC yet.** They were written without CRC access, checked with `bash -n`, and tried on a laptop only where that makes sense (the missing-command paths, the Zenodo speed test, and the array job with stand-in modules). Expect small fixes after the first real run.
-
-There are no training jobs here yet; they are written later, on request.
+Shell scripts to set up Notre Dame's CRC, prepare the datasets and train. They were used for waves 1 to 5 from Odon's account (Nov 12-13, 2026); the log of the last wave is in [../docs/history/OVERNIGHT_PLAN.md](../docs/history/OVERNIGHT_PLAN.md). Each job file's header comment is the reference for its arguments and settings.
 
 | File | What it does |
 | --- | --- |
@@ -10,7 +8,12 @@ There are no training jobs here yet; they are written later, on request.
 | `setup_env.sh` | Front end: load Python 3.12, create the venv, install `../requirements.txt`, print torch and CUDA status |
 | `check_env.sh` | Front end, read-only: quota, groups, free space, modules, free GPUs, Zenodo download speed |
 | `check_node.sh`, `check_node.job` | Compute node, read-only: `/tmp` size, CPUs, RAM, `nvidia-smi`, torch sees CUDA |
-| `prepare_array.job` | Template array job: one raw file per task, fetch to node `/tmp`, preprocess, keep outputs, delete raw |
+| `prepare_array.job` | Array job: one raw file per task, fetch to node `/tmp`, preprocess, keep outputs, delete raw |
+| `prepare_rtl433.job` | Prepares rtl_433_tests (`other_ism`), which the catalog cannot fetch: one clone step, then an array over device folders |
+| `build_manifest.job` | Merges prepared datasets into the shards folder and builds one manifest for a class set |
+| `train.job` | Trains one model from a config, then calibrates and evaluates it |
+| `submit_wave.sh` | Submits a whole wave as a chain: manifest job, one training job per model, summary job |
+| `wave_summary.job` | Emails the results table, plots and logs when a wave ends |
 | `CI_PROPOSAL.md` | Draft: how the repo CI could also run `mod-classifier/tests` (needs Gabriel's agreement) |
 | `../scripts/make_file_list.py` | Writes `runs/file_lists/files_<dataset>.txt` from `configs/catalog.toml`; prints the array size |
 | `../scripts/space_needed.py` | Bytes of node `/tmp` one task needs (file, plus extracted size when unpacking); the job checks it before downloading |
@@ -28,7 +31,7 @@ All scripts read these environment variables (all optional):
 
 ## Order to run
 
-Log in to a front end (`ssh <netid>@crcfe01.crc.nd.edu`), clone the repo on the `feat/modulation-classifier` branch, then:
+Log in to a front end (`ssh <netid>@crcfe01.crc.nd.edu`), clone the repo (`main`), then:
 
 ```bash
 cd argus/mod-classifier

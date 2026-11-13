@@ -1,10 +1,12 @@
 # Handoff: state of the mod-classifier work
 
+> **Historical record.** Kept as written; paths are relative to `mod-classifier/` as it was then. For the current state read [STATUS.md](../../STATUS.md).
+
 **Frozen:** Nov 11, 2026, about 23:55, at Odon's request, to continue under a Paseo orchestrator.
 **Repo:** `Gabriel-smm/argus`, local checkout `/Users/odon/Desktop/DIU Project/argus`.
 **Integration branch:** `feat/modulation-classifier` (local only, never pushed). Head before this file: `d132fde`.
 
-Read in this order: this file, then [PLAN.md](PLAN.md) (the full design), then [README.md](README.md), then `mcls/contracts.py`.
+Read in this order: this file, then [PLAN.md](../../PLAN.md) (the full design), then [README.md](../../README.md), then `mcls/contracts.py`.
 
 ---
 

@@ -25,7 +25,7 @@ Modes share an option when centre frequency, bandwidth and modulation cannot tel
 
 - **Only the bandwidth of a Panoradio row is measured.** The recordings carry no centre frequency, so the converter places each one on a frequency where its mode is operated, and it writes the modulation name from the mode. A high score therefore partly shows the model recovering those assignment rules. It is not evidence that the model recognises these signals off the air.
 - **The eight signal types are tested on rows of the same recordings set**, a random tenth of each. `other` is tested on 29 signal types that are not in the training data.
-- **A simple reference.** A nearest-neighbour classifier on the three fields scores 82.7% on the test file (80.4% balanced). Its weak spots are `weather_fax` (24 of 48) and `dominoex` (29 of 48), whose measured bandwidths overlap other types. Laya has not been run on this data yet.
+- **A simple reference.** A nearest-neighbour classifier on the three fields scores 82.7% on the test file (80.4% balanced). Its weak spots are `weather_fax` (24 of 48) and `dominoex` (29 of 48), whose measured bandwidths overlap other types. Fine-tuned Laya scores 91.6% on the same file.
 
 ## Results so far
 
@@ -34,7 +34,7 @@ Modes share an option when centre frequency, bandwidth and modulation cannot tel
 | Base Laya | 12 emitter families, 2,000 mock rows | 8.6% |
 | First fine-tune (2,000 items, 4 epochs) | same | 18.7% |
 | Second fine-tune (2,000 items, 5 epochs) | 12 families, 482 mock rows of unseen signal types | 21.0% |
-| Signal types (this setup) | 9 options, 774 test rows | not run yet |
+| Signal types (this setup, the checkpoint the app loads) | 9 options, 774 test rows | 91.6% |
 
 The earlier runs answered a different question on different data, so they are not comparable with this setup. The mock observations and the hand-written drone link table they used have been removed.
 
@@ -43,9 +43,8 @@ The earlier runs answered a different question on different data, so they are no
 ### 1. Set up
 
 ```bash
-git clone https://github.com/jlimaz/undefined-sprint-hack.git
-cd undefined-sprint-hack
-git checkout laya
+git clone https://github.com/Gabriel-smm/argus.git
+cd argus
 python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt

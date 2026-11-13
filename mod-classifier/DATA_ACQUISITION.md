@@ -1,6 +1,6 @@
 # Data acquisition
 
-Every dataset file the plan uses is listed in [`configs/catalog.toml`](configs/catalog.toml) with its URL, size in bytes and checksum, copied from each host's own API on 2026-11-12. `python -m mcls.acquire` fetches files from that list and refuses anything that is not listed, too big, or not openly downloadable. **Every real download still needs approval first** (HANDOFF.md section 1).
+Every dataset file the plan uses is listed in [`configs/catalog.toml`](configs/catalog.toml) with its URL, size in bytes and checksum, copied from each host's own API on 2026-11-12. `python -m mcls.acquire` fetches files from that list and refuses anything that is not listed, too big, or not openly downloadable. **Every real download still needs approval first** ([docs/history/HANDOFF.md](docs/history/HANDOFF.md) section 1).
 
 ## Use
 
