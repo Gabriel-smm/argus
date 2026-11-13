@@ -258,3 +258,26 @@ def test_a_second_run_while_one_is_going_is_a_409(client):
         assert client.get("/context").json()["running"] is True
     finally:
         server._lock.release()
+
+
+def test_scene_lists_the_demo_signals_without_running_laya(client):
+    res = client.get("/scene")
+    assert res.status_code == 200
+    scene = res.json()
+    assert scene["title"] == "Notre Dame campus"
+    assert "not a live radio" in scene["badge"]
+    assert len(scene["signals"]) == scene["total"] > 0
+    assert client.get("/context").json()["active"] is False
+
+
+def test_scan_runs_the_built_in_scene_and_labels_it_as_a_demo(client):
+    res = client.post("/scan", json={})
+    assert res.status_code == 200
+    summary = res.json()["summary"]
+    assert summary["scene"]["badge"].startswith("Demo mode")
+    assert client.get("/context").json()["summary"]["scene"] == summary["scene"]
+
+
+def test_unknown_scene_is_refused(client):
+    assert client.post("/scan", json={"scene": "moon"}).status_code == 404
+    assert client.get("/scene", params={"name": "moon"}).status_code == 404

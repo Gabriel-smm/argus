@@ -2,6 +2,7 @@
 
 import threading
 import time
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
@@ -29,6 +30,23 @@ class Upload(BaseModel):
 class ClassifyRequest(BaseModel):
     knowledge: Upload | list[Upload]
     data: Upload | list[Upload]
+
+
+class ScanRequest(BaseModel):
+    scene: str = "campus"
+
+
+# Built-in scenes for the Scan button: files shipped in data/, so a demo needs no uploads.
+# The badge says plainly what is being shown; it is not a live radio.
+ROOT = Path(__file__).resolve().parent.parent
+SCENES = {
+    "campus": {
+        "title": "Notre Dame campus",
+        "badge": "Demo mode: sample campus signals, not a live radio",
+        "knowledge": ROOT / "data" / "data-full.json",
+        "data": ROOT / "data" / "observations-site-demo.jsonl",
+    },
+}
 
 
 class ReclassifyRequest(BaseModel):
@@ -133,6 +151,67 @@ def classify(request: ClassifyRequest):
         knowledge_parts,
         data_parts,
     )
+
+
+def _scene(name):
+    scene = SCENES.get(name)
+    if scene is None:
+        return None, _error(404, f"Unknown scene {name!r}. Known scenes: {', '.join(SCENES)}.")
+    return scene, None
+
+
+@app.get("/scene")
+def scene(name: str = "campus"):
+    """What the Scan button will play: title, badge and where each signal sits, for the animation."""
+    found, error = _scene(name)
+    if error:
+        return error
+    try:
+        observations, total = combine_observations(
+            [(found["data"].name, found["data"].read_text(encoding="utf-8"))]
+        )
+    except (OSError, InputError) as exc:
+        return _error(500, f"The demo scene could not be read: {exc}")
+    return {
+        "name": name,
+        "title": found["title"],
+        "badge": found["badge"],
+        "total": total,
+        "signals": [
+            {"id": str(row["id"]), "frequency_hz": row["center_frequency_hz"]} for row in observations
+        ],
+    }
+
+
+@app.post("/scan")
+def scan(request: ScanRequest):
+    """Run a built-in scene through Laya and the site check, as if the radio had just heard it."""
+    found, error = _scene(request.scene)
+    if error:
+        return error
+    try:
+        knowledge_parts = [(found["knowledge"].name, found["knowledge"].read_text(encoding="utf-8"))]
+        data_parts = [(found["data"].name, found["data"].read_text(encoding="utf-8"))]
+        questions = merge_knowledge(knowledge_parts)
+        observations, total = combine_observations(data_parts)
+    except OSError as exc:
+        return _error(500, f"The demo scene could not be read: {exc}")
+    except InputError as exc:
+        return _error(400, str(exc), exc.field)
+    response = _execute(
+        questions,
+        observations,
+        _names(knowledge_parts, data_parts),
+        total,
+        0,
+        knowledge_parts,
+        data_parts,
+    )
+    if isinstance(response, dict) and _active:
+        badge = {"title": found["title"], "badge": found["badge"]}
+        _active["summary"]["scene"] = badge
+        response["summary"]["scene"] = badge
+    return response
 
 
 @app.post("/reclassify")
