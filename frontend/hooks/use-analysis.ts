@@ -49,6 +49,11 @@ export type AnalysisSummary = {
   site_report?: SiteReport | null;
   /** Set when the result came from the Scan button's built-in scene. */
   scene?: { title: string; badge: string };
+  /** Which site and reference files the site check used (pipeline/server.py _provenance). */
+  provenance?: {
+    site: { name: string; latitude?: number; longitude?: number; radius_km?: number; frequency_list?: string };
+    versions: { band_table: string; site_profile: string; model: string };
+  } | null;
 };
 
 export type AnalysisError = { message: string; field: LayaRole | null };

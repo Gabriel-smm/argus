@@ -12,7 +12,8 @@
     "lint": "oxlint && oxfmt --check",
     "format": "oxfmt --check",
     "format:fix": "oxfmt",
-    "lint:fix": "oxlint --fix && oxfmt"
+    "lint:fix": "oxlint --fix && oxfmt",
+    "test": "tsx --test lib/*.test.ts"
   },
   "dependencies": {
     "@assistant-ui/react": "^0.15.23",
