@@ -300,6 +300,24 @@ def test_scene_signals_carry_their_site_check(client):
     assert {"Something on GPS", "Possible drone", "Normal here"} <= by_title
 
 
+def test_a_result_says_which_site_and_files_it_used(client):
+    summary = client.post("/scan", json={}).json()["summary"]
+    found = summary["provenance"]
+    assert found["site"]["name"].startswith("Notre Dame")
+    assert isinstance(found["site"]["latitude"], float) and isinstance(found["site"]["longitude"], float)
+    assert found["versions"]["band_table"].startswith("bands.csv sha256:")
+    assert found["versions"]["site_profile"].startswith("site.json sha256:")
+    assert found["versions"]["model"]
+    assert client.get("/context").json()["summary"]["provenance"] == found
+
+
+def test_a_result_stands_when_the_site_profile_cannot_be_read(client, monkeypatch):
+    monkeypatch.setenv("ARGUS_SITE", "data/context/no-such-site.json")
+    res = client.post("/scan", json={})
+    assert res.status_code == 200
+    assert res.json()["summary"]["provenance"] is None
+
+
 def test_scene_still_plays_when_the_site_check_cannot_load(client, monkeypatch):
     def broken(_observations):
         raise FileNotFoundError("no site file")

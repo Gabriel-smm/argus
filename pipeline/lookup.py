@@ -20,6 +20,7 @@ Try it without Laya or Ollama:
 """
 
 import csv
+import hashlib
 import json
 import os
 import sys
@@ -83,11 +84,39 @@ def load_bands(path=BANDS_FILE, ism_devices=ISM_DEVICES_FILE):
     return bands
 
 
-def load_site(path=None):
-    """The site profile from ARGUS_SITE, or the demo site."""
+def site_path(path=None):
+    """Where the site profile is read from: the argument, ARGUS_SITE, or the demo site."""
     path = Path(path or os.environ.get("ARGUS_SITE") or DEFAULT_SITE)
     if not path.is_absolute() and not path.is_file():
         path = ROOT / path
+    return path
+
+
+def file_version(path):
+    """A short fingerprint of a file's contents: changes whenever the file is edited."""
+    return "sha256:" + hashlib.sha256(Path(path).read_bytes()).hexdigest()[:12]
+
+
+def provenance(site_file=None, bands_file=BANDS_FILE):
+    """Which site and which reference files a site check used, for a packet sent to HQ."""
+    path = site_path(site_file)
+    site = load_site(path)
+    return {
+        "site": {
+            key: site[key]
+            for key in ("name", "latitude", "longitude", "radius_km", "frequency_list")
+            if key in site
+        },
+        "versions": {
+            "band_table": f"{Path(bands_file).name} {file_version(bands_file)}",
+            "site_profile": f"{path.name} {file_version(path)}",
+        },
+    }
+
+
+def load_site(path=None):
+    """The site profile from ARGUS_SITE, or the demo site."""
+    path = site_path(path)
     if not path.is_file():
         raise FileNotFoundError(
             f"The site profile {path} was not found. Set ARGUS_SITE to a site file "

@@ -9,6 +9,12 @@ ROOT = Path(__file__).resolve().parent.parent
 FINE_TUNED = ROOT / "models" / "laya-rf-modes"
 
 
+def label():
+    """The checkpoint's short name, for records. Never fails, unlike resolve()."""
+    chosen = os.environ.get("LAYA_CHECKPOINT")
+    return Path(chosen).name if chosen else FINE_TUNED.name
+
+
 def resolve():
     """LAYA_CHECKPOINT when set, otherwise the fine-tuned folder, which must exist."""
     chosen = os.environ.get("LAYA_CHECKPOINT")

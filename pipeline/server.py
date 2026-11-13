@@ -9,10 +9,10 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from pipeline import analysis
+from pipeline import analysis, checkpoint
 from pipeline.context import build_context, build_summary
 from pipeline.inputs import MAX_OBSERVATIONS, InputError, combine_observations, merge_knowledge
-from pipeline.lookup import check_all
+from pipeline.lookup import check_all, provenance
 
 app = FastAPI(title="Laya pipeline")
 
@@ -101,6 +101,19 @@ def _names(knowledge, data):
     }
 
 
+def _provenance():
+    """Site, coordinates and file versions behind a result, so a packet can say what it used.
+
+    None if the site profile or band table cannot be read; the result itself still stands.
+    """
+    try:
+        found = provenance()
+    except (OSError, ValueError, KeyError):
+        return None
+    found["versions"]["model"] = checkpoint.label()
+    return found
+
+
 def _execute(questions, observations, names, total, offset, knowledge, data):
     """Classify one slice and, only if that succeeds, make it the current result."""
     global _active, _source
@@ -119,6 +132,7 @@ def _execute(questions, observations, names, total, offset, knowledge, data):
     finally:
         _lock.release()
     summary = build_summary(names, questions, rows, total, seconds, offset)
+    summary["provenance"] = _provenance()
     _active = {
         "summary": summary,
         "context": build_context(names, questions, rows, total, offset),

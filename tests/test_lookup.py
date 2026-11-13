@@ -183,3 +183,15 @@ def test_report_carries_every_signal_worst_first_for_the_category_buttons():
     report = _report([signal(98.7, 200, "FM"), signal(1575.42, 2000), signal(3100, 1000)])
     assert [item["group"] for item in report["signals"]] == ["needs_review", "unknown", "expected"]
     assert {item["kind"] for item in report["signals"]} == {entry["kind"] for entry in report["kinds"]}
+
+
+def test_provenance_names_the_site_and_changes_when_a_file_is_edited(tmp_path):
+    site_file = tmp_path / "site.json"
+    site_file.write_text(json.dumps({"name": "Test field", "latitude": 1.5, "longitude": -2.5}), encoding="utf-8")
+    first = lookup.provenance(site_file)
+    assert first["site"] == {"name": "Test field", "latitude": 1.5, "longitude": -2.5}
+    assert first["versions"]["site_profile"].startswith("site.json sha256:")
+    assert first["versions"]["band_table"] == lookup.provenance()["versions"]["band_table"]
+
+    site_file.write_text(json.dumps({"name": "Test field", "latitude": 1.6, "longitude": -2.5}), encoding="utf-8")
+    assert lookup.provenance(site_file)["versions"]["site_profile"] != first["versions"]["site_profile"]
