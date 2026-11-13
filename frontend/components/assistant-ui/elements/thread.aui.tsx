@@ -27,6 +27,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SiteReport } from "@/components/site-report";
 import { ScanHero } from "@/components/scan-hero";
 import { ANALYSIS_POLL_MS, useAnalysis } from "@/hooks/use-analysis";
+import { translateBadge, translateQuestion, useLanguage, useT } from "@/lib/i18n";
 import eagleIcon from "@/app/eagle_icon.png";
 import { cn } from "@/lib/utils";
 import {
@@ -377,6 +378,7 @@ const ThreadWelcome: FC = () => {
   const summary = useAnalysis((s) => s.summary);
   const error = useAnalysis((s) => s.error);
   const scan = useAnalysis((s) => s.scan);
+  const { t, language } = useT();
   const report = running ? null : summary?.site_report;
 
   // No result yet, or a run in progress: the front page with the Scan button and the sweep.
@@ -393,19 +395,21 @@ const ThreadWelcome: FC = () => {
       <div className="aui-thread-welcome-root mb-6 flex flex-col px-2">
         {summary.scene && (
           <div className="text-muted-foreground mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-            <span className="rounded-full border px-3 py-1">{summary.scene.badge}</span>
+            <span className="rounded-full border px-3 py-1">
+              {translateBadge(summary.scene.badge, language)}
+            </span>
             <button
               type="button"
               onClick={() => void scan()}
               className="text-foreground underline-offset-2 hover:underline"
             >
-              Scan again
+              {t("scan.again")}
             </button>
           </div>
         )}
         <SiteReport report={report} />
         <p className="text-muted-foreground mt-5 text-sm">
-          Ask about any of the {summary.observations} signals, or start with a question below.
+          {t("report.ask", { n: summary.observations })}
         </p>
       </div>
     );
@@ -456,7 +460,11 @@ const ThreadSuggestions: FC = () => {
   const grounded = useAnalysis((s) => s.summary !== null && !s.running);
   // Questions built from this run's site report, when there is one.
   const reportQuestions = useAnalysis((s) => s.summary?.site_report?.questions);
-  const prompts = reportQuestions?.length ? reportQuestions : ANALYSIS_PROMPTS;
+  const language = useLanguage((s) => s.language);
+  // Shown and sent in the chosen language, so the chat is asked in it too.
+  const prompts = (reportQuestions?.length ? reportQuestions : ANALYSIS_PROMPTS).map((prompt) =>
+    translateQuestion(prompt, language),
+  );
 
   return (
     <div className="aui-thread-welcome-suggestions flex w-full flex-col">

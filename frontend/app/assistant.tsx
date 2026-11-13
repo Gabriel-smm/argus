@@ -4,9 +4,12 @@ import { AssistantRuntimeProvider } from "@assistant-ui/react";
 import { useStreamRuntime } from "@assistant-ui/react-langchain";
 
 import { Thread } from "@/components/assistant-ui/elements/thread.aui";
+import { LanguageMenu, LanguageSync } from "@/components/language-menu";
 import { Library } from "@/components/library";
+import { useT } from "@/lib/i18n";
 
 export function Assistant() {
+  const { t } = useT();
   const apiUrl =
     process.env.NEXT_PUBLIC_LANGGRAPH_API_URL || "http://localhost:2024";
 
@@ -26,14 +29,18 @@ export function Assistant() {
         <div className="min-h-0 min-w-0 flex-1">
           <Thread />
         </div>
-        <p className="text-muted-foreground pointer-events-none absolute top-[18px] right-5 z-10 flex items-center gap-2 text-sm font-normal">
-          Running locally
-          <span
-            aria-hidden
-            className="size-1.5 shrink-0 rounded-full bg-emerald-500"
-          />
-        </p>
+        <div className="absolute top-[13px] right-5 z-10 flex items-center gap-3">
+          <LanguageMenu />
+          <p className="text-muted-foreground pointer-events-none flex items-center gap-2 text-sm font-normal">
+            {t("app.local")}
+            <span
+              aria-hidden
+              className="size-1.5 shrink-0 rounded-full bg-emerald-500"
+            />
+          </p>
+        </div>
       </div>
+      <LanguageSync />
     </AssistantRuntimeProvider>
   );
 }

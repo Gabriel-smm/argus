@@ -1,7 +1,7 @@
 import { AIMessage, SystemMessage } from "@langchain/core/messages";
 import { tool } from "@langchain/core/tools";
 import { ChatOllama } from "@langchain/ollama";
-import { MessagesAnnotation, StateGraph } from "@langchain/langgraph";
+import { type LangGraphRunnableConfig, MessagesAnnotation, StateGraph } from "@langchain/langgraph";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
 import { z } from "zod";
 
@@ -66,6 +66,33 @@ const UNREACHABLE =
   "The part of the app that reads the signals is not running, so you have nothing to answer from. " +
   "Reply in one or two short sentences: tell them to start the app and ask again. " +
   "Do not invent signals.";
+
+// The language picked on the page arrives as configurable.language (see components/language-menu.tsx).
+// Only these codes are accepted; anything else answers in English.
+const LANGUAGE_NAMES = { es: "Spanish (español)", fr: "French (français)" } as const;
+type ReplyLanguage = keyof typeof LANGUAGE_NAMES;
+const STILL_CLASSIFYING: Record<ReplyLanguage | "en", string> = {
+  en: "Laya is still classifying. Ask again when it finishes.",
+  es: "Laya todavía está clasificando. Pregunta de nuevo cuando termine.",
+  fr: "Laya est encore en train de classer. Posez la question à nouveau quand ce sera fini.",
+};
+
+function replyLanguage(config?: LangGraphRunnableConfig): ReplyLanguage | "en" {
+  const code = config?.configurable?.language;
+  return typeof code === "string" && Object.hasOwn(LANGUAGE_NAMES, code) ? (code as ReplyLanguage) : "en";
+}
+
+function languageRule(language: ReplyLanguage | "en") {
+  if (language === "en") return "";
+  const name = LANGUAGE_NAMES[language];
+  return (
+    `\n\nLanguage: Reply only in ${name}, even though these instructions and the result are in English. ` +
+    "Every rule and guardrail above still applies, word for word. " +
+    'Translate what you say, including the site-check groups ("needs a closer look", "unknown", ' +
+    '"expected here") and the kinds of signal, but keep signal ids, numbers and units exactly as given. ' +
+    "If a radio word has no everyday translation, keep it and explain it in the same sentence."
+  );
+}
 
 type PipelineContext = { active: boolean; running: boolean; context?: string };
 
@@ -147,34 +174,37 @@ async function readPipelineContext(): Promise<PipelineContext | null> {
   }
 }
 
-function instructions(pipeline: PipelineContext | null, afterTool: boolean) {
-  if (!pipeline) return UNREACHABLE;
-  if (!pipeline.active) return NOT_LOADED;
+function instructions(pipeline: PipelineContext | null, afterTool: boolean, language: ReplyLanguage | "en") {
+  const rule = languageRule(language);
+  if (!pipeline) return UNREACHABLE + rule;
+  if (!pipeline.active) return NOT_LOADED + rule;
   const guidance = afterTool ? AFTER_TOOL : GROUNDED;
-  return `${guidance}\n\n${pipeline.context}`;
+  // The language rule goes last, after the result, so a long result does not bury it.
+  return `${guidance}\n\n${pipeline.context}${rule}`;
 }
 
-const callModel = async (state: typeof MessagesAnnotation.State) => {
+const callModel = async (state: typeof MessagesAnnotation.State, config?: LangGraphRunnableConfig) => {
+  const language = replyLanguage(config);
   const pipeline = await readPipelineContext();
   if (pipeline?.running) {
     // Laya has the GPU; calling Ollama now would load its model back over it.
     return {
-      messages: [new AIMessage("Laya is still classifying. Ask again when it finishes.")],
+      messages: [new AIMessage(STILL_CLASSIFYING[language])],
     };
   }
   // Read on every turn and kept out of state, so a new run replaces the old one.
   const response = await modelWithTools.invoke([
-    new SystemMessage(instructions(pipeline, false)),
+    new SystemMessage(instructions(pipeline, false, language)),
     ...state.messages,
   ]);
   return { messages: [response] };
 };
 
-const respond = async (state: typeof MessagesAnnotation.State) => {
+const respond = async (state: typeof MessagesAnnotation.State, config?: LangGraphRunnableConfig) => {
   // The tool has finished, so this call is not blocked by the run it just started.
   const pipeline = await readPipelineContext();
   const response = await model.invoke([
-    new SystemMessage(instructions(pipeline, true)),
+    new SystemMessage(instructions(pipeline, true, replyLanguage(config))),
     ...state.messages,
   ]);
   return { messages: [response] };
