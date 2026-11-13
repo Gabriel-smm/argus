@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from pipeline import analysis
 from pipeline.context import build_context, build_summary
 from pipeline.inputs import MAX_OBSERVATIONS, InputError, combine_observations, merge_knowledge
+from pipeline.lookup import check_all
 
 app = FastAPI(title="Laya pipeline")
 
@@ -162,7 +163,11 @@ def _scene(name):
 
 @app.get("/scene")
 def scene(name: str = "campus"):
-    """What the Scan button will play: title, badge and where each signal sits, for the animation."""
+    """What the Scan button will play: title, badge and each signal, for the animation.
+
+    Each signal carries its site-check result (kind, title, triage) so the sweep can color
+    and name dots before Laya finishes. The site check is plain rules, so this is instant.
+    """
     found, error = _scene(name)
     if error:
         return error
@@ -172,14 +177,23 @@ def scene(name: str = "campus"):
         )
     except (OSError, InputError) as exc:
         return _error(500, f"The demo scene could not be read: {exc}")
+    try:
+        lookups = check_all(observations)
+    except (OSError, ValueError, KeyError):
+        # A broken band table or site file should not stop the animation; dots stay uncolored.
+        lookups = [None] * len(observations)
+    signals = []
+    for row, lookup in zip(observations, lookups):
+        signal = {"id": str(row["id"]), "frequency_hz": row["center_frequency_hz"]}
+        if lookup:
+            signal.update(kind=lookup["kind"], title=lookup["title"], triage=lookup["triage"])
+        signals.append(signal)
     return {
         "name": name,
         "title": found["title"],
         "badge": found["badge"],
         "total": total,
-        "signals": [
-            {"id": str(row["id"]), "frequency_hz": row["center_frequency_hz"]} for row in observations
-        ],
+        "signals": signals,
     }
 
 

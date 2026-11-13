@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from pipeline import analysis, server
+from pipeline import analysis, lookup, server
 from pipeline.inputs import InputError
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -281,3 +281,31 @@ def test_scan_runs_the_built_in_scene_and_labels_it_as_a_demo(client):
 def test_unknown_scene_is_refused(client):
     assert client.post("/scan", json={"scene": "moon"}).status_code == 404
     assert client.get("/scene", params={"name": "moon"}).status_code == 404
+
+
+def test_scene_signals_carry_their_site_check(client):
+    signals = client.get("/scene").json()["signals"]
+    for signal in signals:
+        assert signal["triage"] in lookup.GROUPS
+        assert signal["kind"] and signal["title"]
+    # The demo file says which group each signal should land in; /scene must agree.
+    rows = [
+        json.loads(line)
+        for line in (ROOT / "data" / "observations-site-demo.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    wanted = {str(row["id"]): row["expected_triage"] for row in rows}
+    assert {signal["id"]: signal["triage"] for signal in signals} == wanted
+    by_title = {signal["title"] for signal in signals}
+    assert {"Something on GPS", "Possible drone", "Normal here"} <= by_title
+
+
+def test_scene_still_plays_when_the_site_check_cannot_load(client, monkeypatch):
+    def broken(_observations):
+        raise FileNotFoundError("no site file")
+
+    monkeypatch.setattr(server, "check_all", broken)
+    res = client.get("/scene")
+    assert res.status_code == 200
+    signals = res.json()["signals"]
+    assert signals and all("triage" not in signal for signal in signals)
