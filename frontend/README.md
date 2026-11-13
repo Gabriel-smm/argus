@@ -58,6 +58,8 @@ To use your own files instead:
 
 Above the chat, a **site report** shows the site check at a glance: one verdict (normal / mostly normal / needs a closer look), a red-yellow-green bar, what is in the air in everyday words, the signals to look at first with what to check next, and follow-up questions built from the result. It is computed by the Laya service (`build_site_report` in `pipeline/context.py`), not by the chat model, so it appears as soon as a run finishes and always matches the numbers.
 
+**Package for HQ**, on the report card, saves the result as one file, `argus-packet-<site>-<date-time>.json`, so it can be carried offline (USB stick, shared drive) for further analysis. It holds the site and its coordinates, where the data came from (the demo badge for the built-in scene, so demo data is never mistaken for a real recording), the versions of the band table, site profile and model, the verdict, the counts and every signal with its reason and what to check next, worst first. A sha256 fingerprint of the contents is added; its first 8 characters show on screen. At HQ, **Open a packet** on the front page checks the fingerprint and shows the same report card under a banner naming the packet, when it was made and where. A packet whose contents were changed after it was made is refused. The fingerprint catches accidental or casual changes; it is not a signature, so it cannot prove who made the packet. Opening a packet is view-only: it does not replace this computer's result, and the chat keeps answering about that. Making and opening packets happens entirely in the browser (`lib/packet.ts`, tested with `npm test`); nothing is sent anywhere.
+
 **Clear**, or removing a file the result came from, drops the result. It otherwise survives a page reload, until the Laya service restarts.
 
 ## Project layout
@@ -73,6 +75,8 @@ components/scan-hero.tsx    the front page: Scan button and spectrum sweep
 components/language-menu.tsx  the language button, and passing the language to the chat
 hooks/use-analysis.ts   run state shared by the Library and the chat
 lib/i18n.ts             English, Spanish and French text for the scan page and site report
+lib/packet.ts           the field-to-HQ packet: build, fingerprint, open, check (tests next to it)
+components/packet.tsx   Package for HQ, Open a packet, and the opened packet view
 langgraph.json          LangGraph CLI config (graph id, node version, env file)
 ```
 
