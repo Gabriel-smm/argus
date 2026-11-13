@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from pipeline import analysis, checkpoint
 from pipeline.context import build_context, build_summary
 from pipeline.inputs import MAX_OBSERVATIONS, InputError, combine_observations, merge_knowledge
-from pipeline.lookup import check_all, provenance
+from pipeline.lookup import check_all, load_site, provenance
 
 app = FastAPI(title="Laya pipeline")
 
@@ -114,6 +114,22 @@ def _provenance():
     return found
 
 
+def _location():
+    """Where the sensor is, from the site profile. Never from a GPS fix or the browser.
+
+    None if the site profile cannot be read.
+    """
+    try:
+        site = load_site()
+    except (OSError, ValueError, KeyError):
+        return None
+    location = {"name": site.get("name", "this site"), "source": "site_profile"}
+    for key in ("latitude", "longitude"):
+        if isinstance(site.get(key), (int, float)):
+            location[key] = site[key]
+    return location
+
+
 def _execute(questions, observations, names, total, offset, knowledge, data):
     """Classify one slice and, only if that succeeds, make it the current result."""
     global _active, _source
@@ -208,6 +224,7 @@ def scene(name: str = "campus"):
         "badge": found["badge"],
         "total": total,
         "signals": signals,
+        "location": _location(),
     }
 
 

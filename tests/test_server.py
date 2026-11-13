@@ -300,6 +300,23 @@ def test_scene_signals_carry_their_site_check(client):
     assert {"Something on GPS", "Possible drone", "Normal here"} <= by_title
 
 
+def test_scene_gives_the_sensor_location_from_the_site_profile(client):
+    location = client.get("/scene").json()["location"]
+    assert location == {
+        "name": "Notre Dame campus (demo site)",
+        "latitude": 41.703,
+        "longitude": -86.239,
+        "source": "site_profile",
+    }
+
+
+def test_scene_location_is_null_when_the_site_profile_cannot_be_read(client, monkeypatch):
+    monkeypatch.setenv("ARGUS_SITE", "data/context/no-such-site.json")
+    res = client.get("/scene")
+    assert res.status_code == 200
+    assert res.json()["location"] is None
+
+
 def test_a_result_says_which_site_and_files_it_used(client):
     summary = client.post("/scan", json={}).json()["summary"]
     found = summary["provenance"]
