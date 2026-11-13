@@ -37,6 +37,15 @@ const EN = {
   "scan.heard": "Heard so far",
   "scan.more": "+{n} more",
   "scan.demoBadge": "Demo mode: sample campus signals, not a live radio",
+  "scan.andrewBadge": "Demo: illustrative scenario by Andrew, not a real capture",
+
+  "scene.choose": "Scenario",
+  "scene.campus": "Campus sample",
+  "scene.normal": "Normal day",
+  "scene.drone": "Drone nearby",
+  "scene.jamming": "Jamming",
+
+  "verdict.jamming": "Possible jamming",
 
   "likely.wifi": "Looks like Wi-Fi or Bluetooth",
   "likely.drone": "Possible drone",
@@ -120,6 +129,15 @@ const ES: Messages = {
   "scan.heard": "Escuchado hasta ahora",
   "scan.more": "+{n} más",
   "scan.demoBadge": "Modo demo: señales de muestra del campus, no es una radio en vivo",
+  "scan.andrewBadge": "Demo: escenario ilustrativo de Andrew, no es una captura real",
+
+  "scene.choose": "Escenario",
+  "scene.campus": "Muestra del campus",
+  "scene.normal": "Día normal",
+  "scene.drone": "Dron cerca",
+  "scene.jamming": "Bloqueo de señal",
+
+  "verdict.jamming": "Posible bloqueo de señal",
 
   "likely.wifi": "Parece Wi-Fi o Bluetooth",
   "likely.drone": "Posible dron",
@@ -200,6 +218,15 @@ const FR: Messages = {
   "scan.heard": "Entendu jusqu'ici",
   "scan.more": "+{n} autres",
   "scan.demoBadge": "Mode démo : signaux d'exemple du campus, pas une radio en direct",
+  "scan.andrewBadge": "Démo : scénario illustratif d'Andrew, pas une capture réelle",
+
+  "scene.choose": "Scénario",
+  "scene.campus": "Échantillon du campus",
+  "scene.normal": "Journée normale",
+  "scene.drone": "Drone à proximité",
+  "scene.jamming": "Brouillage",
+
+  "verdict.jamming": "Brouillage possible",
 
   "likely.wifi": "Ressemble à du Wi-Fi ou Bluetooth",
   "likely.drone": "Drone possible",
@@ -275,6 +302,7 @@ const KINDS: Translations = {
   "Radio stations": { es: "Emisoras de radio", fr: "Stations de radio" },
   "Ham radio": { es: "Radioaficionados", fr: "Radioamateurs" },
   "Mystery signals": { es: "Señales misteriosas", fr: "Signaux mystères" },
+  Jamming: { es: "Bloqueo de señal", fr: "Brouillage" },
 };
 
 const TITLES: Translations = {
@@ -287,12 +315,17 @@ const TITLES: Translations = {
   "Possible drone": { es: "Posible dron", fr: "Drone possible" },
   "Not usual for this place": { es: "Poco habitual aquí", fr: "Inhabituel ici" },
   "Normal here": { es: "Normal aquí", fr: "Normal ici" },
+  "Possible jamming": { es: "Posible bloqueo de señal", fr: "Brouillage possible" },
 };
 
 const QUESTIONS: Translations = {
   "Is the signal on GPS dangerous, and what should I check?": {
     es: "¿Es peligrosa la señal en la banda GPS y qué debo revisar?",
     fr: "Le signal sur le GPS est-il dangereux, et que dois-je vérifier ?",
+  },
+  "What does possible jamming mean, and what should I check?": {
+    es: "¿Qué significa un posible bloqueo de señal y qué debo revisar?",
+    fr: "Que signifie un brouillage possible, et que dois-je vérifier ?",
   },
   "What should I do about the drone signals?": {
     es: "¿Qué debo hacer con las señales de drones?",
@@ -324,6 +357,7 @@ const SITE_QUESTION = /^What is normal at (.+), and why\?$/;
 
 const BADGES: Record<string, MessageKey> = {
   [EN["scan.demoBadge"]]: "scan.demoBadge",
+  [EN["scan.andrewBadge"]]: "scan.andrewBadge",
 };
 
 export function translate(language: Language, key: MessageKey, vars?: Record<string, string | number>) {

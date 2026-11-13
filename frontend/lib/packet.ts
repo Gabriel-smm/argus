@@ -7,7 +7,7 @@
  * but changing any value does. It shows a packet was not changed by accident or on the
  * way; it is not a signature, so it cannot prove who made the packet.
  */
-import type { AnalysisSummary, SiteGroup, SiteReport } from "@/hooks/use-analysis";
+import type { AnalysisSummary, JammingAssessment, SiteGroup, SiteReport } from "@/hooks/use-analysis";
 
 export const PACKET_VERSION = "0.1";
 const GROUPS: SiteGroup[] = ["needs_review", "unknown", "expected"];
@@ -56,6 +56,8 @@ export type PacketBody = {
   verdict: { code: SiteReport["verdict"]; headline: string };
   counts: Record<SiteGroup, number>;
   signals: PacketSignal[];
+  /** A flagged jamming assessment (the band as a whole), when the result has one. */
+  jamming?: JammingAssessment;
 };
 
 export type Packet = PacketBody & { fingerprint: { algorithm: "sha256"; value: string } };
@@ -109,6 +111,7 @@ export function packetBody(summary: AnalysisSummary, createdAt: Date): PacketBod
     verdict: { code: report.verdict, headline: report.headline },
     counts: report.counts,
     signals,
+    ...(report.jamming?.flagged ? { jamming: report.jamming } : {}),
   };
 }
 
@@ -169,6 +172,19 @@ function isLocationOrMissing(value: unknown) {
   );
 }
 
+function isJammingOrMissing(value: unknown) {
+  if (value === undefined) return true;
+  if (!value || typeof value !== "object") return false;
+  const item = value as Record<string, unknown>;
+  return (
+    typeof item.flagged === "boolean" &&
+    isString(item.reason) &&
+    isOptionalNumber(item.noise_rise_db) &&
+    (item.expected_missing === undefined ||
+      (Array.isArray(item.expected_missing) && item.expected_missing.every(isString)))
+  );
+}
+
 /** Check a packet's shape and fingerprint. A packet that fails either is not shown. */
 export async function openPacket(text: string): Promise<OpenResult> {
   let parsed: unknown;
@@ -194,6 +210,7 @@ export async function openPacket(text: string): Promise<OpenResult> {
   const verdict = body.verdict as { code?: unknown; headline?: unknown } | undefined;
   const valid =
     isLocationOrMissing(body.location) &&
+    isJammingOrMissing(body.jamming) &&
     (body.signals as unknown[]).every(isSignal) &&
     !!counts &&
     GROUPS.every((group) => isCount(counts[group])) &&
@@ -221,7 +238,8 @@ export function reportFromPacket(packet: Packet): SiteReport {
     headline: packet.verdict.headline,
     explain: "",
     counts: packet.counts,
-    total: packet.signals.length,
+    // From the counts: a jamming entry sits among the signals but is not one of them.
+    total: GROUPS.reduce((sum, group) => sum + packet.counts[group], 0),
     kinds: [...kinds.values()].sort(
       (a, b) => GROUPS.indexOf(a.worst) - GROUPS.indexOf(b.worst) || b.count - a.count,
     ),
@@ -229,5 +247,6 @@ export function reportFromPacket(packet: Packet): SiteReport {
     more_flagged: 0,
     signals: packet.signals,
     questions: [],
+    ...(packet.jamming ? { jamming: packet.jamming } : {}),
   };
 }

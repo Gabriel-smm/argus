@@ -6,7 +6,7 @@ import { RadarIcon } from "lucide-react";
 import { LocationLine } from "@/components/location-line";
 import { OpenPacketLink } from "@/components/packet";
 import { hasGpsInterference, type SensorLocation } from "@/lib/packet";
-import { SCAN_SWEEP_MS, type SiteGroup } from "@/hooks/use-analysis";
+import { SCAN_SWEEP_MS, SCENES, useAnalysis, type SiteGroup } from "@/hooks/use-analysis";
 import { translateBadge, useT, type MessageKey } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -125,13 +125,15 @@ export const ScanHero: FC<{
   error?: string | null;
 }> = ({ scanning, onScan, onShowLast, error }) => {
   const { t, language } = useT();
+  const sceneName = useAnalysis((s) => s.scene);
+  const setSceneName = useAnalysis((s) => s.setScene);
   const [scene, setScene] = useState<Scene | null>(null);
   const reduced = useReducedMotion();
   const elapsed = useElapsed(scanning && !reduced);
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/pipeline/scene")
+    fetch(`/api/pipeline/scene?name=${encodeURIComponent(sceneName)}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (!cancelled && data?.signals) setScene(data);
@@ -140,7 +142,7 @@ export const ScanHero: FC<{
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [sceneName]);
 
   const signals = scene?.signals ?? [];
   const firstPassDone = reduced || elapsed >= SWEEP_MS;
@@ -198,6 +200,35 @@ export const ScanHero: FC<{
           )}
         </div>
       </div>
+
+      {!scanning && (
+        <fieldset className="flex flex-wrap items-center gap-2">
+          <legend className="text-muted-foreground mb-1.5 text-xs font-medium tracking-wide uppercase">
+            {t("scene.choose")}
+          </legend>
+          {SCENES.map((name) => (
+            <label
+              key={name}
+              className={cn(
+                "has-[:focus-visible]:ring-ring/50 cursor-pointer rounded-full border px-3 py-1 text-sm transition-colors has-[:focus-visible]:ring-2 motion-reduce:transition-none",
+                sceneName === name
+                  ? "border-foreground bg-foreground text-background"
+                  : "hover:bg-muted/60",
+              )}
+            >
+              <input
+                type="radio"
+                name="scan-scene"
+                value={name}
+                checked={sceneName === name}
+                onChange={() => setSceneName(name)}
+                className="sr-only"
+              />
+              {t(`scene.${name}`)}
+            </label>
+          ))}
+        </fieldset>
+      )}
 
       <div>
         <div

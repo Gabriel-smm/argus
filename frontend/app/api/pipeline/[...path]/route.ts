@@ -16,6 +16,11 @@ async function handleRequest(req: NextRequest, method: string) {
 
   const apiUrl = process.env.PIPELINE_API_URL?.trim() || "http://127.0.0.1:8000";
   const path = req.nextUrl.pathname.replace(/^\/?api\/pipeline\//, "");
+  // Pass the query on (GET /scene?name=drone), minus the route's own catch-all parameter.
+  const search = new URLSearchParams(req.nextUrl.search);
+  search.delete("path");
+  search.delete("nxtPpath");
+  const query = search.toString() ? `?${search.toString()}` : "";
 
   const options: RequestInit = { method, signal: req.signal };
   if (method === "POST") {
@@ -29,7 +34,7 @@ async function handleRequest(req: NextRequest, method: string) {
 
   let res: Response;
   try {
-    res = await fetch(`${apiUrl}/${path}`, options);
+    res = await fetch(`${apiUrl}/${path}${query}`, options);
   } catch {
     return errorResponse("The Laya service is not running. Start it with `npm run dev`.", 503);
   }

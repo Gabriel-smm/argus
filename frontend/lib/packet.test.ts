@@ -91,6 +91,29 @@ test("a packet made before the location field still opens; a bad location does n
   assert.deepEqual(await openPacket(JSON.stringify(bad)), { ok: false, reason: "not_a_packet" });
 });
 
+test("a jamming result keeps its assessment through a packet", async () => {
+  const jammed = structuredClone(summary);
+  const report = jammed.site_report!;
+  const assessment = { flagged: true, reason: "Noise floor rose 18 dB.", noise_rise_db: 18, expected_missing: ["sensor bursts"] };
+  report.jamming = assessment;
+  report.counts = { needs_review: 0, unknown: 1, expected: 0 };
+  report.signals = [
+    { id: "jamming", group: "needs_review", title: "Possible jamming", kind: "Jamming", reason: "r", check_next: "c", protected: false },
+    signal("d1", "unknown", "Mystery signals"),
+  ];
+  const packet = await sealPacket(packetBody(jammed, when));
+  assert.deepEqual(packet.jamming, assessment);
+  const opened = await openPacket(JSON.stringify(packet));
+  assert.ok(opened.ok);
+  if (!opened.ok) return;
+  const rebuilt = reportFromPacket(opened.packet);
+  assert.deepEqual(rebuilt.jamming, assessment);
+  assert.equal(rebuilt.total, 1);
+  assert.deepEqual(rebuilt.kinds[0], { kind: "Jamming", count: 1, worst: "needs_review" });
+  // Packets without a jamming field have none.
+  assert.equal(packetBody(summary, when).jamming, undefined);
+});
+
 test("the file name carries the site and local time", () => {
   assert.equal(packetFileName("Notre Dame campus (demo site)", when), "argus-packet-notre-dame-campus-demo-site-2026-11-12-0905.json");
   assert.equal(packetFileName("!!!", when), "argus-packet-site-2026-11-12-0905.json");

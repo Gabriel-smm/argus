@@ -28,7 +28,20 @@ export type SiteReport = {
   /** Every signal, worst first, for the category buttons. */
   signals: SiteReport["flagged"];
   questions: string[];
+  /** A scene's jamming assessment, when flagged: the verdict is then "Possible jamming". */
+  jamming?: JammingAssessment;
 };
+
+export type JammingAssessment = {
+  flagged: boolean;
+  reason: string;
+  noise_rise_db?: number;
+  expected_missing?: string[];
+};
+
+/** The built-in scenes the Scan button can play (SCENES in pipeline/server.py). */
+export const SCENES = ["campus", "normal", "drone", "jamming"] as const;
+export type SceneName = (typeof SCENES)[number];
 
 export type AnalysisSummary = {
   knowledge_name: string;
@@ -48,7 +61,7 @@ export type AnalysisSummary = {
   site_check?: Record<SiteGroup, number>;
   site_report?: SiteReport | null;
   /** Set when the result came from the Scan button's built-in scene. */
-  scene?: { title: string; badge: string };
+  scene?: { name?: string; title: string; badge: string };
   /** Which site and reference files the site check used (pipeline/server.py _provenance). */
   provenance?: {
     site: { name: string; latitude?: number; longitude?: number; radius_km?: number; frequency_list?: string };
@@ -71,9 +84,12 @@ type AnalysisState = {
    * Laya service still holds an earlier result, and lasts only for this page session.
    */
   showResult: boolean;
+  /** The scene the Scan button plays, picked on the Scan page. */
+  scene: SceneName;
+  setScene: (scene: SceneName) => void;
   run: (knowledge: File[], data: File[]) => Promise<boolean>;
-  /** Run a built-in scene (no uploads), for the Scan button. */
-  scan: (scene?: string) => Promise<boolean>;
+  /** Run a built-in scene (no uploads), for the Scan button. Defaults to the picked one. */
+  scan: (scene?: SceneName) => Promise<boolean>;
   /** The "See last result" link: show a result left from an earlier run. */
   showLastResult: () => void;
   clear: () => Promise<void>;
@@ -140,6 +156,8 @@ export const useAnalysis = create<AnalysisState>((set, get) => {
   error: null,
   scanning: false,
   showResult: false,
+  scene: "campus",
+  setScene: (scene) => set({ scene }),
 
   run: async (knowledge, data) => {
     const upload = async (file: File) => ({ name: file.name, text: await file.text() });
@@ -152,7 +170,7 @@ export const useAnalysis = create<AnalysisState>((set, get) => {
     return ok;
   },
 
-  scan: async (scene = "campus") => {
+  scan: async (scene = get().scene) => {
     if (get().running || get().scanning) return false;
     const started = Date.now();
     set({ scanning: true, showResult: false });

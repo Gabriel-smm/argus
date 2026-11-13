@@ -42,8 +42,15 @@ const SHOWN_FIRST = 3;
  * The verdict in the chosen language. Rebuilt from the counts with the same wording as
  * build_site_report in pipeline/context.py, so it can be translated.
  */
-function verdictText(report: SiteReportData, t: (key: MessageKey, vars?: Record<string, string | number>) => string) {
+function verdictText(
+  report: SiteReportData,
+  t: (key: MessageKey, vars?: Record<string, string | number>) => string,
+): { headline: string; explain: string; explainInEnglish?: boolean } {
   const site = report.site;
+  if (report.jamming?.flagged) {
+    // The reason comes from the scenario's jamming assessment, in English.
+    return { headline: t("verdict.jamming"), explain: report.jamming.reason, explainInEnglish: true };
+  }
   if (report.verdict === "review") {
     const n = report.counts.needs_review;
     const form = n === 1 ? "one" : "other";
@@ -67,7 +74,7 @@ export const SiteReport: FC<{
   const [openKind, setOpenKind] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   const verdict = VERDICT_STYLE[report.verdict];
-  const { headline, explain } = verdictText(report, t);
+  const { headline, explain, explainInEnglish } = verdictText(report, t);
   const inKind = openKind ? report.signals.filter((item) => item.kind === openKind) : [];
   const shown = showAll ? inKind : inKind.slice(0, SHOWN_FIRST);
   const hidden = inKind.length - shown.length;
@@ -89,7 +96,12 @@ export const SiteReport: FC<{
         <verdict.Icon aria-hidden className={cn("mt-0.5 size-9 shrink-0", verdict.icon)} strokeWidth={1.75} />
         <div className="min-w-0">
           <p className="text-2xl font-medium tracking-tight">{headline}</p>
-          <p className="text-muted-foreground mt-1 text-sm">{explain}</p>
+          <p lang={explainInEnglish ? "en" : undefined} className="text-muted-foreground mt-1 text-sm">
+            {explain}
+          </p>
+          {explainInEnglish && language !== "en" && (
+            <p className="text-muted-foreground mt-1 text-xs italic">{t("report.detailsInEnglish")}</p>
+          )}
         </div>
       </div>
 
