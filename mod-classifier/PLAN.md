@@ -1,6 +1,6 @@
 # mod-classifier: build plan
 
-**Status:** plan only, nothing built yet. Written Nov 11, 2026 on branch `feat/modulation-classifier`.
+**Status:** this is the original design, written Nov 11, 2026 before anything was built, and kept as written. The pipeline has since been built and trained through wave 5; for the current state read [STATUS.md](STATUS.md). Where the two differ, STATUS.md is right.
 **Owner:** Odon (Ingest and Detection). **Format:** an orchestrator (the senior engineer who owns the design and every merge) directs 10 senior engineers, each owning one workstream with a written interface.
 
 Everything under `mod-classifier/` is the training side of this feature: data fetchers, preprocessing, models, training, evaluation, export. Nothing here runs inside the live app until the integration step (section 11).
