@@ -1,0 +1,1334 @@
+diff -ruN -x __pycache__ -x .pytest_cache -x node_modules argus2/argus-main/data/contract/library_sample.json work/data/contract/library_sample.json
+--- a/data/contract/library_sample.json	1970-01-01 00:00:00.000000000 +0000
++++ b/data/contract/library_sample.json	2026-11-10 23:01:14.895435102 +0000
+@@ -0,0 +1,53 @@
++[
++  {
++    "entry_id": "lib-wifi-24",
++    "name": "Wi-Fi (2.4 GHz)",
++    "signal_class": "wifi",
++    "typical_freq": {
++      "min_hz": 2400000000.0,
++      "max_hz": 2483500000.0
++    },
++    "typical_bandwidth_hz": {
++      "min_hz": 20000000.0,
++      "max_hz": 40000000.0
++    },
++    "typical_pattern": "continuous",
++    "plain_english": "Ordinary Wi-Fi. Stays on a fixed channel and is wide and steady.",
++    "source": "placeholder",
++    "licence": "TBD"
++  },
++  {
++    "entry_id": "lib-bt",
++    "name": "Bluetooth",
++    "signal_class": "bluetooth",
++    "typical_freq": {
++      "min_hz": 2400000000.0,
++      "max_hz": 2483500000.0
++    },
++    "typical_bandwidth_hz": {
++      "min_hz": 1000000.0,
++      "max_hz": 2000000.0
++    },
++    "typical_pattern": "hopping",
++    "plain_english": "Short-range device link. Narrow, hops between channels.",
++    "source": "placeholder",
++    "licence": "TBD"
++  },
++  {
++    "entry_id": "lib-drone-ctl",
++    "name": "Drone control link (generic)",
++    "signal_class": "drone",
++    "typical_freq": {
++      "min_hz": 2400000000.0,
++      "max_hz": 5850000000.0
++    },
++    "typical_bandwidth_hz": {
++      "min_hz": 1000000.0,
++      "max_hz": 20000000.0
++    },
++    "typical_pattern": "hopping",
++    "plain_english": "Short hopping bursts on 2.4 or 5.8 GHz that a campus profile has not shown. Often a drone controller or video link.",
++    "source": "placeholder",
++    "licence": "TBD"
++  }
++]
+diff -ruN -x __pycache__ -x .pytest_cache -x node_modules argus2/argus-main/data/contract/scenario_drone.json work/data/contract/scenario_drone.json
+--- a/data/contract/scenario_drone.json	1970-01-01 00:00:00.000000000 +0000
++++ b/data/contract/scenario_drone.json	2026-11-10 23:01:14.995435098 +0000
+@@ -0,0 +1,201 @@
++{
++  "schema_version": "0.1.0",
++  "generated_at": "2026-11-13T15:02:00Z",
++  "capture": {
++    "capture_id": "cap-drone-001",
++    "started_at": "2026-11-13T15:00:00Z",
++    "source_type": "sweep_file",
++    "device": "hackrf-one",
++    "freq_range": {
++      "min_hz": 2400000000.0,
++      "max_hz": 2500000000.0
++    },
++    "site_id": "campus-demo",
++    "sensor_location": {
++      "lat": 41.705,
++      "lon": -86.235,
++      "accuracy_m": 15,
++      "source": "manual"
++    },
++    "passive_only": true,
++    "notes": "ILLUSTRATIVE values, not a real capture"
++  },
++  "detections": [
++    {
++      "detection_id": "d1",
++      "capture_id": "cap-drone-001",
++      "center_freq_hz": 2437000000.0,
++      "bandwidth_hz": 20000000.0,
++      "peak_power_dbm": -48,
++      "snr_db": 30,
++      "duty_cycle": 0.9,
++      "burst_pattern": "continuous"
++    },
++    {
++      "detection_id": "d2",
++      "capture_id": "cap-drone-001",
++      "center_freq_hz": 2440000000.0,
++      "bandwidth_hz": 1000000.0,
++      "peak_power_dbm": -62,
++      "snr_db": 18,
++      "duty_cycle": 0.3,
++      "burst_pattern": "hopping",
++      "hop_count": 40
++    },
++    {
++      "detection_id": "d3",
++      "capture_id": "cap-drone-001",
++      "center_freq_hz": 2442500000.0,
++      "bandwidth_hz": 8000000.0,
++      "peak_power_dbm": -55,
++      "snr_db": 24,
++      "duty_cycle": 0.12,
++      "burst_pattern": "hopping",
++      "hop_count": 75
++    },
++    {
++      "detection_id": "d4",
++      "capture_id": "cap-drone-001",
++      "center_freq_hz": 2470000000.0,
++      "bandwidth_hz": 3000000.0,
++      "peak_power_dbm": -80,
++      "snr_db": 6,
++      "duty_cycle": 0.5,
++      "burst_pattern": "bursty"
++    }
++  ],
++  "classifications": [
++    {
++      "detection_id": "d1",
++      "method": "ml",
++      "model_name": "placeholder-6class",
++      "model_version": "0.0",
++      "label": "wifi",
++      "confidence": 0.97,
++      "top3": [
++        {
++          "label": "wifi",
++          "confidence": 0.97
++        }
++      ],
++      "reasons": [
++        "20 MHz wide and steady on channel 6"
++      ]
++    },
++    {
++      "detection_id": "d2",
++      "method": "ml",
++      "model_name": "placeholder-6class",
++      "model_version": "0.0",
++      "label": "bluetooth",
++      "confidence": 0.86,
++      "top3": [
++        {
++          "label": "bluetooth",
++          "confidence": 0.86
++        }
++      ],
++      "reasons": [
++        "narrow, hops between channels"
++      ]
++    },
++    {
++      "detection_id": "d3",
++      "method": "ml",
++      "model_name": "placeholder-6class",
++      "model_version": "0.0",
++      "label": "drone",
++      "confidence": 0.91,
++      "top3": [
++        {
++          "label": "drone",
++          "confidence": 0.91
++        },
++        {
++          "label": "bluetooth",
++          "confidence": 0.06
++        },
++        {
++          "label": "wifi",
++          "confidence": 0.03
++        }
++      ],
++      "reasons": [
++        "short hopping bursts across 2.4 GHz",
++        "pattern not in campus profile"
++      ]
++    },
++    {
++      "detection_id": "d4",
++      "method": "ml",
++      "model_name": "placeholder-6class",
++      "model_version": "0.0",
++      "label": "unknown",
++      "confidence": 0.42,
++      "top3": [
++        {
++          "label": "unknown",
++          "confidence": 0.42
++        }
++      ],
++      "reasons": [
++        "weak, does not match any library entry"
++      ]
++    }
++  ],
++  "verdicts": [
++    {
++      "detection_id": "d1",
++      "disposition": "blue",
++      "affiliation": "civilian",
++      "reason": "Wi-Fi on a channel this site expects.",
++      "rule_id": "expected-wifi-24",
++      "profile_id": "campus-demo",
++      "profile_version": "0.1",
++      "confidence": 0.97,
++      "blue_min_confidence": 0.8,
++      "next_step": "No action.",
++      "use_case": "site_baseline"
++    },
++    {
++      "detection_id": "d2",
++      "disposition": "blue",
++      "affiliation": "civilian",
++      "reason": "Bluetooth hopping, normal for a campus.",
++      "rule_id": "expected-bluetooth",
++      "profile_id": "campus-demo",
++      "profile_version": "0.1",
++      "confidence": 0.86,
++      "blue_min_confidence": 0.8,
++      "next_step": "No action.",
++      "use_case": "site_baseline"
++    },
++    {
++      "detection_id": "d3",
++      "disposition": "red",
++      "affiliation": "possible_threat",
++      "reason": "Short hopping bursts across 2.4 GHz that this site's profile has never shown.",
++      "rule_id": "threat-class-drone",
++      "profile_id": "campus-demo",
++      "profile_version": "0.1",
++      "confidence": 0.91,
++      "blue_min_confidence": 0.8,
++      "next_step": "Report to security with time and location; watch for a 5.8 GHz video link.",
++      "use_case": "drone"
++    },
++    {
++      "detection_id": "d4",
++      "disposition": "white",
++      "affiliation": "unknown",
++      "reason": "Too weak to name; confidence below the 0.80 bar for blue.",
++      "rule_id": "low-confidence-white",
++      "profile_id": "campus-demo",
++      "profile_version": "0.1",
++      "confidence": 0.42,
++      "blue_min_confidence": 0.8,
++      "next_step": "Re-scan closer to the source or note it for review.",
++      "use_case": "site_baseline"
++    }
++  ],
++  "jamming": null
++}
+diff -ruN -x __pycache__ -x .pytest_cache -x node_modules argus2/argus-main/data/contract/scenario_jamming.json work/data/contract/scenario_jamming.json
+--- a/data/contract/scenario_jamming.json	1970-01-01 00:00:00.000000000 +0000
++++ b/data/contract/scenario_jamming.json	2026-11-10 23:01:15.115435093 +0000
+@@ -0,0 +1,93 @@
++{
++  "schema_version": "0.1.0",
++  "generated_at": "2026-11-13T15:30:00Z",
++  "capture": {
++    "capture_id": "cap-jam-001",
++    "started_at": "2026-11-13T15:00:00Z",
++    "source_type": "sweep_file",
++    "device": "hackrf-one",
++    "freq_range": {
++      "min_hz": 895000000.0,
++      "max_hz": 935000000.0
++    },
++    "site_id": "campus-demo",
++    "sensor_location": {
++      "lat": 41.705,
++      "lon": -86.235,
++      "accuracy_m": 15,
++      "source": "manual"
++    },
++    "passive_only": true,
++    "notes": "ILLUSTRATIVE values, not a real capture"
++  },
++  "detections": [
++    {
++      "detection_id": "d1",
++      "capture_id": "cap-jam-001",
++      "center_freq_hz": 915000000.0,
++      "bandwidth_hz": 26000000.0,
++      "peak_power_dbm": -70,
++      "snr_db": 8,
++      "duty_cycle": 1.0,
++      "burst_pattern": "continuous",
++      "noise_floor_dbm": -78
++    }
++  ],
++  "classifications": [
++    {
++      "detection_id": "d1",
++      "method": "ml",
++      "model_name": "placeholder-6class",
++      "model_version": "0.0",
++      "label": "other",
++      "confidence": 0.55,
++      "top3": [
++        {
++          "label": "other",
++          "confidence": 0.55
++        },
++        {
++          "label": "unknown",
++          "confidence": 0.3
++        },
++        {
++          "label": "ism_iot",
++          "confidence": 0.1
++        }
++      ],
++      "reasons": [
++        "wide, flat, noise-like energy across the band"
++      ]
++    }
++  ],
++  "verdicts": [
++    {
++      "detection_id": "d1",
++      "disposition": "white",
++      "affiliation": "unknown",
++      "reason": "Wide noise-like energy; not enough confidence to call it expected or hostile. See jamming assessment.",
++      "rule_id": "low-confidence-white",
++      "profile_id": "campus-demo",
++      "profile_version": "0.1",
++      "confidence": 0.55,
++      "blue_min_confidence": 0.8,
++      "next_step": "Check the jamming assessment and report a possible interference event.",
++      "use_case": "jamming"
++    }
++  ],
++  "jamming": {
++    "band": {
++      "min_hz": 902000000.0,
++      "max_hz": 928000000.0
++    },
++    "baseline_noise_floor_dbm": -96.0,
++    "observed_noise_floor_dbm": -78.0,
++    "noise_rise_db": 18.0,
++    "expected_missing": [
++      "ism_iot sensor bursts near 915 MHz"
++    ],
++    "flagged": true,
++    "confidence": 0.8,
++    "reason": "Noise floor rose 18 dB over this site's baseline and the usual sensor traffic disappeared."
++  }
++}
+diff -ruN -x __pycache__ -x .pytest_cache -x node_modules argus2/argus-main/data/contract/scenario_normal.json work/data/contract/scenario_normal.json
+--- a/data/contract/scenario_normal.json	1970-01-01 00:00:00.000000000 +0000
++++ b/data/contract/scenario_normal.json	2026-11-10 23:01:15.251435086 +0000
+@@ -0,0 +1,105 @@
++{
++  "schema_version": "0.1.0",
++  "generated_at": "2026-11-13T16:00:00Z",
++  "capture": {
++    "capture_id": "cap-normal-001",
++    "started_at": "2026-11-13T15:00:00Z",
++    "source_type": "sweep_file",
++    "device": "hackrf-one",
++    "freq_range": {
++      "min_hz": 2400000000.0,
++      "max_hz": 2500000000.0
++    },
++    "site_id": "campus-demo",
++    "sensor_location": {
++      "lat": 41.705,
++      "lon": -86.235,
++      "accuracy_m": 15,
++      "source": "manual"
++    },
++    "passive_only": true,
++    "notes": "ILLUSTRATIVE values, not a real capture"
++  },
++  "detections": [
++    {
++      "detection_id": "d1",
++      "capture_id": "cap-normal-001",
++      "center_freq_hz": 2437000000.0,
++      "bandwidth_hz": 20000000.0,
++      "snr_db": 32,
++      "duty_cycle": 0.9,
++      "burst_pattern": "continuous"
++    },
++    {
++      "detection_id": "d2",
++      "capture_id": "cap-normal-001",
++      "center_freq_hz": 2441000000.0,
++      "bandwidth_hz": 1000000.0,
++      "snr_db": 20,
++      "duty_cycle": 0.3,
++      "burst_pattern": "hopping",
++      "hop_count": 38
++    }
++  ],
++  "classifications": [
++    {
++      "detection_id": "d1",
++      "method": "ml",
++      "model_name": "placeholder-6class",
++      "model_version": "0.0",
++      "label": "wifi",
++      "confidence": 0.96,
++      "top3": [
++        {
++          "label": "wifi",
++          "confidence": 0.96
++        }
++      ],
++      "reasons": []
++    },
++    {
++      "detection_id": "d2",
++      "method": "ml",
++      "model_name": "placeholder-6class",
++      "model_version": "0.0",
++      "label": "bluetooth",
++      "confidence": 0.88,
++      "top3": [
++        {
++          "label": "bluetooth",
++          "confidence": 0.88
++        }
++      ],
++      "reasons": []
++    }
++  ],
++  "verdicts": [
++    {
++      "detection_id": "d1",
++      "disposition": "blue",
++      "affiliation": "civilian",
++      "reason": "Wi-Fi on a channel this site expects.",
++      "rule_id": "expected-wifi-24",
++      "profile_id": "campus-demo",
++      "profile_version": "0.1",
++      "confidence": 0.96,
++      "blue_min_confidence": 0.8,
++      "next_step": "No action.",
++      "use_case": "site_baseline"
++    },
++    {
++      "detection_id": "d2",
++      "disposition": "blue",
++      "affiliation": "civilian",
++      "reason": "Bluetooth hopping, normal for a campus.",
++      "rule_id": "expected-bluetooth",
++      "profile_id": "campus-demo",
++      "profile_version": "0.1",
++      "confidence": 0.88,
++      "blue_min_confidence": 0.8,
++      "next_step": "No action.",
++      "use_case": "site_baseline"
++    }
++  ],
++  "jamming": null
++}
+diff -ruN -x __pycache__ -x .pytest_cache -x node_modules argus2/argus-main/data/contract/site_profile_campus.json work/data/contract/site_profile_campus.json
+--- a/data/contract/site_profile_campus.json	1970-01-01 00:00:00.000000000 +0000
++++ b/data/contract/site_profile_campus.json	2026-11-10 23:01:15.339435082 +0000
+@@ -0,0 +1,105 @@
++{
++  "profile_id": "campus-demo",
++  "version": "0.1",
++  "name": "Campus (demo placeholder)",
++  "site_type": "campus",
++  "location": {
++    "lat": 41.705,
++    "lon": -86.235,
++    "accuracy_m": 15,
++    "source": "manual"
++  },
++  "expected": [
++    {
++      "label": "wifi",
++      "freq": {
++        "min_hz": 2400000000.0,
++        "max_hz": 2483500000.0
++      },
++      "max_bandwidth_hz": 40000000.0,
++      "allowed_patterns": [
++        "continuous",
++        "bursty"
++      ],
++      "affiliation": "civilian",
++      "note": "Campus Wi-Fi, 2.4 GHz"
++    },
++    {
++      "label": "wifi",
++      "freq": {
++        "min_hz": 5150000000.0,
++        "max_hz": 5850000000.0
++      },
++      "max_bandwidth_hz": 160000000.0,
++      "allowed_patterns": [
++        "continuous",
++        "bursty"
++      ],
++      "affiliation": "civilian",
++      "note": "Campus Wi-Fi, 5 GHz"
++    },
++    {
++      "label": "bluetooth",
++      "freq": {
++        "min_hz": 2400000000.0,
++        "max_hz": 2483500000.0
++      },
++      "max_bandwidth_hz": 2000000.0,
++      "allowed_patterns": [
++        "hopping",
++        "bursty"
++      ],
++      "affiliation": "civilian"
++    },
++    {
++      "label": "cellular",
++      "freq": {
++        "min_hz": 698000000.0,
++        "max_hz": 960000000.0
++      },
++      "allowed_patterns": [
++        "continuous"
++      ],
++      "affiliation": "civilian",
++      "note": "LTE low bands"
++    },
++    {
++      "label": "cellular",
++      "freq": {
++        "min_hz": 1710000000.0,
++        "max_hz": 2200000000.0
++      },
++      "allowed_patterns": [
++        "continuous"
++      ],
++      "affiliation": "civilian",
++      "note": "LTE mid bands"
++    },
++    {
++      "label": "ism_iot",
++      "freq": {
++        "min_hz": 902000000.0,
++        "max_hz": 928000000.0
++      },
++      "max_bandwidth_hz": 500000.0,
++      "allowed_patterns": [
++        "bursty",
++        "pulsed"
++      ],
++      "affiliation": "civilian",
++      "note": "LoRa / sensors"
++    }
++  ],
++  "threat_classes": [
++    "drone"
++  ],
++  "blue_min_confidence": 0.8,
++  "jamming_noise_rise_db": 10.0,
++  "baseline_noise_floor_dbm": {
++    "ism_902_928": -96.0
++  },
++  "owner": "Diana Lara (placeholder)",
++  "approved_by": null,
++  "approved_on": null,
++  "review_due": null
++}
+diff -ruN -x __pycache__ -x .pytest_cache -x node_modules argus2/argus-main/pipeline/adapter.py work/pipeline/adapter.py
+--- a/pipeline/adapter.py	1970-01-01 00:00:00.000000000 +0000
++++ b/pipeline/adapter.py	2026-11-10 23:01:36.102996913 +0000
+@@ -0,0 +1,84 @@
++"""Turn Laya's rows into the Argus data contract (pipeline/schema.py)."""
++
++from datetime import datetime, timezone
++
++from pipeline import judge
++from pipeline.schema import (
++    BurstPattern,
++    Candidate,
++    Capture,
++    Classification,
++    Detection,
++    Method,
++    PipelineResult,
++    SignalClass,
++    SourceType,
++)
++
++# Which Laya question names the signal type.
++QUESTION = "mode"
++# Laya answer -> contract label. Update this when the model's classes change
++# (for example when the 6-class model replaces the shortwave one).
++LABEL_MAP = {
++    **{c.value: c for c in SignalClass},
++    **dict.fromkeys(
++        ("morse", "psk", "rtty", "olivia", "dominoex", "mt63", "navtex", "weather_fax"),
++        SignalClass.OTHER,
++    ),
++}
++
++
++def _label(answer):
++    return LABEL_MAP.get(answer, SignalClass.UNKNOWN)
++
++
++def _detection(observation, capture_id):
++    optional = {
++        key: observation[key]
++        for key in ("snr_db", "duty_cycle", "peak_power_dbm", "noise_floor_dbm", "hop_count")
++        if observation.get(key) is not None
++    }
++    pattern = observation.get("burst_pattern")
++    if pattern in {p.value for p in BurstPattern}:
++        optional["burst_pattern"] = pattern
++    return Detection(
++        detection_id=str(observation["id"]),
++        capture_id=capture_id,
++        center_freq_hz=max(observation["center_frequency_hz"], 1),
++        bandwidth_hz=max(observation["bandwidth_hz"], 1),
++        **optional,
++    )
++
++
++def build_result(rows, observations, names, profile, question=QUESTION):
++    """rows are analysis.run() output; observations are the rows Laya was given."""
++    capture = Capture(
++        capture_id=names["data"] or "upload",
++        started_at=datetime.now(timezone.utc),
++        source_type=SourceType.DATASET,
++        site_id=profile.profile_id,
++    )
++    detections = [_detection(o, capture.capture_id) for o in observations]
++    classifications = []
++    for row in rows:
++        choice, confidence = row["answers"][question]
++        classifications.append(
++            Classification(
++                detection_id=str(row["id"]),
++                method=Method.ML,
++                model_name="laya",
++                label=_label(choice),
++                confidence=confidence,
++                top3=[Candidate(label=_label(choice), confidence=confidence)],
++                reasons=[row["state"]],
++            )
++        )
++    by_id = {d.detection_id: d for d in detections}
++    verdicts = [judge.judge(by_id[c.detection_id], c, profile) for c in classifications]
++    return PipelineResult(
++        generated_at=datetime.now(timezone.utc),
++        capture=capture,
++        detections=detections,
++        classifications=classifications,
++        verdicts=verdicts,
++    )
+diff -ruN -x __pycache__ -x .pytest_cache -x node_modules argus2/argus-main/pipeline/context.py work/pipeline/context.py
+--- a/pipeline/context.py	2026-11-05 00:56:51.000000000 +0000
++++ b/pipeline/context.py	2026-11-10 23:01:48.387433598 +0000
+@@ -88,3 +88,26 @@
+         ),
+         "seconds": round(seconds, 1),
+     }
++
++
++def build_verdict_context(result):
++    """The judged result, in words the chat model can quote without counting."""
++    verdicts = result["verdicts"]
++    by_id = {c["detection_id"]: c for c in result["classifications"]}
++    detections = {d["detection_id"]: d for d in result["detections"]}
++    counts = {name: sum(v["disposition"] == name for v in verdicts) for name in ("blue", "white", "red")}
++    lines = [
++        "",
++        "Site verdicts (blue = expected here, white = unknown, red = not expected here):",
++        f"- blue: {counts['blue']}, white: {counts['white']}, red: {counts['red']}",
++        "Every red and white verdict, with the reason the judging step gave:",
++    ]
++    for v in verdicts:
++        if v["disposition"] == "blue":
++            continue
++        d, c = detections[v["detection_id"]], by_id[v["detection_id"]]
++        lines.append(
++            f"- {v['detection_id']}: {v['disposition'].upper()}, {c['label']} at {c['confidence']:.2f}, "
++            f"{d['center_freq_hz'] / 1e6:.4g} MHz; {v['reason']} Next step: {v['next_step']}"
++        )
++    return "\n".join(lines)
+diff -ruN -x __pycache__ -x .pytest_cache -x node_modules argus2/argus-main/pipeline/judge.py work/pipeline/judge.py
+--- a/pipeline/judge.py	1970-01-01 00:00:00.000000000 +0000
++++ b/pipeline/judge.py	2026-11-10 23:01:36.100132021 +0000
+@@ -0,0 +1,98 @@
++"""Decide blue / white / red for one classified detection, using a site profile.
++
++The rules live here; the POLICY (what is expected, how sure we must be) lives in the
++site profile file, so the policy owner can change it without touching Python.
++"""
++
++import json
++from pathlib import Path
++
++from pipeline.schema import (
++    Affiliation,
++    BurstPattern,
++    Classification,
++    Detection,
++    Disposition,
++    ExpectedSignal,
++    SignalClass,
++    SiteProfile,
++    UseCase,
++    Verdict,
++)
++
++DEFAULT_PROFILE = Path(__file__).resolve().parents[1] / "data" / "contract" / "site_profile_campus.json"
++# DECISION (policy owner): how sure we must be before calling something a threat.
++RED_MIN_CONFIDENCE = 0.5
++
++
++def load_profile(path=DEFAULT_PROFILE):
++    return SiteProfile.model_validate(json.loads(Path(path).read_text()))
++
++
++def _matches(entry: ExpectedSignal, detection: Detection, label: SignalClass):
++    if entry.label != label or not entry.freq.contains(detection.center_freq_hz):
++        return False
++    if entry.max_bandwidth_hz and detection.bandwidth_hz > entry.max_bandwidth_hz:
++        return False
++    known = detection.burst_pattern != BurstPattern.UNKNOWN
++    return not (entry.allowed_patterns and known and detection.burst_pattern not in entry.allowed_patterns)
++
++
++def _verdict(detection, disposition, affiliation, reason, rule, confidence, profile, next_step, use_case):
++    return Verdict(
++        detection_id=detection.detection_id,
++        disposition=disposition,
++        affiliation=affiliation,
++        reason=reason,
++        rule_id=rule,
++        profile_id=profile.profile_id,
++        profile_version=profile.version,
++        confidence=confidence,
++        blue_min_confidence=profile.blue_min_confidence,
++        next_step=next_step,
++        use_case=use_case,
++    )
++
++
++def judge(detection: Detection, classification: Classification, profile: SiteProfile) -> Verdict:
++    label, confidence = classification.label, classification.confidence
++    expected = next((e for e in profile.expected if _matches(e, detection, label)), None)
++
++    # 1. A threat class this site does not list: red if we are sure enough, else white.
++    if label in profile.threat_classes and expected is None:
++        if confidence >= RED_MIN_CONFIDENCE:
++            return _verdict(
++                detection, Disposition.RED, Affiliation.POSSIBLE_THREAT,
++                f"Looks like a {label.value} signal, and this site's profile does not expect one.",
++                "threat-class-not-expected", confidence, profile,
++                "Report to security with the time and location.", UseCase.DRONE,
++            )
++        return _verdict(
++            detection, Disposition.WHITE, Affiliation.UNKNOWN,
++            f"Might be a {label.value} signal, but the model is not sure enough to alarm.",
++            "threat-low-confidence", confidence, profile,
++            "Re-scan closer to the source and review.", UseCase.DRONE,
++        )
++    # 2. Low confidence is never blue.
++    if confidence < profile.blue_min_confidence:
++        return _verdict(
++            detection, Disposition.WHITE, Affiliation.UNKNOWN,
++            f"Confidence {confidence:.2f} is below the {profile.blue_min_confidence:.2f} bar for blue.",
++            "low-confidence-white", confidence, profile,
++            "Re-scan or note it for review.", UseCase.SITE_BASELINE,
++        )
++    # 3. Matches something this site expects.
++    if expected is not None:
++        return _verdict(
++            detection, Disposition.BLUE, expected.affiliation,
++            expected.note or f"A {label.value} signal this site expects.",
++            f"expected-{label.value}", confidence, profile, "No action.", UseCase.SITE_BASELINE,
++        )
++    # 4. Recognised but not in the profile, or not recognised at all.
++    return _verdict(
++        detection, Disposition.WHITE, Affiliation.UNKNOWN,
++        "Not in this site's profile, so it cannot be called expected."
++        if label != SignalClass.UNKNOWN else "Could not be matched to a known signal.",
++        "not-in-profile", confidence, profile, "Review and consider adding it to the profile.",
++        UseCase.SITE_BASELINE,
++    )
+diff -ruN -x __pycache__ -x .pytest_cache -x node_modules argus2/argus-main/pipeline/schema.py work/pipeline/schema.py
+--- a/pipeline/schema.py	1970-01-01 00:00:00.000000000 +0000
++++ b/pipeline/schema.py	2026-11-10 23:01:14.764456370 +0000
+@@ -0,0 +1,316 @@
++"""
++Argus data contract, v0.1.0 (DRAFT for team review).
++
++One typed record per pipeline stage, so every teammate builds against the same shapes:
++
++    Capture -> Detection -> Classification -> Verdict   (+ JammingAssessment)
++                                  ^                ^
++                           LibraryEntry        SiteProfile
++
++Rules enforced in code (change them here, in one place):
++  * Receive-only: Capture.passive_only is always True.
++  * A Verdict can only be BLUE if confidence >= the site's blue threshold.
++  * Every classification / verdict points at a real detection.
++  * Verdict confidence equals the classification confidence it was based on.
++
++Locations are where the SENSOR was, not where the emitter is (one sensor cannot localize).
++Edit freely: search for "DECISION" to find choices the team still needs to make.
++"""
++from __future__ import annotations
++
++from datetime import date, datetime
++from enum import Enum
++from typing import Literal, Optional
++
++from pydantic import BaseModel, ConfigDict, Field, model_validator
++
++SCHEMA_VERSION = "0.1.0"
++
++
++class Base(BaseModel):
++    model_config = ConfigDict(extra="forbid")
++
++
++# ----------------------------------------------------------------------------
++# Enums
++# ----------------------------------------------------------------------------
++class SignalClass(str, Enum):
++    # DECISION: drone is its own class (not folded into "other").
++    WIFI = "wifi"
++    BLUETOOTH = "bluetooth"
++    CELLULAR = "cellular"
++    ISM_IOT = "ism_iot"
++    PULSED_RADAR = "pulsed_radar"
++    DRONE = "drone"
++    OTHER = "other"
++    UNKNOWN = "unknown"  # the "I don't know" answer
++
++
++class BurstPattern(str, Enum):
++    CONTINUOUS = "continuous"
++    BURSTY = "bursty"
++    HOPPING = "hopping"
++    PULSED = "pulsed"
++    UNKNOWN = "unknown"
++
++
++class Disposition(str, Enum):
++    BLUE = "blue"    # expected here
++    WHITE = "white"  # unknown / not enough confidence
++    RED = "red"      # not expected here
++
++
++class Affiliation(str, Enum):
++    # DECISION: the project summary says ours / civilian / possible threat,
++    # the pitch deck says expected / unknown / hostile. Both are kept for now;
++    # pick one vocabulary and delete the other.
++    OURS = "ours"
++    CIVILIAN = "civilian"
++    POSSIBLE_THREAT = "possible_threat"
++    UNKNOWN = "unknown"
++
++
++class UseCase(str, Enum):
++    DRONE = "drone"
++    JAMMING = "jamming"
++    SITE_BASELINE = "site_baseline"
++
++
++class SourceType(str, Enum):
++    LIVE_SDR = "live_sdr"
++    IQ_FILE = "iq_file"
++    SWEEP_FILE = "sweep_file"
++    DATASET = "dataset"
++
++
++class Method(str, Enum):
++    ML = "ml"
++    LOOKUP = "lookup"
++    RULE = "rule"
++
++
++class SiteType(str, Enum):
++    CAMPUS = "campus"
++    POWER_PLANT = "power_plant"
++    FIELD_FORWARD = "field_forward"
++    OTHER = "other"
++
++
++class LocationSource(str, Enum):
++    GPS = "gps"
++    MANUAL = "manual"
++    MAP_PIN = "map_pin"
++
++
++# ----------------------------------------------------------------------------
++# Small shared pieces
++# ----------------------------------------------------------------------------
++class FreqRange(Base):
++    min_hz: float = Field(gt=0)
++    max_hz: float = Field(gt=0)
++
++    @model_validator(mode="after")
++    def _ordered(self):
++        if self.min_hz > self.max_hz:
++            raise ValueError("min_hz must be <= max_hz")
++        return self
++
++    def contains(self, hz: float) -> bool:
++        return self.min_hz <= hz <= self.max_hz
++
++
++class GeoPoint(Base):
++    lat: float = Field(ge=-90, le=90)
++    lon: float = Field(ge=-180, le=180)
++    accuracy_m: Optional[float] = Field(default=None, ge=0)
++    source: LocationSource = LocationSource.GPS
++
++
++# ----------------------------------------------------------------------------
++# Stage 1: Capture (one recording or sweep)
++# ----------------------------------------------------------------------------
++class Capture(Base):
++    capture_id: str
++    started_at: datetime
++    source_type: SourceType
++    device: Optional[str] = None            # e.g. "rtl-sdr-v4", "hackrf-one"
++    sample_rate_hz: Optional[float] = Field(default=None, gt=0)
++    freq_range: Optional[FreqRange] = None  # what the radio covered
++    gain_db: Optional[float] = None
++    file_name: Optional[str] = None
++    site_id: Optional[str] = None
++    sensor_location: Optional[GeoPoint] = None  # where the SENSOR was
++    passive_only: Literal[True] = True          # receive-only, always
++    notes: Optional[str] = None
++
++
++# ----------------------------------------------------------------------------
++# Stage 2: Detection (one signal found in a capture; output of the Python detector)
++# ----------------------------------------------------------------------------
++class Detection(Base):
++    detection_id: str
++    capture_id: str
++    center_freq_hz: float = Field(gt=0)
++    bandwidth_hz: float = Field(gt=0)
++    peak_power_dbm: Optional[float] = None
++    snr_db: Optional[float] = None
++    noise_floor_dbm: Optional[float] = None
++    duty_cycle: Optional[float] = Field(default=None, ge=0, le=1)
++    burst_pattern: BurstPattern = BurstPattern.UNKNOWN
++    hop_count: Optional[int] = Field(default=None, ge=0)
++    first_seen: Optional[datetime] = None
++    last_seen: Optional[datetime] = None
++    sensor_location: Optional[GeoPoint] = None  # sensor position when heard
++
++
++# ----------------------------------------------------------------------------
++# Stage 3: Classification (output of the ML model or the lookup table)
++# ----------------------------------------------------------------------------
++class Candidate(Base):
++    label: SignalClass
++    confidence: float = Field(ge=0, le=1)
++
++
++class Classification(Base):
++    detection_id: str
++    method: Method
++    model_name: Optional[str] = None      # e.g. "lightgbm-6class" or "laya-rf-modes"
++    model_version: Optional[str] = None
++    label: SignalClass
++    confidence: float = Field(ge=0, le=1)
++    top3: list[Candidate] = Field(default_factory=list, max_length=3)
++    reasons: list[str] = Field(default_factory=list)  # short, plain-English
++    library_entry_id: Optional[str] = None            # set when lookup matched
++
++    @model_validator(mode="after")
++    def _top3_sorted(self):
++        confs = [c.confidence for c in self.top3]
++        if confs != sorted(confs, reverse=True):
++            raise ValueError("top3 must be sorted by confidence, highest first")
++        return self
++
++
++# ----------------------------------------------------------------------------
++# Reference data: the "field guide" (rare signals + plain-English text)
++# ----------------------------------------------------------------------------
++class LibraryEntry(Base):
++    entry_id: str
++    name: str
++    signal_class: SignalClass
++    typical_freq: Optional[FreqRange] = None
++    typical_bandwidth_hz: Optional[FreqRange] = None  # min/max reuse FreqRange shape
++    typical_pattern: BurstPattern = BurstPattern.UNKNOWN
++    plain_english: str
++    source: str                       # where the entry came from
++    licence: str = "TBD"              # confirm before shipping
++
++
++# ----------------------------------------------------------------------------
++# Site profile (what is normal here). Policy lives here, not in code.
++# ----------------------------------------------------------------------------
++class ExpectedSignal(Base):
++    label: SignalClass
++    freq: FreqRange
++    max_bandwidth_hz: Optional[float] = Field(default=None, gt=0)
++    allowed_patterns: list[BurstPattern] = Field(default_factory=list)  # empty = any
++    affiliation: Affiliation = Affiliation.CIVILIAN
++    note: Optional[str] = None
++
++
++class SiteProfile(Base):
++    profile_id: str
++    version: str
++    name: str
++    site_type: SiteType
++    location: Optional[GeoPoint] = None
++    expected: list[ExpectedSignal]
++    # Classes that are RED when seen and not listed in `expected`.
++    threat_classes: list[SignalClass] = Field(default_factory=lambda: [SignalClass.DRONE])
++    # DECISION: confidence needed before a detection may be BLUE.
++    blue_min_confidence: float = Field(default=0.80, ge=0, le=1)
++    # Noise-floor rise (dB over baseline) that counts as possible jamming.
++    jamming_noise_rise_db: float = Field(default=10.0, gt=0)
++    baseline_noise_floor_dbm: dict[str, float] = Field(default_factory=dict)  # band name -> dBm
++    # Governance fields (policy owner fills these in)
++    owner: Optional[str] = None
++    approved_by: Optional[str] = None
++    approved_on: Optional[date] = None
++    review_due: Optional[date] = None
++
++
++# ----------------------------------------------------------------------------
++# Stage 4: Verdict (output of the judging engine)
++# ----------------------------------------------------------------------------
++class Verdict(Base):
++    detection_id: str
++    disposition: Disposition
++    affiliation: Affiliation = Affiliation.UNKNOWN
++    reason: str                         # one line, plain English
++    rule_id: Optional[str] = None       # which rule fired (auditability)
++    profile_id: str
++    profile_version: str
++    confidence: float = Field(ge=0, le=1)
++    blue_min_confidence: float = Field(ge=0, le=1)
++    next_step: Optional[str] = None
++    use_case: Optional[UseCase] = None
++
++    @model_validator(mode="after")
++    def _low_confidence_never_blue(self):
++        if self.disposition == Disposition.BLUE and self.confidence < self.blue_min_confidence:
++            raise ValueError(
++                f"blue verdict needs confidence >= {self.blue_min_confidence}, got {self.confidence}"
++            )
++        return self
++
++
++class JammingAssessment(Base):
++    band: FreqRange
++    baseline_noise_floor_dbm: float
++    observed_noise_floor_dbm: float
++    noise_rise_db: float
++    expected_missing: list[str] = Field(default_factory=list)
++    flagged: bool
++    confidence: float = Field(ge=0, le=1)
++    reason: str
++
++    @model_validator(mode="after")
++    def _rise_matches(self):
++        expected = self.observed_noise_floor_dbm - self.baseline_noise_floor_dbm
++        if abs(expected - self.noise_rise_db) > 0.5:
++            raise ValueError("noise_rise_db must equal observed - baseline (within 0.5 dB)")
++        return self
++
++
++# ----------------------------------------------------------------------------
++# Whole-run bundle: what the pipeline hands to the UI and the chat
++# ----------------------------------------------------------------------------
++class PipelineResult(Base):
++    schema_version: Literal["0.1.0"] = SCHEMA_VERSION
++    generated_at: datetime
++    capture: Capture
++    detections: list[Detection]
++    classifications: list[Classification]
++    verdicts: list[Verdict]
++    jamming: Optional[JammingAssessment] = None
++
++    @model_validator(mode="after")
++    def _references_hold(self):
++        ids = [d.detection_id for d in self.detections]
++        if len(ids) != len(set(ids)):
++            raise ValueError("detection_id values must be unique")
++        known = set(ids)
++        for d in self.detections:
++            if d.capture_id != self.capture.capture_id:
++                raise ValueError(f"{d.detection_id}: capture_id does not match capture")
++        cls_by_id = {}
++        for c in self.classifications:
++            if c.detection_id not in known:
++                raise ValueError(f"classification points at unknown detection {c.detection_id}")
++            cls_by_id[c.detection_id] = c
++        for v in self.verdicts:
++            if v.detection_id not in known:
++                raise ValueError(f"verdict points at unknown detection {v.detection_id}")
++            c = cls_by_id.get(v.detection_id)
++            if c is not None and abs(c.confidence - v.confidence) > 1e-9:
++                raise ValueError(f"{v.detection_id}: verdict confidence differs from classification")
++        return self
+diff -ruN -x __pycache__ -x .pytest_cache -x node_modules argus2/argus-main/pipeline/server.py work/pipeline/server.py
+--- a/pipeline/server.py	2026-11-05 00:56:51.000000000 +0000
++++ b/pipeline/server.py	2026-11-10 23:01:48.400383546 +0000
+@@ -1,5 +1,6 @@
+ """HTTP service the dashboard uses to run Laya and read back what it found."""
+ 
++import json
+ import threading
+ import time
+ 
+@@ -8,8 +9,8 @@
+ from fastapi.responses import JSONResponse
+ from pydantic import BaseModel
+ 
+-from pipeline import analysis
+-from pipeline.context import build_context, build_summary
++from pipeline import adapter, analysis, judge
++from pipeline.context import build_context, build_summary, build_verdict_context
+ from pipeline.inputs import MAX_OBSERVATIONS, InputError, combine_observations, merge_knowledge
+ 
+ app = FastAPI(title="Laya pipeline")
+@@ -19,6 +20,9 @@
+ _lock = threading.Lock()
+ _active = None
+ _source = None
++_result = None  # the judged result in the Argus data contract (pipeline/schema.py)
++_profile = judge.load_profile()  # what is normal at this site
++DEMO_DIR = judge.DEFAULT_PROFILE.parent
+ 
+ 
+ class Upload(BaseModel):
+@@ -69,9 +73,10 @@
+ 
+ @app.delete("/context")
+ def clear():
+-    global _active, _source
++    global _active, _source, _result
+     _active = None
+     _source = None
++    _result = None
+     return _state()
+ 
+ 
+@@ -84,7 +89,7 @@
+ 
+ def _execute(questions, observations, names, total, offset, knowledge, data):
+     """Classify one slice and, only if that succeeds, make it the current result."""
+-    global _active, _source
++    global _active, _source, _result
+     if not _lock.acquire(blocking=False):
+         return _error(409, "Laya is already classifying. Wait for it to finish.")
+     try:
+@@ -100,9 +105,15 @@
+     finally:
+         _lock.release()
+     summary = build_summary(names, questions, rows, total, seconds, offset)
++    context = build_context(names, questions, rows, total, offset)
++    _result = None
++    if adapter.QUESTION in questions:
++        built = adapter.build_result(rows, observations, names, _profile)
++        _result = built.model_dump(mode="json")
++        context += "\n" + build_verdict_context(_result)
+     _active = {
+         "summary": summary,
+-        "context": build_context(names, questions, rows, total, offset),
++        "context": context,
+         "offset": offset,
+         "count": len(rows),
+     }
+@@ -170,3 +181,33 @@
+         _source["knowledge"],
+         _source["data"],
+     )
++
++
++@app.get("/result")
++def result():
++    """The judged result: detections, classifications and blue/white/red verdicts."""
++    if _result is None:
++        return _error(404, "No judged result yet. Run Laya from the Library first.")
++    return _result
++
++
++@app.get("/site-profile")
++def get_site_profile():
++    return _profile.model_dump(mode="json")
++
++
++@app.put("/site-profile")
++def put_site_profile(profile: judge.SiteProfile):
++    """Replace what counts as normal. Takes effect on the next run."""
++    global _profile
++    _profile = profile
++    return _profile.model_dump(mode="json")
++
++
++@app.get("/demo/{scenario}")
++def demo(scenario: str):
++    """A ready-made result (drone, jamming or normal) so the UI can be built without a run."""
++    path = DEMO_DIR / f"scenario_{scenario}.json"
++    if scenario not in {"drone", "jamming", "normal"} or not path.exists():
++        return _error(404, "Scenarios are: drone, jamming, normal.")
++    return json.loads(path.read_text())
+diff -ruN -x __pycache__ -x .pytest_cache -x node_modules argus2/argus-main/tests/test_contract.py work/tests/test_contract.py
+--- a/tests/test_contract.py	1970-01-01 00:00:00.000000000 +0000
++++ b/tests/test_contract.py	2026-11-10 23:02:01.873598541 +0000
+@@ -0,0 +1,56 @@
++import json
++from pathlib import Path
++
++import pytest
++from fastapi.testclient import TestClient
++
++from pipeline import analysis, judge, server
++from pipeline.schema import PipelineResult
++
++from test_server import body, fake_run
++
++DEMO = Path(__file__).resolve().parents[1] / "data" / "contract"
++
++
++@pytest.fixture
++def client(monkeypatch):
++    monkeypatch.setattr(analysis, "run", fake_run)
++    for name in ("_active", "_source", "_result"):
++        monkeypatch.setattr(server, name, None)
++    monkeypatch.setattr(server, "_profile", judge.load_profile())
++    return TestClient(server.app)
++
++
++@pytest.mark.parametrize("scenario", ["drone", "jamming", "normal"])
++def test_demo_scenarios_follow_the_contract(client, scenario):
++    response = client.get(f"/demo/{scenario}")
++    assert response.status_code == 200
++    PipelineResult.model_validate(response.json())
++
++
++def test_unknown_demo_scenario_is_404(client):
++    assert client.get("/demo/nope").status_code == 404
++
++
++def test_no_result_before_a_run(client):
++    assert client.get("/result").status_code == 404
++
++
++def test_a_run_produces_a_judged_result(client):
++    assert client.post("/classify", json=body()).status_code == 200
++    result = PipelineResult.model_validate(client.get("/result").json())
++    assert [v.detection_id for v in result.verdicts] == ["0", "1"]
++    assert "Site verdicts" in client.get("/context").json()["context"]
++
++
++def test_clearing_drops_the_result(client):
++    client.post("/classify", json=body())
++    client.delete("/context")
++    assert client.get("/result").status_code == 404
++
++
++def test_the_site_profile_can_be_replaced(client):
++    profile = json.loads((DEMO / "site_profile_campus.json").read_text())
++    profile["blue_min_confidence"] = 0.95
++    assert client.put("/site-profile", json=profile).status_code == 200
++    assert client.get("/site-profile").json()["blue_min_confidence"] == 0.95
+diff -ruN -x __pycache__ -x .pytest_cache -x node_modules argus2/argus-main/tests/test_judge.py work/tests/test_judge.py
+--- a/tests/test_judge.py	1970-01-01 00:00:00.000000000 +0000
++++ b/tests/test_judge.py	2026-11-10 23:02:01.872805412 +0000
+@@ -0,0 +1,50 @@
++from datetime import datetime, timezone
++
++import pytest
++
++from pipeline import judge
++from pipeline.schema import Classification, Detection, Method, SignalClass
++
++
++@pytest.fixture(scope="module")
++def profile():
++    return judge.load_profile()
++
++
++def run(profile, label, confidence, freq, bandwidth, pattern="unknown"):
++    detection = Detection(detection_id="d", capture_id="c", center_freq_hz=freq,
++                          bandwidth_hz=bandwidth, burst_pattern=pattern)
++    classification = Classification(detection_id="d", method=Method.ML, label=SignalClass(label),
++                                    confidence=confidence)
++    return judge.judge(detection, classification, profile)
++
++
++def test_expected_wifi_is_blue(profile):
++    verdict = run(profile, "wifi", 0.97, 2.437e9, 20e6, "continuous")
++    assert verdict.disposition == "blue" and verdict.rule_id == "expected-wifi"
++
++
++def test_low_confidence_is_never_blue(profile):
++    assert run(profile, "wifi", 0.6, 2.437e9, 20e6).disposition == "white"
++
++
++def test_unexpected_drone_is_red(profile):
++    verdict = run(profile, "drone", 0.91, 2.4425e9, 8e6, "hopping")
++    assert verdict.disposition == "red" and verdict.affiliation == "possible_threat"
++
++
++def test_unsure_drone_is_white_not_red(profile):
++    assert run(profile, "drone", 0.3, 2.4425e9, 8e6).disposition == "white"
++
++
++def test_known_signal_outside_the_profile_is_white(profile):
++    assert run(profile, "wifi", 0.95, 5.9e9, 20e6).rule_id == "not-in-profile"
++
++
++def test_wrong_pattern_is_not_expected(profile):
++    # Bluetooth is expected to hop; a steady narrow carrier is not what the profile lists.
++    assert run(profile, "bluetooth", 0.9, 2.44e9, 1e6, "continuous").disposition == "white"
++
++
++def test_unknown_label_is_white(profile):
++    assert run(profile, "unknown", 0.95, 1e9, 1e6).disposition == "white"
