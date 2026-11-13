@@ -31,7 +31,6 @@ export function Assistant() {
           <Thread />
         </div>
         <div className="absolute top-[13px] right-5 z-10 flex items-center gap-3">
-          <DemoBadge />
           <LanguageMenu />
           <p className="text-muted-foreground pointer-events-none flex items-center gap-2 text-sm font-normal">
             {t("app.local")}
@@ -44,6 +43,8 @@ export function Assistant() {
       </div>
       <LanguageSync />
       <DemoControlsShortcut />
+      {/* Fixed to the bottom-right corner, on every screen. */}
+      <DemoBadge />
     </AssistantRuntimeProvider>
   );
 }

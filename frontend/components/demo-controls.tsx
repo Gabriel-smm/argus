@@ -120,7 +120,7 @@ export const DemoControlsShortcut: FC = () => {
       ref={panel}
       role="dialog"
       aria-labelledby={titleId}
-      className="bg-popover text-popover-foreground fade-in zoom-in-95 animate-in fixed right-5 bottom-5 z-50 w-56 rounded-xl border p-2 shadow-lg duration-150 motion-reduce:animate-none"
+      className="bg-popover text-popover-foreground fade-in zoom-in-95 animate-in fixed right-5 bottom-20 z-50 w-56 rounded-xl border p-2 shadow-lg duration-150 motion-reduce:animate-none"
     >
       <div className="flex items-center gap-2 px-2 pb-1">
         <FlaskConicalIcon aria-hidden className="text-muted-foreground size-3.5" />
@@ -142,8 +142,12 @@ export const DemoControlsShortcut: FC = () => {
 };
 
 /**
- * A small badge on the main screen that always says "Demo data". Its tooltip names the
- * scenario: the one on screen when a result is shown, otherwise the one Start scan plays.
+ * A small fixed label in the bottom-right corner that always says "Demo data", on every
+ * screen. Its tooltip names the scenario: the one on screen when a result is shown,
+ * otherwise the one Start scan plays.
+ *
+ * It sits in a 14px strip along the bottom edge: below the Next.js dev button (bottom-right,
+ * from about 20px up) and below the chat input (whose footer keeps at least 20px free).
  */
 export const DemoBadge: FC = () => {
   const { t } = useT();
@@ -157,13 +161,17 @@ export const DemoBadge: FC = () => {
       <Tooltip>
         <TooltipTrigger
           className={cn(
-            "text-muted-foreground/80 hover:text-muted-foreground focus-visible:ring-ring/50 rounded-full border border-dashed px-2 py-0.5 text-[11px] outline-none focus-visible:ring-2",
+            // Slightly transparent in dark mode (5.7:1 contrast); solid in light mode, where 85%
+            // would drop below 4.5:1. Legible in a screen recording either way.
+            "text-muted-foreground dark:text-muted-foreground/85 hover:text-muted-foreground focus-visible:ring-ring/50 fixed right-3 bottom-0.5 z-40 rounded px-1 text-xs leading-[14px] outline-none focus-visible:ring-2",
           )}
         >
           {t("demo.badge")}
           <span className="sr-only">: {tip}</span>
         </TooltipTrigger>
-        <TooltipContent side="bottom">{tip}</TooltipContent>
+        <TooltipContent side="top" align="end">
+          {tip}
+        </TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );

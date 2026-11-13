@@ -242,7 +242,8 @@ const ThreadRoot: FC<{ isEmpty: boolean; autoFocus: boolean }> = ({
 
           <ThreadPrimitive.ViewportFooter
             className={cn(
-              "aui-thread-viewport-footer bg-background flex flex-col gap-4 overflow-visible pb-4 md:pb-6",
+              // pb-5 leaves the bottom strip free for the fixed "Demo data" label.
+              "aui-thread-viewport-footer bg-background flex flex-col gap-4 overflow-visible pb-5 md:pb-6",
               !isEmpty &&
                 "sticky bottom-0 mt-auto rounded-t-(--composer-radius)",
             )}
