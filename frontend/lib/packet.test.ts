@@ -61,6 +61,36 @@ test("a packet holds the site, the demo badge, versions and every signal, closer
   assert.deepEqual(Object.keys(body.signals[0]).sort(), ["check_next", "group", "id", "kind", "protected", "reason", "title"]);
 });
 
+test("a packet records the sensor location, its source, and GPS interference", () => {
+  assert.deepEqual(packetBody(summary, when).location, {
+    name: "Notre Dame campus (demo site)",
+    latitude: 41.703,
+    longitude: -86.239,
+    source: "site_profile",
+    gps_interference_nearby: false,
+  });
+  const withGps = structuredClone(summary);
+  withGps.site_report!.signals[1].title = "Something on GPS";
+  assert.equal(packetBody(withGps, when).location?.gps_interference_nearby, true);
+});
+
+test("without recorded coordinates the location still names the site", () => {
+  const bare = { ...summary, provenance: null } as AnalysisSummary;
+  assert.deepEqual(packetBody(bare, when).location, {
+    name: "Notre Dame campus (demo site)",
+    source: "site_profile",
+    gps_interference_nearby: false,
+  });
+});
+
+test("a packet made before the location field still opens; a bad location does not", async () => {
+  const { location: _dropped, ...older } = packetBody(summary, when);
+  assert.ok((await openPacket(JSON.stringify(await sealPacket(older)))).ok);
+  const body = packetBody(summary, when);
+  const bad = await sealPacket({ ...body, location: { ...body.location!, source: "gps" as "site_profile" } });
+  assert.deepEqual(await openPacket(JSON.stringify(bad)), { ok: false, reason: "not_a_packet" });
+});
+
 test("the file name carries the site and local time", () => {
   assert.equal(packetFileName("Notre Dame campus (demo site)", when), "argus-packet-notre-dame-campus-demo-site-2026-11-12-0905.json");
   assert.equal(packetFileName("!!!", when), "argus-packet-site-2026-11-12-0905.json");

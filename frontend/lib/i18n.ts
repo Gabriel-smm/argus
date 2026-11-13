@@ -79,6 +79,10 @@ const EN = {
   "report.detailsInEnglish": "Details in English",
   "report.ask": "Ask about any of the {n} signals, or start with a question below.",
 
+  "location.at": "Location: {site} ({lat}, {lon}) · from site profile",
+  "location.atNoCoords": "Location: {site} · from site profile",
+  "location.gpsWarning": "Location may be unreliable: GPS interference detected nearby.",
+
   "packet.export": "Package for HQ",
   "packet.exporting": "Packaging…",
   "packet.ready": "Packet ready: {n} signals, {size} KB",
@@ -158,6 +162,10 @@ const ES: Messages = {
   "report.detailsInEnglish": "Detalles en inglés",
   "report.ask": "Pregunta por cualquiera de las {n} señales o empieza con una pregunta de abajo.",
 
+  "location.at": "Ubicación: {site} ({lat}, {lon}) · según el perfil del lugar",
+  "location.atNoCoords": "Ubicación: {site} · según el perfil del lugar",
+  "location.gpsWarning": "La ubicación puede no ser fiable: se detectó interferencia GPS cerca.",
+
   "packet.export": "Empaquetar para la sede",
   "packet.exporting": "Empaquetando…",
   "packet.ready": "Paquete listo: {n} señales, {size} KB",
@@ -233,6 +241,10 @@ const FR: Messages = {
   "report.showMore": "Afficher {n} de plus",
   "report.detailsInEnglish": "Détails en anglais",
   "report.ask": "Posez une question sur l'un des {n} signaux, ou commencez par une question ci-dessous.",
+
+  "location.at": "Position : {site} ({lat}, {lon}) · d'après le profil du site",
+  "location.atNoCoords": "Position : {site} · d'après le profil du site",
+  "location.gpsWarning": "La position peut être peu fiable : interférence GPS détectée à proximité.",
 
   "packet.export": "Préparer un paquet pour le QG",
   "packet.exporting": "Préparation…",

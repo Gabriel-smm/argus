@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState, type FC } from "react";
 import { RadarIcon } from "lucide-react";
 
+import { LocationLine } from "@/components/location-line";
 import { OpenPacketLink } from "@/components/packet";
+import { hasGpsInterference, type SensorLocation } from "@/lib/packet";
 import { SCAN_SWEEP_MS, type SiteGroup } from "@/hooks/use-analysis";
 import { translateBadge, useT, type MessageKey } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -21,6 +23,8 @@ type Scene = {
   title: string;
   badge: string;
   signals: SceneSignal[];
+  /** From the site profile (GET /scene); null if it could not be read. */
+  location?: SensorLocation | null;
 };
 
 // The strip covers the band table: 88 MHz to 6 GHz, on a log scale so FM and 5.8 GHz both fit.
@@ -186,6 +190,12 @@ export const ScanHero: FC<{
                 : t("scan.listeningAt", { site: scene?.title ?? t("scan.thisSite") })
               : t("scan.intro")}
           </p>
+          {scene?.location && (
+            <div className="mt-2">
+              {/* The warning appears once the sweep has heard a signal on GPS. */}
+              <LocationLine location={scene.location} gpsInterference={hasGpsInterference(found)} />
+            </div>
+          )}
         </div>
       </div>
 

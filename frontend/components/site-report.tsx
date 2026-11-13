@@ -4,7 +4,9 @@ import { useState, type FC, type ReactNode } from "react";
 import { CircleHelpIcon, ShieldAlertIcon, ShieldCheckIcon } from "lucide-react";
 
 import type { SiteGroup, SiteReport as SiteReportData } from "@/hooks/use-analysis";
+import { LocationLine } from "@/components/location-line";
 import { translateKind, translateTitle, useT, type MessageKey } from "@/lib/i18n";
+import { hasGpsInterference, type SensorLocation } from "@/lib/packet";
 import { cn } from "@/lib/utils";
 
 /** How each site-check group looks: one color family per group, used everywhere on the card. */
@@ -55,7 +57,12 @@ function verdictText(report: SiteReportData, t: (key: MessageKey, vars?: Record<
 }
 
 /** The site check at a glance: one verdict and what is in the air. Details open per category. */
-export const SiteReport: FC<{ report: SiteReportData; actions?: ReactNode }> = ({ report, actions }) => {
+export const SiteReport: FC<{
+  report: SiteReportData;
+  /** The sensor's location from the site profile, shown above the verdict. */
+  location?: SensorLocation | null;
+  actions?: ReactNode;
+}> = ({ report, location, actions }) => {
   const { t, language } = useT();
   const [openKind, setOpenKind] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
@@ -76,6 +83,8 @@ export const SiteReport: FC<{ report: SiteReportData; actions?: ReactNode }> = (
       aria-label={t("report.label")}
       className="fade-in slide-in-from-bottom-1 animate-in fill-mode-both flex flex-col gap-5 duration-200 motion-reduce:animate-none"
     >
+      {location && <LocationLine location={location} gpsInterference={hasGpsInterference(report.signals)} />}
+
       <div role="status" className={cn("flex items-start gap-4 rounded-2xl border p-4", verdict.ring)}>
         <verdict.Icon aria-hidden className={cn("mt-0.5 size-9 shrink-0", verdict.icon)} strokeWidth={1.75} />
         <div className="min-w-0">

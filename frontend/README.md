@@ -46,6 +46,8 @@ The quickest way in is **Scan the area** on the front page: it plays a built-in 
 
 During the sweep each dot is colored by the site check (red needs a closer look, amber unknown, green normal), the newest one is named as a likely match ("Looks like Wi-Fi or Bluetooth", "Possible drone", "Something on GPS", "Mystery signal"), and a **Heard so far** list grows underneath. These come from `GET /scene`, which runs the site check up front: it is plain rules, so it needs no GPU. With reduced motion turned on in the system settings, there is no sweep: all the dots and the list appear at once.
 
+The scan page and the site report show where the sensor is: "Location: <site> (<lat>, <lon>) · from site profile". It always comes from the site profile (`GET /scene` and the result's `provenance`), never from the browser's location, which can go online. If any signal is on GPS, a warning says the location may be unreliable. Packets carry the same location, its source and the warning.
+
 The globe button at the top right switches the scan page, the site report and the chat between **English, Español and Français**. The choice is kept in the browser. Fixed text is translated from a dictionary in `lib/i18n.ts`, with no online service. The chat model is told the language through the run config (`configurable.language`, read in `backend/agent.ts`) and keeps all its guardrails. The detailed reason and "Next" text from `data/context/bands.csv` stay in English for now, and the report says so.
 
 To use your own files instead:

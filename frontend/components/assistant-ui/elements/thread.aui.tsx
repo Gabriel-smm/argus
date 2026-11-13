@@ -27,6 +27,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SiteReport } from "@/components/site-report";
 import { ScanHero } from "@/components/scan-hero";
 import { PacketExport, PacketView, usePacketView } from "@/components/packet";
+import { locationFromSummary } from "@/lib/packet";
 import { ANALYSIS_POLL_MS, useAnalysis } from "@/hooks/use-analysis";
 import { translateBadge, translateQuestion, useLanguage, useT } from "@/lib/i18n";
 import eagleIcon from "@/app/eagle_icon.png";
@@ -432,7 +433,11 @@ const ThreadWelcome: FC = () => {
             </button>
           </div>
         )}
-        <SiteReport report={report} actions={<PacketExport summary={summary} />} />
+        <SiteReport
+          report={report}
+          location={locationFromSummary(summary)}
+          actions={<PacketExport summary={summary} />}
+        />
         <p className="text-muted-foreground mt-5 text-sm">
           {t("report.ask", { n: summary.observations })}
         </p>

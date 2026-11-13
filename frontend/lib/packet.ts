@@ -23,10 +23,33 @@ export type PacketSignal = {
   protected: boolean;
 };
 
+/**
+ * Where the sensor is. Always from the site profile: never a GPS fix and never the browser's
+ * geolocation, which can go online.
+ */
+export type SensorLocation = { name: string; latitude?: number; longitude?: number; source: "site_profile" };
+
+/** The site check's title for any signal seen on GPS L1 (pipeline/lookup.py). */
+export const GPS_TITLE = "Something on GPS";
+
+/** True if any signal is on GPS: a nearby GPS receiver's position may be off. */
+export const hasGpsInterference = (signals: readonly { title?: string }[]) =>
+  signals.some((item) => item.title === GPS_TITLE);
+
+/** The sensor location behind a result, from what the Laya service recorded. */
+export function locationFromSummary(summary: AnalysisSummary): SensorLocation | null {
+  const site = summary.provenance?.site;
+  if (site) return { name: site.name, latitude: site.latitude, longitude: site.longitude, source: "site_profile" };
+  const name = summary.site_report?.site;
+  return name ? { name, source: "site_profile" } : null;
+}
+
 export type PacketBody = {
   packet_version: typeof PACKET_VERSION;
   created_at: string;
   site: { name: string; latitude?: number; longitude?: number; radius_km?: number; frequency_list?: string };
+  /** The sensor's location and where it came from, plus whether GPS interference was seen. */
+  location?: SensorLocation & { gps_interference_nearby: boolean };
   /** The demo badge for built-in scenes, so demo data is never mistaken for a real recording. */
   data_source: string;
   versions: { band_table: string | null; site_profile: string | null; model: string | null };
@@ -71,10 +94,12 @@ export function packetBody(summary: AnalysisSummary, createdAt: Date): PacketBod
       check_next: item.check_next,
       protected: item.protected,
     }));
+  const location = locationFromSummary(summary) ?? { name: report.site, source: "site_profile" as const };
   return {
     packet_version: PACKET_VERSION,
     created_at: createdAt.toISOString(),
     site: found?.site ?? { name: report.site },
+    location: { ...location, gps_interference_nearby: hasGpsInterference(signals) },
     data_source: summary.scene?.badge ?? `Files: ${summary.data_name}`,
     versions: {
       band_table: found?.versions.band_table ?? null,
@@ -128,6 +153,22 @@ function isSignal(value: unknown): value is PacketSignal {
   );
 }
 
+const isOptionalNumber = (value: unknown) => value === undefined || (typeof value === "number" && Number.isFinite(value));
+
+/** Packets made before the location field existed have none; that is fine. */
+function isLocationOrMissing(value: unknown) {
+  if (value === undefined) return true;
+  if (!value || typeof value !== "object") return false;
+  const item = value as Record<string, unknown>;
+  return (
+    isString(item.name) &&
+    item.source === "site_profile" &&
+    isOptionalNumber(item.latitude) &&
+    isOptionalNumber(item.longitude) &&
+    typeof item.gps_interference_nearby === "boolean"
+  );
+}
+
 /** Check a packet's shape and fingerprint. A packet that fails either is not shown. */
 export async function openPacket(text: string): Promise<OpenResult> {
   let parsed: unknown;
@@ -152,6 +193,7 @@ export async function openPacket(text: string): Promise<OpenResult> {
   const counts = body.counts as Record<string, unknown> | undefined;
   const verdict = body.verdict as { code?: unknown; headline?: unknown } | undefined;
   const valid =
+    isLocationOrMissing(body.location) &&
     (body.signals as unknown[]).every(isSignal) &&
     !!counts &&
     GROUPS.every((group) => isCount(counts[group])) &&

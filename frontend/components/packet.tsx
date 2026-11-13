@@ -182,7 +182,18 @@ export const PacketView: FC<{ packet: Packet; report: SiteReportData; onClose: (
           <XIcon aria-hidden className="size-4" />
         </button>
       </div>
-      <SiteReport report={report} />
+      <SiteReport
+        report={report}
+        location={
+          // Packets from before the location field still carry the site and its coordinates.
+          packet.location ?? {
+            name: packet.site.name,
+            latitude: packet.site.latitude,
+            longitude: packet.site.longitude,
+            source: "site_profile",
+          }
+        }
+      />
     </div>
   );
 };
