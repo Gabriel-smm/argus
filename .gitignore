@@ -4,7 +4,13 @@ __pycache__/
 venv/
 data/raw/
 finetune/out/
-models/
+/models/
 models.zip
 .DS_Store
 __MACOSX/
+
+# mod-classifier: raw recordings, processed windows and training runs stay out of git
+mod-classifier/data/
+mod-classifier/runs/
+mod-classifier/.venv-ui/
+mod-classifier/ui/samples/
