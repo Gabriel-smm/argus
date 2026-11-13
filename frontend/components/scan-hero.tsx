@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type FC } from "react";
 import { RadarIcon } from "lucide-react";
 
+import { OpenPacketLink } from "@/components/packet";
 import { SCAN_SWEEP_MS, type SiteGroup } from "@/hooks/use-analysis";
 import { translateBadge, useT, type MessageKey } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -288,6 +289,7 @@ export const ScanHero: FC<{
             {t("scan.start")}
           </button>
         )}
+        {!scanning && <OpenPacketLink />}
         {!scanning && onShowLast && (
           <button
             type="button"

@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SiteReport } from "@/components/site-report";
 import { ScanHero } from "@/components/scan-hero";
+import { PacketExport, PacketView, usePacketView } from "@/components/packet";
 import { ANALYSIS_POLL_MS, useAnalysis } from "@/hooks/use-analysis";
 import { translateBadge, translateQuestion, useLanguage, useT } from "@/lib/i18n";
 import eagleIcon from "@/app/eagle_icon.png";
@@ -382,8 +383,19 @@ const ThreadWelcome: FC = () => {
   const showResult = useAnalysis((s) => s.showResult);
   const showLastResult = useAnalysis((s) => s.showLastResult);
   const { t, language } = useT();
+  const opened = usePacketView((s) => s.opened);
+  const closePacket = usePacketView((s) => s.close);
   const sweeping = running || scanning;
   const report = sweeping ? null : summary?.site_report;
+
+  // A packet opened at HQ: shown on its own until closed, and never mixed with this computer's result.
+  if (opened && !sweeping) {
+    return (
+      <div className="aui-thread-welcome-root mb-6 flex flex-col px-2">
+        <PacketView packet={opened.packet} report={opened.report} onClose={closePacket} />
+      </div>
+    );
+  }
 
   // The Scan page is the main page: on every load, while a scan runs, and until a result is
   // asked for in this page session. A result left from earlier is one click away.
@@ -392,7 +404,10 @@ const ThreadWelcome: FC = () => {
       <div className="aui-thread-welcome-root mb-6 flex flex-col px-2">
         <ScanHero
           scanning={sweeping}
-          onScan={() => void scan()}
+          onScan={() => {
+            closePacket();
+            void scan();
+          }}
           onShowLast={summary && !sweeping ? showLastResult : undefined}
           error={error?.message}
         />
@@ -417,7 +432,7 @@ const ThreadWelcome: FC = () => {
             </button>
           </div>
         )}
-        <SiteReport report={report} />
+        <SiteReport report={report} actions={<PacketExport summary={summary} />} />
         <p className="text-muted-foreground mt-5 text-sm">
           {t("report.ask", { n: summary.observations })}
         </p>
@@ -468,7 +483,9 @@ const SUGGESTION_MARK =
 
 const ThreadSuggestions: FC = () => {
   // Only next to a result on screen, not on the Scan page.
-  const grounded = useAnalysis((s) => s.summary !== null && s.showResult && !s.running && !s.scanning);
+  const packetOpen = usePacketView((s) => s.opened !== null);
+  const grounded =
+    useAnalysis((s) => s.summary !== null && s.showResult && !s.running && !s.scanning) && !packetOpen;
   // Questions built from this run's site report, when there is one.
   const reportQuestions = useAnalysis((s) => s.summary?.site_report?.questions);
   const language = useLanguage((s) => s.language);

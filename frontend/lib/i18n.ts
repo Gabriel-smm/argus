@@ -78,6 +78,18 @@ const EN = {
   "report.showMore": "Show {n} more",
   "report.detailsInEnglish": "Details in English",
   "report.ask": "Ask about any of the {n} signals, or start with a question below.",
+
+  "packet.export": "Package for HQ",
+  "packet.exporting": "Packaging…",
+  "packet.ready": "Packet ready: {n} signals, {size} KB",
+  "packet.fingerprint": "Fingerprint {fp}",
+  "packet.failed": "The packet could not be made in this browser.",
+  "packet.open": "Open a packet",
+  "packet.openedFrom": "Opened from packet {fp}, created {time} at {site}",
+  "packet.viewOnly": "View only. The chat still answers about this computer's own scan.",
+  "packet.close": "Close packet",
+  "packet.changed": "This packet was changed after it was created",
+  "packet.invalid": "This file is not an Argus packet.",
 } as const;
 
 export type MessageKey = keyof typeof EN;
@@ -145,6 +157,18 @@ const ES: Messages = {
   "report.showMore": "Mostrar {n} más",
   "report.detailsInEnglish": "Detalles en inglés",
   "report.ask": "Pregunta por cualquiera de las {n} señales o empieza con una pregunta de abajo.",
+
+  "packet.export": "Empaquetar para la sede",
+  "packet.exporting": "Empaquetando…",
+  "packet.ready": "Paquete listo: {n} señales, {size} KB",
+  "packet.fingerprint": "Huella {fp}",
+  "packet.failed": "No se pudo crear el paquete en este navegador.",
+  "packet.open": "Abrir un paquete",
+  "packet.openedFrom": "Abierto desde el paquete {fp}, creado el {time} en {site}",
+  "packet.viewOnly": "Solo lectura. El chat sigue respondiendo sobre el escaneo de este equipo.",
+  "packet.close": "Cerrar paquete",
+  "packet.changed": "Este paquete se modificó después de crearse",
+  "packet.invalid": "Este archivo no es un paquete de Argus.",
 };
 
 const FR: Messages = {
@@ -209,6 +233,18 @@ const FR: Messages = {
   "report.showMore": "Afficher {n} de plus",
   "report.detailsInEnglish": "Détails en anglais",
   "report.ask": "Posez une question sur l'un des {n} signaux, ou commencez par une question ci-dessous.",
+
+  "packet.export": "Préparer un paquet pour le QG",
+  "packet.exporting": "Préparation…",
+  "packet.ready": "Paquet prêt : {n} signaux, {size} Ko",
+  "packet.fingerprint": "Empreinte {fp}",
+  "packet.failed": "Impossible de créer le paquet dans ce navigateur.",
+  "packet.open": "Ouvrir un paquet",
+  "packet.openedFrom": "Ouvert depuis le paquet {fp}, créé le {time} à {site}",
+  "packet.viewOnly": "Lecture seule. Le chat répond toujours sur l'analyse de cet ordinateur.",
+  "packet.close": "Fermer le paquet",
+  "packet.changed": "Ce paquet a été modifié après sa création",
+  "packet.invalid": "Ce fichier n'est pas un paquet Argus.",
 };
 
 const MESSAGES: Record<Language, Messages> = { en: EN, es: ES, fr: FR };

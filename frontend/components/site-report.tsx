@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FC } from "react";
+import { useState, type FC, type ReactNode } from "react";
 import { CircleHelpIcon, ShieldAlertIcon, ShieldCheckIcon } from "lucide-react";
 
 import type { SiteGroup, SiteReport as SiteReportData } from "@/hooks/use-analysis";
@@ -55,7 +55,7 @@ function verdictText(report: SiteReportData, t: (key: MessageKey, vars?: Record<
 }
 
 /** The site check at a glance: one verdict and what is in the air. Details open per category. */
-export const SiteReport: FC<{ report: SiteReportData }> = ({ report }) => {
+export const SiteReport: FC<{ report: SiteReportData; actions?: ReactNode }> = ({ report, actions }) => {
   const { t, language } = useT();
   const [openKind, setOpenKind] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
@@ -189,6 +189,8 @@ export const SiteReport: FC<{ report: SiteReportData }> = ({ report }) => {
           )}
         </div>
       </div>
+
+      {actions}
     </section>
   );
 };
