@@ -3,18 +3,30 @@
 import { useEffect, useRef, useState, type FC } from "react";
 import { RadarIcon } from "lucide-react";
 
+import type { SiteGroup } from "@/hooks/use-analysis";
+import { translateBadge, useT, type MessageKey } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+
+type SceneSignal = {
+  id: string;
+  frequency_hz: number;
+  /** The site check, from GET /scene. Missing if the band table could not be read. */
+  kind?: string;
+  title?: string;
+  triage?: SiteGroup;
+};
 
 type Scene = {
   title: string;
   badge: string;
-  signals: { id: string; frequency_hz: number }[];
+  signals: SceneSignal[];
 };
 
 // The strip covers the band table: 88 MHz to 6 GHz, on a log scale so FM and 5.8 GHz both fit.
 const LOW_HZ = 88e6;
 const HIGH_HZ = 6e9;
 const SWEEP_MS = 3200;
+const HEARD_SHOWN = 6;
 const TICKS = [
   { hz: 100e6, label: "100 MHz" },
   { hz: 433e6, label: "433" },
@@ -24,9 +36,42 @@ const TICKS = [
   { hz: 5.8e9, label: "5.8" },
 ];
 
+/** Dot color per site-check group: red needs a closer look, amber unknown, green normal. */
+const DOT: Record<SiteGroup | "none", string> = {
+  needs_review: "bg-rose-500 shadow-rose-500/70",
+  unknown: "bg-amber-400 shadow-amber-400/70",
+  expected: "bg-emerald-500 shadow-emerald-500/70",
+  none: "bg-sky-400 shadow-sky-400/70",
+};
+
+/** A likely match, worded as a guess: the site check reads frequency and width, not content. */
+const LIKELY_BY_KIND: Record<string, MessageKey> = {
+  "Wi-Fi & Bluetooth": "likely.wifi",
+  Drones: "likely.drone",
+  GPS: "likely.gps",
+  Aircraft: "likely.aircraft",
+  Radar: "likely.radar",
+  "Phone networks": "likely.phone",
+  "Sensors & gadgets": "likely.sensor",
+  "Radio stations": "likely.station",
+  "Ham radio": "likely.ham",
+  "Mystery signals": "likely.mystery",
+};
+
+function likelyKey(signal: SceneSignal): MessageKey {
+  if (signal.title === "Something on GPS") return "likely.gps";
+  if (signal.title === "On the restricted list") return "likely.restricted";
+  if (!signal.kind) return "likely.signal";
+  return LIKELY_BY_KIND[signal.kind] ?? "likely.mystery";
+}
+
 function position(hz: number) {
   const x = (Math.log(hz) - Math.log(LOW_HZ)) / (Math.log(HIGH_HZ) - Math.log(LOW_HZ));
   return Math.min(1, Math.max(0, x));
+}
+
+function formatHz(hz: number) {
+  return hz >= 1e9 ? `${Number((hz / 1e9).toPrecision(4))} GHz` : `${Number((hz / 1e6).toPrecision(4))} MHz`;
 }
 
 function useReducedMotion() {
@@ -72,6 +117,7 @@ export const ScanHero: FC<{
   onScan: () => void;
   error?: string | null;
 }> = ({ scanning, onScan, error }) => {
+  const { t, language } = useT();
   const [scene, setScene] = useState<Scene | null>(null);
   const reduced = useReducedMotion();
   const elapsed = useElapsed(scanning && !reduced);
@@ -92,21 +138,28 @@ export const ScanHero: FC<{
   const signals = scene?.signals ?? [];
   const firstPassDone = reduced || elapsed >= SWEEP_MS;
   const sweep = (elapsed % SWEEP_MS) / SWEEP_MS;
+  // In the order the sweep reaches them, left to right; the last one is the newest.
   const found = scanning
-    ? signals.filter((signal) => firstPassDone || position(signal.frequency_hz) <= elapsed / SWEEP_MS)
+    ? signals
+        .filter((signal) => firstPassDone || position(signal.frequency_hz) <= elapsed / SWEEP_MS)
+        .sort((a, b) => position(a.frequency_hz) - position(b.frequency_hz))
     : [];
+  const newest = found.at(-1);
+  const heard = [...found].reverse();
+  const heardHidden = Math.max(0, heard.length - HEARD_SHOWN);
+  const newestX = newest ? position(newest.frequency_hz) : 0;
 
   return (
     <section
-      aria-label="Scan the area"
-      className="fade-in slide-in-from-bottom-1 animate-in fill-mode-both flex flex-col gap-5 duration-200"
+      aria-label={t("scan.title")}
+      className="fade-in slide-in-from-bottom-1 animate-in fill-mode-both flex flex-col gap-5 duration-200 motion-reduce:animate-none"
     >
       <div className="flex items-center gap-4">
         <button
           type="button"
           onClick={onScan}
           disabled={scanning}
-          aria-label={scanning ? "Scanning" : "Scan the area"}
+          aria-label={scanning ? t("scan.scanning") : t("scan.title")}
           className={cn(
             "relative flex size-20 shrink-0 items-center justify-center rounded-full border-2 transition-colors outline-none focus-visible:ring-4 focus-visible:ring-ring/50 motion-reduce:transition-none",
             scanning
@@ -121,14 +174,14 @@ export const ScanHero: FC<{
         </button>
         <div className="min-w-0">
           <p className="text-2xl font-medium tracking-tight">
-            {scanning ? (firstPassDone ? "Making sense of it…" : "Listening…") : "Scan the area"}
+            {scanning ? (firstPassDone ? t("scan.thinking") : t("scan.listening")) : t("scan.title")}
           </p>
           <p role="status" className="text-muted-foreground mt-1 text-sm">
             {scanning
               ? firstPassDone
-                ? `Found ${signals.length} signals. Checking what each one is and whether it belongs here.`
-                : `Listening from 88 MHz to 6 GHz at ${scene?.title ?? "this site"}.`
-              : "Argus listens to the airwaves and tells you what is normal here, what is not, and what to check next."}
+                ? t("scan.found", { n: signals.length })
+                : t("scan.listeningAt", { site: scene?.title ?? t("scan.thisSite") })
+              : t("scan.intro")}
           </p>
         </div>
       </div>
@@ -137,11 +190,7 @@ export const ScanHero: FC<{
         <div
           className="bg-muted/50 relative h-16 w-full overflow-hidden rounded-xl border"
           role="img"
-          aria-label={
-            scanning
-              ? `Spectrum from 88 MHz to 6 GHz, ${found.length} signals found so far`
-              : "Spectrum from 88 MHz to 6 GHz"
-          }
+          aria-label={scanning ? t("scan.spectrumFound", { n: found.length }) : t("scan.spectrum")}
         >
           {TICKS.map((tick) => (
             <span
@@ -155,10 +204,28 @@ export const ScanHero: FC<{
             <span
               key={signal.id}
               aria-hidden
-              className="fade-in zoom-in-50 animate-in absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-sky-400 shadow-[0_0_10px] shadow-sky-400/70 duration-300"
+              className={cn(
+                "fade-in zoom-in-50 animate-in absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full shadow-[0_0_10px] duration-300 motion-reduce:animate-none",
+                DOT[signal.triage ?? "none"],
+                signal === newest && "ring-background ring-2",
+              )}
               style={{ left: `${position(signal.frequency_hz) * 100}%` }}
             />
           ))}
+          {newest && (
+            // Only the newest dot is named on the strip, so labels never overlap.
+            <span
+              key={newest.id}
+              aria-hidden
+              className={cn(
+                "fade-in animate-in bg-background/90 absolute top-1.5 max-w-[60%] truncate rounded-md border px-1.5 py-0.5 text-[11px] leading-tight whitespace-nowrap shadow-sm duration-200 motion-reduce:animate-none",
+                newestX < 0.15 ? "translate-x-0" : newestX > 0.85 ? "-translate-x-full" : "-translate-x-1/2",
+              )}
+              style={{ left: `${newestX * 100}%` }}
+            >
+              {t(likelyKey(newest))}
+            </span>
+          )}
           {scanning && !reduced && (
             <span
               aria-hidden
@@ -178,6 +245,35 @@ export const ScanHero: FC<{
             </span>
           ))}
         </div>
+
+        {/* Always mounted, so screen readers hear each signal as it is added. */}
+        <div aria-live="polite" className="mt-3">
+          {heard.length > 0 && (
+            <>
+              <h3 className="text-muted-foreground mb-1.5 text-xs font-medium tracking-wide uppercase">
+                {t("scan.heard")}
+              </h3>
+              <ul className="flex flex-col gap-1">
+                {heard.slice(0, HEARD_SHOWN).map((signal) => (
+                  <li
+                    key={signal.id}
+                    className="fade-in slide-in-from-top-1 animate-in flex items-center gap-2 text-sm duration-200 motion-reduce:animate-none"
+                  >
+                    <span aria-hidden className={cn("size-2 shrink-0 rounded-full", DOT[signal.triage ?? "none"])} />
+                    <span className="min-w-0 truncate">{t(likelyKey(signal))}</span>
+                    {signal.triage && <span className="sr-only">, {t(`group.${signal.triage}`)}</span>}
+                    <span className="text-muted-foreground ms-auto shrink-0 text-xs tabular-nums">
+                      {formatHz(signal.frequency_hz)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {heardHidden > 0 && (
+                <p className="text-muted-foreground mt-1 text-xs">{t("scan.more", { n: heardHidden })}</p>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -187,11 +283,13 @@ export const ScanHero: FC<{
             onClick={onScan}
             className="bg-foreground text-background rounded-full px-5 py-2 text-sm font-medium transition-opacity hover:opacity-90 motion-reduce:transition-none"
           >
-            Start scan
+            {t("scan.start")}
           </button>
         )}
         {scene && (
-          <span className="text-muted-foreground rounded-full border px-3 py-1 text-xs">{scene.badge}</span>
+          <span className="text-muted-foreground rounded-full border px-3 py-1 text-xs">
+            {translateBadge(scene.badge, language)}
+          </span>
         )}
       </div>
 
