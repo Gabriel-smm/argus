@@ -5,3 +5,5 @@ venv/
 data/raw/
 finetune/out/
 models/
+data/radiohound/
+data/radiohound-dryrun/
