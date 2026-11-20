@@ -101,3 +101,14 @@ def test_rf_goes_off_when_a_capture_fails(tmp_path):
     with pytest.raises(ConnectionError):
         sweep.run_sweep(PLAN, gen, Broken(gen, n=256), tmp_path)
     assert not gen.read_status()["rf_on"]
+
+
+def test_sweep_can_run_in_sections(tmp_path):
+    gen = N5172BController(demo=True)
+    gen.connect()
+    client = FakeClient(gen, n=256)
+    sweep.run_sweep(PLAN, gen, client, tmp_path, only="ofdm", max_rows=2)
+    done = sorted(p.parent.name for p in tmp_path.glob("*/done.json"))
+    assert len(done) == 2 and all(d.startswith("OFDM") for d in done)
+    sweep.run_sweep(PLAN, gen, client, tmp_path, only="OFDM")
+    assert len(list(tmp_path.glob("OFDM*/done.json"))) == 4

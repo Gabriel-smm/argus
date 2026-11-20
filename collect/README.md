@@ -30,6 +30,13 @@ Both are reached over the network, so this needs Notre Dame's network (eduroam).
 ```
 
 Rerunning the same command resumes: finished rows (those with `done.json`) are skipped.
+To run in shorter sessions, add `--max-rows N` (stop after N rows; a row
+takes about 1.75 min, so 30 rows ≈ 50 min) and/or `--only TEXT` (only rows whose name contains TEXT):
+
+```bash
+.venv/bin/python -m collect.sweep run --plan collect/plans/saturday.json --only OFDM
+.venv/bin/python -m collect.sweep run --plan collect/plans/saturday.json --max-rows 30
+```
 
 ## Output (`data/radiohound/`, not committed)
 

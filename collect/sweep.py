@@ -195,13 +195,17 @@ def _stop_on_sigterm():
 
 # ---------------------------------------------------------------- commands
 
-def run_sweep(plan, gen, client, out_dir):
+def run_sweep(plan, gen, client, out_dir, only=None, max_rows=None):
     rows = expand_plan(plan)
+    if only:
+        rows = [r for r in rows if only.upper() in r["id"].upper()]
     carrier_hz = plan["carrier_mhz"] * 1e6
     gain, per_row = plan["gain"], plan["captures_per_row"]
     todo = [r for r in rows if not (out_dir / r["id"] / "done.json").exists()]
+    left = len(todo)
+    todo = todo[:max_rows] if max_rows else todo
     minutes = len(todo) * (per_row + 1) * 21 / 60
-    log.info("%d rows, %d left, about %.0f minutes", len(rows), len(todo), minutes)
+    log.info("%d rows, %d left, running %d now (about %.0f minutes)", len(rows), left, len(todo), minutes)
     manifest = Manifest(out_dir / "manifest.csv")
     try:
         for number, row in enumerate(todo, 1):
@@ -276,6 +280,8 @@ def main(argv=None):
     run = commands.add_parser("run", help="run a sweep plan")
     run.add_argument("--plan", type=Path, required=True)
     run.add_argument("--out", type=Path, default=Path("data/radiohound"))
+    run.add_argument("--only", help="run only rows whose name contains this, e.g. QAM or OFDM")
+    run.add_argument("--max-rows", type=int, help="stop after this many rows; rerun to continue")
     probe = commands.add_parser("probe", help="find a usable power level")
     probe.add_argument("--mode", default="BPSK")
     probe.add_argument("--powers", type=_powers, default=_powers("-70,-60,-50,-40,-30,-20"))
@@ -298,7 +304,7 @@ def main(argv=None):
     log.info("Generator: %s", gen.identity)
     try:
         if args.command == "run":
-            run_sweep(plan, gen, client, args.out)
+            run_sweep(plan, gen, client, args.out, only=args.only, max_rows=args.max_rows)
         else:
             run_probe(args, gen, client)
     except KeyboardInterrupt:
