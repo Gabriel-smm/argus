@@ -57,12 +57,17 @@ def expand_plan(plan):
         for values in itertools.product(*(_as_list(spec[k]) for k in keys)):
             settings = dict(zip(keys, values))
             mode = settings["mode"].upper()
-            offsets = [0.0] if mode == "CW" else plan["offsets_hz"]
+            offsets = plan["offsets_hz"]
             for power, offset in itertools.product(plan["powers_dbm"], offsets):
                 rows.append(dict(settings, mode=mode, power_dbm=float(power),
                                  frequency_offset_hz=float(offset)))
-    for index, row in enumerate(rows):
-        row.setdefault("seed", plan.get("seed", 1000) + index)
+    # Seeds number the random-data rows only; a CW tone has no random data.
+    next_seed = plan.get("seed", 1000)
+    for row in rows:
+        if row["mode"] == "CW":
+            row["seed"] = None
+        elif "seed" not in row:
+            row["seed"], next_seed = next_seed, next_seed + 1
         row["id"] = row_id(row)
         check_row(row)
     ids = [row["id"] for row in rows]
@@ -77,9 +82,9 @@ def row_id(row):
                      ("fm_tone_hz", "tone"), ("alpha", "a"), ("ofdm_fft", "fft")):
         if key in row:
             parts.append("{}{:g}".format(tag, row[key]))
-    if row["mode"] != "CW":
-        parts.append("off{:g}".format(row["frequency_offset_hz"]))
-    parts.append("s{}".format(row["seed"]))
+    parts.append("off{:g}".format(row["frequency_offset_hz"]))
+    if row.get("seed") is not None:
+        parts.append("s{}".format(row["seed"]))
     return "_".join(parts).replace(".", "p").replace("-", "m").replace("+", "")
 
 
@@ -92,6 +97,8 @@ def waveform_for(row):
 
 def check_row(row):
     """Refuse unsafe power and signals that would not fit in the recording."""
+    if row["mode"] == "CW" and abs(row["frequency_offset_hz"]) > CAPTURE_HALF_SPAN_HZ:
+        raise ValueError("{}: tone is outside the recording".format(row["id"]))
     if row["power_dbm"] > MAX_POWER_DBM:
         raise ValueError("{}: power {} dBm is above the {} dBm limit".format(
             row["id"], row["power_dbm"], MAX_POWER_DBM))
@@ -169,11 +176,16 @@ def transmit(gen, row, carrier_hz):
     if row["power_dbm"] > MAX_POWER_DBM:  # second check, right before the instrument
         raise ValueError("Refusing power above {} dBm".format(MAX_POWER_DBM))
     gen.set_rf(False)
-    gen.set_carrier(carrier_hz, row["power_dbm"])
     waveform = waveform_for(row)
     if waveform is None:
+        # The ARB offset does not apply to a plain tone, so move the carrier itself
+        # (a tone on the recording's center would sit on the HackRF's DC spike).
+        offset = row["frequency_offset_hz"]
+        gen.set_carrier(carrier_hz + offset, row["power_dbm"])
         gen.set_cw()
-        return {"mode": "CW", "bandwidth_hz": 0.0}
+        return {"mode": "CW", "bandwidth_hz": 0.0, "frequency_offset_hz": offset,
+                "lower_edge_hz": offset, "upper_edge_hz": offset}
+    gen.set_carrier(carrier_hz, row["power_dbm"])
     gen.apply_waveform(waveform)
     return waveform.metadata
 

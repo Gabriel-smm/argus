@@ -19,11 +19,18 @@ PLAN = {
 }
 
 
-def test_plan_expands_lists_and_gives_cw_one_offset():
+def test_plan_expands_lists():
     rows = sweep.expand_plan(PLAN)
-    assert len(rows) == 2 + 2 * 2 * 2  # CW: 2 powers; BPSK/OFDM: 2 powers x 2 offsets
+    assert len(rows) == 3 * 2 * 2  # CW, BPSK, OFDM x 2 powers x 2 offsets
     assert len({r["id"] for r in rows}) == len(rows)
-    assert {r["frequency_offset_hz"] for r in rows if r["mode"] == "CW"} == {0.0}
+
+
+def test_cw_moves_the_carrier_off_center():
+    gen = N5172BController(demo=True)
+    gen.connect()
+    row = next(r for r in sweep.expand_plan(PLAN) if r["mode"] == "CW")
+    sweep.transmit(gen, row, 2927e6)
+    assert gen.read_status()["frequency_hz"] == 2927e6 + row["frequency_offset_hz"] != 2927e6
 
 
 def test_power_above_limit_is_refused():
@@ -72,7 +79,7 @@ def test_sweep_writes_sigmf_and_resumes(tmp_path):
     gen = _run(tmp_path)
     assert not gen.read_status()["rf_on"]
     rows = list(csv.DictReader(open(tmp_path / "manifest.csv")))
-    assert len(rows) == 10 * 3  # one RF-off and two RF-on recordings per row
+    assert len(rows) == 12 * 3  # one RF-off and two RF-on recordings per row
     on = [r for r in rows if r["rf"] == "on"]
     assert all(float(r["snr_db"]) > 10 for r in on)
 
