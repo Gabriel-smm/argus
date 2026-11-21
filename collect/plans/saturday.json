@@ -2,7 +2,7 @@
   "carrier_mhz": 2927,
   "gain": 30,
   "captures_per_row": 4,
-  "powers_dbm": [-60, -45, -30],
+  "powers_dbm": [-40, -30, -20],
   "offsets_hz": [-3000000, 3000000],
   "signals": [
     {"mode": "CW"},
