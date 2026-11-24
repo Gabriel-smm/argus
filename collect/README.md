@@ -64,5 +64,9 @@ the server's fields.
 - `clipped`: the HackRF's 8-bit receiver hit full scale. Lower the power or gain.
 
 Notes:
+- **Skip the first 262,144 samples of every recording.** The server returns 4 blocks of 131,072
+  samples. Block 1 is left over from before the request: in the first RF-on recording of a row it
+  still holds the RF-off noise. Block 2 holds a tuning transient whenever the frequency changed
+  since the last request (every ambient recording). Blocks 3–4 (about 13 ms) are clean.
 - The recordings have no physical unit. Compare only recordings made at the same `gain`.
 - The HackRF puts a spike at the center of every recording, so signals are offset by ±3 MHz to avoid it.
