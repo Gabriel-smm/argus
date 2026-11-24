@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Judge report",
+  "description": "What `python -m argus_judge ... -o report.json` writes. This is the hand-off to the UI and the chat.",
+  "type": "object",
+  "required": ["site", "generated_at", "counts", "verdicts", "jamming", "background_skipped", "located", "notes"],
+  "properties": {
+    "site": {
+      "type": "object",
+      "required": ["id", "name", "type", "status", "owner"],
+      "properties": {
+        "id": {"type": "string"}, "name": {"type": "string"}, "type": {"type": "string"},
+        "status": {"type": "string", "description": "Starts with DRAFT until the policy owner has reviewed the profile."},
+        "owner": {"type": "string"}
+      }
+    },
+    "generated_at": {"type": "string"},
+    "counts": {
+      "type": "object",
+      "required": ["blue", "white", "red"],
+      "properties": {"blue": {"type": "integer"}, "white": {"type": "integer"}, "red": {"type": "integer"}}
+    },
+    "verdicts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "disposition", "reason", "rule_id", "next_step", "use_case"],
+        "properties": {
+          "id": {},
+          "disposition": {"enum": ["blue", "white", "red"]},
+          "signal_class": {"type": ["string", "null"]},
+          "confidence": {"type": ["number", "null"]},
+          "reason": {"type": "string", "description": "One line, plain English."},
+          "rule_id": {"type": "string", "description": "Which rule fired, so every verdict can be audited."},
+          "next_step": {"type": "string"},
+          "use_case": {"enum": ["drone", "jamming", "site_baseline"]},
+          "center_frequency_hz": {"type": ["number", "null"]},
+          "bandwidth_hz": {"type": ["number", "null"]},
+          "location": {
+            "description": "Where the SENSOR was, not where the signal came from. Null when there was no fix.",
+            "oneOf": [
+              {"type": "null"},
+              {
+                "type": "object",
+                "required": ["lat", "lon", "source"],
+                "properties": {
+                  "lat": {"type": "number"}, "lon": {"type": "number"},
+                  "source": {"enum": ["gps", "manual"]},
+                  "gap_s": {"type": "number"}, "accuracy_m": {"type": "number"}
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "jamming": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["band", "baseline_noise_floor_db", "observed_noise_floor_db", "rise_db", "flagged", "signals_used", "classifier_agrees", "reason"],
+        "properties": {
+          "band": {"type": "string"},
+          "baseline_noise_floor_db": {"type": "number"},
+          "observed_noise_floor_db": {"type": "number"},
+          "rise_db": {"type": "number"},
+          "flagged": {"type": "boolean"},
+          "signals_used": {"type": "integer"},
+          "classifier_agrees": {"type": "boolean"},
+          "reason": {"type": "string"}
+        }
+      }
+    },
+    "background_skipped": {"type": "integer"},
+    "located": {"type": "integer"},
+    "notes": {"type": "array", "items": {"type": "string"}}
+  }
+}

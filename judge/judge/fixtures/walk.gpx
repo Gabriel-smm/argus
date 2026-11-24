@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="argus-judge fixture" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata><desc>ILLUSTRATIVE walk near the Notre Dame campus. Not a real survey.</desc></metadata>
+  <trk><name>demo walk</name><trkseg>
+    <trkpt lat="41.7052" lon="-86.2352"><time>2026-11-14T15:00:00Z</time></trkpt>
+    <trkpt lat="41.7055" lon="-86.2349"><time>2026-11-14T15:00:30Z</time></trkpt>
+    <trkpt lat="41.7058" lon="-86.2346"><time>2026-11-14T15:01:00Z</time></trkpt>
+    <trkpt lat="41.7061" lon="-86.2343"><time>2026-11-14T15:01:30Z</time></trkpt>
+    <trkpt lat="41.7064" lon="-86.234"><time>2026-11-14T15:02:00Z</time></trkpt>
+    <trkpt lat="41.7067" lon="-86.2337"><time>2026-11-14T15:02:30Z</time></trkpt>
+  </trkseg></trk>
+</gpx>

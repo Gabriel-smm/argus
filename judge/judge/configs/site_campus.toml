@@ -1,0 +1,79 @@
+# Site profile: a university campus. EXAMPLE VALUES for the demo, not measured and not reviewed.
+# The policy owner edits this file; no Python changes are needed.
+# Classes are the ones mod-classifier produces (mod-classifier/configs/taxonomy.toml).
+
+[site]
+id = "campus-demo"
+name = "Campus (demo)"
+type = "campus"
+owner = "Diana Lara"
+status = "DRAFT: example values, waiting for policy-owner review"
+lat = 41.705        # where the site is (illustrative)
+lon = -86.235
+
+[policy]
+# A class listed here is RED when it appears and this profile does not list it under [[expected]].
+red_classes = ["drone_link", "gnss_jammer"]
+# The classifier already answers "unknown" below its own calibrated threshold, and that is always white.
+# This is an extra bar for BLUE on top of that. 0 means rely on the classifier's threshold alone.
+min_confidence_for_blue = 0.0
+# How far the noise floor may rise above the baselines below before it is flagged as possible jamming.
+noise_rise_db = 10.0
+
+[[expected]]
+signal_class = "wifi"
+min_hz = 2.4e9
+max_hz = 2.4835e9
+max_bandwidth_hz = 40e6
+note = "Campus Wi-Fi on 2.4 GHz."
+
+[[expected]]
+signal_class = "wifi"
+min_hz = 5.15e9
+max_hz = 5.85e9
+max_bandwidth_hz = 160e6
+note = "Campus Wi-Fi on 5 GHz."
+
+[[expected]]
+signal_class = "bluetooth"
+min_hz = 2.4e9
+max_hz = 2.4835e9
+max_bandwidth_hz = 2e6
+note = "Bluetooth devices, normal on a campus."
+
+[[expected]]
+signal_class = "lora"
+min_hz = 902e6
+max_hz = 928e6
+max_bandwidth_hz = 500e3
+note = "LoRa sensors in the 915 MHz band."
+
+[[expected]]
+signal_class = "other_ism"
+min_hz = 433.05e6
+max_hz = 434.79e6
+
+[[expected]]
+signal_class = "other_ism"
+min_hz = 902e6
+max_hz = 928e6
+
+[[expected]]
+signal_class = "adsb"
+min_hz = 1085e6
+max_hz = 1095e6
+note = "Aircraft ADS-B."
+
+# Normal noise floor per band, measured on a quiet day with the SAME radio and gain used later.
+# The numbers below are placeholders: replace them with your own survey.
+[[baseline]]
+name = "ism_915"
+min_hz = 902e6
+max_hz = 928e6
+noise_floor_db = -96.0
+
+[[baseline]]
+name = "gnss_l1"
+min_hz = 1.55e9
+max_hz = 1.6e9
+noise_floor_db = -98.0
