@@ -1,0 +1,40 @@
+# Site profile: a power plant. EXAMPLE VALUES, used to show that the same signal can be
+# routine on a campus and alarming here. Not measured and not reviewed.
+
+[site]
+id = "power-plant-demo"
+name = "Power plant (demo)"
+type = "power_plant"
+owner = "Diana Lara"
+status = "DRAFT: example values, waiting for policy-owner review"
+
+[policy]
+# Inside this fence no unlisted Wi-Fi or Bluetooth is acceptable.
+red_classes = ["drone_link", "gnss_jammer", "wifi", "bluetooth"]
+min_confidence_for_blue = 0.0
+noise_rise_db = 10.0
+
+[[expected]]
+signal_class = "wifi"
+min_hz = 5.15e9
+max_hz = 5.35e9
+max_bandwidth_hz = 80e6
+note = "The plant's own 5 GHz network."
+
+[[expected]]
+signal_class = "lora"
+min_hz = 902e6
+max_hz = 928e6
+max_bandwidth_hz = 500e3
+note = "The plant's LoRa sensors."
+
+[[expected]]
+signal_class = "other_ism"
+min_hz = 433.05e6
+max_hz = 434.79e6
+
+[[baseline]]
+name = "ism_915"
+min_hz = 902e6
+max_hz = 928e6
+noise_floor_db = -96.0

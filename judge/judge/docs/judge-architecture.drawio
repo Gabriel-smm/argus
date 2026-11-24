@@ -1,0 +1,112 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/28.2.8 Chrome/140.0.7339.240 Electron/38.4.0 Safari/537.36" version="28.2.8">
+  <diagram name="Judge architecture" id="judge_arch">
+    <mxGraphModel dx="1388" dy="729" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="c2" value="Judge architecture: from a capture to a verdict anyone can act on" style="text;html=1;whiteSpace=wrap;fontSize=20;fontStyle=1;fontColor=#14213D;verticalAlign=middle;strokeColor=none;fillColor=none;" parent="1" vertex="1">
+          <mxGeometry x="40" y="16" width="680" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="c3" value="Green is in the judge/ folder. Grey already exists in the repo. Dashed orange is not wired yet." style="text;html=1;whiteSpace=wrap;fontSize=13;fontStyle=0;fontColor=#555555;verticalAlign=middle;strokeColor=none;fillColor=none;" parent="1" vertex="1">
+          <mxGeometry x="40" y="60" width="640" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="c4" value="&lt;b&gt;Radio&lt;/b&gt;&lt;br/&gt;RTL-SDR / HackRF&lt;br/&gt;receive-only" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;fillColor=#EEF1F6;strokeColor=#5B6B82;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="40" y="140" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c5" value="&lt;b&gt;Sweep CSV&lt;/b&gt;&lt;br/&gt;rtl_power,&lt;br/&gt;hackrf_sweep" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;fillColor=#EEF1F6;strokeColor=#5B6B82;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="230" y="100" width="160" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c6" value="&lt;b&gt;IQ recording&lt;/b&gt;&lt;br/&gt;.cu8 .cs8 .ci16 .cf32,&lt;br/&gt;SigMF" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;fillColor=#EEF1F6;strokeColor=#5B6B82;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="230" y="190" width="160" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c7" value="&lt;b&gt;pipeline/ingest.py&lt;/b&gt;&lt;br/&gt;sweep.py, iq.py,&lt;br/&gt;features.py&lt;br/&gt;rows as JSONL" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;fillColor=#EEF1F6;strokeColor=#5B6B82;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="430" y="140" width="180" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="c8" value="&lt;b&gt;mod-classifier&lt;/b&gt;&lt;br/&gt;mcls.infer (IQ only)&lt;br/&gt;signal_class + calibrated confidence" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;fillColor=#EEF1F6;strokeColor=#5B6B82;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="430" y="280" width="180" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="c9" value="&lt;b&gt;judge/ (argus_judge)&lt;/b&gt;&lt;br/&gt;8 rules, first match wins&lt;br/&gt;jamming check&lt;br/&gt;location" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;fillColor=#E3F4E3;strokeColor=#3A8F3A;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="680" y="140" width="200" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="c10" value="&lt;b&gt;Site profile&lt;/b&gt;&lt;br/&gt;configs/*.toml&lt;br/&gt;what is normal here" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;fillColor=#E3F4E3;strokeColor=#3A8F3A;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="680" y="290" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c11" value="&lt;b&gt;GPS log&lt;/b&gt;&lt;br/&gt;GPX / CSV, or one&lt;br/&gt;fixed position" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;fillColor=#E3F4E3;strokeColor=#3A8F3A;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="685" y="20" width="190" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c12" value="&lt;b&gt;report.json&lt;/b&gt;&lt;br/&gt;counts, verdicts, reasons" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;fillColor=#E3F4E3;strokeColor=#3A8F3A;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="940" y="60" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="c13" value="&lt;b&gt;verdicts.geojson&lt;/b&gt;&lt;br/&gt;sensor positions for a map" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;fillColor=#E3F4E3;strokeColor=#3A8F3A;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="940" y="170" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="c14" value="&lt;b&gt;Text summary&lt;/b&gt;&lt;br/&gt;for the chat model" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;fillColor=#E3F4E3;strokeColor=#3A8F3A;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="940" y="270" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="c15" value="&lt;b&gt;Dashboard / map&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;fillColor=#FFF4DD;strokeColor=#D98A00;strokeWidth=2;dashed=1;" parent="1" vertex="1">
+          <mxGeometry x="1170" y="130" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="c16" value="&lt;b&gt;Chat&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;fillColor=#FFF4DD;strokeColor=#D98A00;strokeWidth=2;dashed=1;" parent="1" vertex="1">
+          <mxGeometry x="1170" y="250" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="c17" value="&lt;b&gt;BLUE&lt;/b&gt; expected here" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;fillColor=#E3F4E3;strokeColor=#3A8F3A;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="430" y="440" width="200" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="c18" value="&lt;b&gt;WHITE&lt;/b&gt; unknown" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;fillColor=#E3F4E3;strokeColor=#3A8F3A;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="660" y="440" width="200" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="c19" value="&lt;b&gt;RED&lt;/b&gt; not expected here" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;fillColor=#E3F4E3;strokeColor=#3A8F3A;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="890" y="440" width="200" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="c20" value="Every signal has &lt;b&gt;one &lt;/b&gt;color, a one-line reason, and next step. Low confidence will never be blue." style="text;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;fontColor=#444444;verticalAlign=middle;strokeColor=none;fillColor=none;" parent="1" vertex="1">
+          <mxGeometry x="430" y="505" width="700" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="c21" value="Locations are where the sensor was, not where the signal came from." style="text;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;fontColor=#444444;verticalAlign=middle;strokeColor=none;fillColor=none;" parent="1" vertex="1">
+          <mxGeometry x="430" y="532" width="700" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="c22" value="" style="endArrow=block;html=1;strokeWidth=2;strokeColor=#555555;fontSize=11;entryX=0;entryY=0.429;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="c4" target="c5" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c23" value="" style="endArrow=block;html=1;strokeWidth=2;strokeColor=#555555;fontSize=11;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="c4" target="c6" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c24" value="" style="endArrow=block;html=1;strokeWidth=2;strokeColor=#555555;fontSize=11;" parent="1" source="c5" target="c7" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c25" value="" style="endArrow=block;html=1;strokeWidth=2;strokeColor=#555555;fontSize=11;" parent="1" source="c6" target="c7" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c26" value="--classify" style="endArrow=block;html=1;strokeWidth=2;strokeColor=#555555;fontSize=11;" parent="1" source="c7" target="c8" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c27" value="rows" style="endArrow=block;html=1;strokeWidth=2;strokeColor=#555555;fontSize=11;" parent="1" source="c7" target="c9" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c28" value="+ class" style="endArrow=block;html=1;strokeWidth=2;strokeColor=#555555;fontSize=11;" parent="1" source="c8" target="c9" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c29" value="" style="endArrow=block;html=1;strokeWidth=2;strokeColor=#555555;fontSize=11;" parent="1" source="c10" target="c9" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c30" value="" style="endArrow=block;html=1;strokeWidth=2;strokeColor=#555555;fontSize=11;" parent="1" source="c11" target="c9" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c31" value="" style="endArrow=block;html=1;strokeWidth=2;strokeColor=#555555;fontSize=11;entryX=0;entryY=1;entryDx=0;entryDy=0;" parent="1" source="c9" target="c12" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c32" value="" style="endArrow=block;html=1;strokeWidth=2;strokeColor=#555555;fontSize=11;" parent="1" source="c9" target="c13" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c33" value="" style="endArrow=block;html=1;strokeWidth=2;strokeColor=#555555;fontSize=11;entryX=0;entryY=0;entryDx=0;entryDy=0;" parent="1" source="c9" target="c14" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c34" value="" style="endArrow=block;html=1;strokeWidth=2;strokeColor=#555555;fontSize=11;dashed=1;" parent="1" source="c12" target="c15" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c35" value="" style="endArrow=block;html=1;strokeWidth=2;strokeColor=#555555;fontSize=11;dashed=1;" parent="1" source="c14" target="c16" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
