@@ -1,0 +1,14 @@
+{
+  "repeats": 6,
+  "gains": [8, 16],
+  "bands": [
+    {"name": "ism_433", "freq_mhz": 433, "expect": "key fobs, weather sensors"},
+    {"name": "lte_700", "freq_mhz": 739, "expect": "LTE downlink"},
+    {"name": "ism_915", "freq_mhz": 915, "expect": "sensors, LoRa, smart meters"},
+    {"name": "pcs_1960", "freq_mhz": 1960, "expect": "LTE/5G downlink"},
+    {"name": "aws_2140", "freq_mhz": 2140, "expect": "LTE/5G downlink"},
+    {"name": "wifi_2412", "freq_mhz": 2412, "expect": "Wi-Fi channel 1, Bluetooth"},
+    {"name": "wifi_2440", "freq_mhz": 2440, "expect": "Wi-Fi channel 6, Bluetooth"},
+    {"name": "wifi_5180", "freq_mhz": 5180, "expect": "Wi-Fi 5 GHz"}
+  ]
+}

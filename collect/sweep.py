@@ -24,6 +24,7 @@ from pathlib import Path
 import numpy as np
 
 from collect.radiohound import FULL_SCALE, FakeClient, RadioHoundClient
+from collect.room_waveforms import ROOM_FIELDS, ROOM_MODES, RoomConfig, build_room_waveform
 from collect.siggen.n5172b_control import N5172BController
 from collect.siggen.n5172b_waveforms import WaveformConfig, build_waveform
 
@@ -50,7 +51,7 @@ def expand_plan(plan):
     rows = []
     for spec in plan["signals"]:
         spec = dict(spec)
-        unknown = set(spec) - WAVEFORM_FIELDS - {"mode"}
+        unknown = set(spec) - WAVEFORM_FIELDS - ROOM_FIELDS - {"mode"}
         if unknown:
             raise ValueError("Unknown signal settings: " + ", ".join(sorted(unknown)))
         keys = sorted(spec)
@@ -79,7 +80,9 @@ def expand_plan(plan):
 def row_id(row):
     parts = [row["mode"], "p{:g}".format(row["power_dbm"])]
     for key, tag in (("bandwidth_hz", "bw"), ("fm_deviation_hz", "dev"),
-                     ("fm_tone_hz", "tone"), ("alpha", "a"), ("ofdm_fft", "fft")):
+                     ("fm_tone_hz", "tone"), ("alpha", "a"), ("ofdm_fft", "fft"),
+                     ("symbol_rate_hz", "rs"), ("hop_hz", "hop"), ("bit_rate_hz", "br"),
+                     ("packet_s", "pk"), ("duty", "d")):
         if key in row:
             parts.append("{}{:g}".format(tag, row[key]))
     parts.append("off{:g}".format(row["frequency_offset_hz"]))
@@ -92,6 +95,8 @@ def waveform_for(row):
     """The generator waveform for a row, or None for an unmodulated carrier."""
     if row["mode"] == "CW":
         return None
+    if row["mode"] in ROOM_MODES:
+        return build_room_waveform(RoomConfig(**{k: v for k, v in row.items() if k in ROOM_FIELDS}))
     return build_waveform(WaveformConfig(**{k: v for k, v in row.items() if k in WAVEFORM_FIELDS}))
 
 
@@ -257,6 +262,53 @@ def run_sweep(plan, gen, client, out_dir, only=None, max_rows=None):
         manifest.close()
 
 
+AMBIENT_FIELDS = ["band", "freq_mhz", "gain", "file", "peak", "clipped", "burstiness", "expect", "timestamp"]
+
+
+def burstiness(iq):
+    """How much louder the loudest 25 us is than the typical 25 us (packets vs steady)."""
+    p = np.abs(iq.astype(np.complex128) - iq.mean()) ** 2
+    n = 500
+    env = p[:len(p) // n * n].reshape(-1, n).mean(1)
+    return round(float(env.max() / max(np.median(env), 1e-30)), 1)
+
+
+def run_ambient(plan, gen, client, out_dir):
+    """Record what is on the air at each band, generator RF off. Receive only.
+    Passes go over every band in turn, so each band is sampled at several times."""
+    if gen.set_rf(False)["rf_on"]:
+        raise RuntimeError("Generator RF did not switch off")
+    path = out_dir / "manifest.csv"
+    new = not path.exists()
+    out_dir.mkdir(parents=True, exist_ok=True)
+    with open(path, "a", newline="") as handle:
+        writer = csv.DictWriter(handle, AMBIENT_FIELDS)
+        if new:
+            writer.writeheader()
+        for k in range(plan["repeats"]):
+            for band in plan["bands"]:
+                for gain in plan["gains"]:
+                    base = out_dir / "{}_g{}".format(band["name"], gain) / "rec_{:02d}".format(k)
+                    if Path(str(base) + ".sigmf-meta").exists():
+                        continue
+                    try:
+                        cap = client.capture(band["freq_mhz"], gain)
+                    except Exception as exc:  # one band failing must not stop the rest
+                        log.warning("%s g%s: %s", band["name"], gain, exc)
+                        continue
+                    q = quality(cap.iq)
+                    extra = dict(q, band=band["name"], expect=band.get("expect", ""),
+                                 burstiness=burstiness(cap.iq), rf="generator off")
+                    write_sigmf(base, cap, "ambient", extra)
+                    writer.writerow({"band": band["name"], "freq_mhz": band["freq_mhz"], "gain": gain,
+                                     "file": str(base), "peak": q["peak"], "clipped": q["clipped"],
+                                     "burstiness": extra["burstiness"], "expect": extra["expect"],
+                                     "timestamp": cap.timestamp})
+                    handle.flush()
+                    log.info("pass %d %-14s g%-2s peak %.2f%s bursty %sx", k, band["name"], gain,
+                             q["peak"], " CLIP" if q["clipped"] else "", extra["burstiness"])
+
+
 def run_probe(args, gen, client):
     """Step the power up for one signal, printing SNR, until it clips or hits the cap."""
     gen.set_rf(False)
@@ -294,6 +346,9 @@ def main(argv=None):
     run.add_argument("--out", type=Path, default=Path("data/radiohound"))
     run.add_argument("--only", help="run only rows whose name contains this, e.g. QAM or OFDM")
     run.add_argument("--max-rows", type=int, help="stop after this many rows; rerun to continue")
+    ambient = commands.add_parser("ambient", help="record what is on the air (receive only)")
+    ambient.add_argument("--plan", type=Path, required=True)
+    ambient.add_argument("--out", type=Path, default=Path("data/radiohound-ambient"))
     probe = commands.add_parser("probe", help="find a usable power level")
     probe.add_argument("--mode", default="BPSK")
     probe.add_argument("--powers", type=_powers, default=_powers("-70,-60,-50,-40,-30,-20"))
@@ -307,16 +362,19 @@ def main(argv=None):
     if args.command == "run":
         plan = json.loads(args.plan.read_text())
         expand_plan(plan)  # fail on a bad plan before touching the generator
-        if args.dry_run:
-            args.out = args.out.with_name(args.out.name + "-dryrun")
+    if args.command in ("run", "ambient") and args.dry_run:
+        args.out = args.out.with_name(args.out.name + "-dryrun")
     gen = N5172BController(host=args.ip, timeout=15, demo=args.dry_run)
-    client = FakeClient(gen) if args.dry_run else RadioHoundClient()
+    # Ambient tolerates a failing band, so it retries less to spare the server.
+    client = FakeClient(gen) if args.dry_run else RadioHoundClient(retries=1 if args.command == "ambient" else 2)
     _stop_on_sigterm()
     gen.connect()
     log.info("Generator: %s", gen.identity)
     try:
         if args.command == "run":
             run_sweep(plan, gen, client, args.out, only=args.only, max_rows=args.max_rows)
+        elif args.command == "ambient":
+            run_ambient(json.loads(args.plan.read_text()), gen, client, args.out)
         else:
             run_probe(args, gen, client)
     except KeyboardInterrupt:

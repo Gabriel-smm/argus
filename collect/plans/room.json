@@ -1,0 +1,12 @@
+{
+  "carrier_mhz": 2927,
+  "gain": 30,
+  "captures_per_row": 2,
+  "powers_dbm": [-40, -30, -20],
+  "offsets_hz": [-3000000, 3000000],
+  "signals": [
+    {"mode": "GFSK", "hop_hz": [0, 5000000], "seed": [1, 2]},
+    {"mode": "OOK", "bit_rate_hz": [2000, 10000], "packet_s": 0.005, "duty": 0.5, "seed": [1, 2]},
+    {"mode": "OFDM_BURST", "bandwidth_hz": [2000000, 10000000], "packet_s": 0.0003, "seed": [1, 2]}
+  ]
+}

@@ -7,7 +7,14 @@ Both are reached over the network, so this needs Notre Dame's network (eduroam).
 - `siggen/`: generator control, copied from RadioHound's SIGGEN_Standalone package (Christopher Wahl).
 - `radiohound.py`: asks RadioHound's server for a recording. Each one is 524,288 I/Q samples at 20 MS/s (about 26 ms) and takes about 20 s.
 - `sweep.py`: steps through a plan and saves the recordings.
-- `plans/saturday.json`: the first sweep (123 rows, about 3.5 hours).
+- `plans/saturday.json`: the first sweep (126 rows, about 3.5 hours): BPSK, QPSK, 8PSK, 16QAM, 64QAM, FM, OFDM, CW.
+- `room_waveforms.py` + `plans/room.json`: imitations of everyday signals the generator package doesn't make:
+  Bluetooth-like GFSK (with or without hopping), key-fob-like OOK, and Wi-Fi-like OFDM packets
+  (72 rows, about 1.5 hours).
+- `plans/ambient.json`: receive only. Records what is already on the air in 8 bands (433 MHz to 5.18 GHz)
+  at two gains, with the generator off (about 35 minutes). Labels are only the band's expected users,
+  so use these for testing and demo tuning, not as exact training labels. 98 MHz (FM radio) times out
+  on the server.
 
 ## Rules agreed with RadioHound
 
@@ -24,6 +31,9 @@ Both are reached over the network, so this needs Notre Dame's network (eduroam).
 
 # 2. Find a power level: raises the power until the signal clips or reaches -10 dBm
 .venv/bin/python -m collect.sweep probe --powers=-70,-60,-50,-40,-30,-20
+
+# Receive-only recording of the bands (generator stays off)
+.venv/bin/python -m collect.sweep ambient --plan collect/plans/ambient.json
 
 # 3. Put the working power levels in the plan's powers_dbm and run it
 .venv/bin/python -m collect.sweep run --plan collect/plans/saturday.json

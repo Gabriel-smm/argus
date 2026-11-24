@@ -119,3 +119,39 @@ def test_sweep_can_run_in_sections(tmp_path):
     assert len(done) == 2 and all(d.startswith("OFDM") for d in done)
     sweep.run_sweep(PLAN, gen, client, tmp_path, only="OFDM")
     assert len(list(tmp_path.glob("OFDM*/done.json"))) == 4
+
+
+@pytest.mark.parametrize("config", [
+    {"mode": "GFSK"}, {"mode": "GFSK", "hop_hz": 5e6},
+    {"mode": "OOK", "packet_s": 5e-3, "duty": 0.5}, {"mode": "OFDM_BURST", "bandwidth_hz": 10e6},
+])
+def test_room_waveforms_are_bursty_and_uploadable(config):
+    from collect.room_waveforms import RoomConfig, build_room_waveform
+    w = build_room_waveform(RoomConfig(**config))
+    on = np.abs(w.iq) > 0.05
+    assert 0.1 < on.mean() < 0.8  # packets with gaps
+    assert len(w.iq) % 4 == 0 and len(w.iq) <= 1_000_000
+    gen = N5172BController(demo=True)
+    gen.connect()
+    gen.set_carrier(2927e6, -30)
+    gen.apply_waveform(w)
+
+
+def test_hopping_too_wide_for_an_offset_is_refused():
+    plan = dict(PLAN, offsets_hz=[3e6], signals=[{"mode": "GFSK", "hop_hz": 7e6}])
+    with pytest.raises(ValueError, match="past"):
+        sweep.expand_plan(plan)
+
+
+def test_ambient_records_every_band_with_rf_off(tmp_path):
+    gen = N5172BController(demo=True)
+    gen.connect()
+    gen.set_rf(True)
+    plan = {"repeats": 2, "gains": [8, 16], "bands": [{"name": "a", "freq_mhz": 433},
+                                                      {"name": "b", "freq_mhz": 2440}]}
+    sweep.run_ambient(plan, gen, FakeClient(gen, n=512), tmp_path)
+    assert not gen.read_status()["rf_on"]
+    rows = list(csv.DictReader(open(tmp_path / "manifest.csv")))
+    assert len(rows) == 2 * 2 * 2
+    sweep.run_ambient(plan, gen, FakeClient(gen, n=512), tmp_path)  # resumes: nothing new
+    assert len(list(csv.DictReader(open(tmp_path / "manifest.csv")))) == 8
