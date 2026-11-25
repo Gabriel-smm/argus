@@ -18,8 +18,10 @@ import numpy as np
 SERVER = "http://radiohound2.ee.nd.edu:8000"
 NODE = "3484e4fcf564"
 
-# HackRF samples are 8-bit values scaled to floats; a step is 1/128.
-FULL_SCALE = 127 / 128
+# The server sends HackRF 8-bit samples divided by 127, so a step is 1/127 and
+# the largest value is 1.0 (-128 reads as -128/127).
+SAMPLE_SCALE = 127
+FULL_SCALE = 1.0
 
 
 @dataclass
