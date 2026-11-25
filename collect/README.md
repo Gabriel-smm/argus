@@ -48,13 +48,36 @@ takes about 1.75 min, so 30 rows ≈ 50 min) and/or `--only TEXT` (only rows who
 .venv/bin/python -m collect.sweep run --plan collect/plans/saturday.json --max-rows 30
 ```
 
+## Getting the data
+
+The recordings are not in git. They are attached to the GitHub release
+[`radiohound-2026-11`](https://github.com/Gabriel-smm/argus/releases/tag/radiohound-2026-11)
+(228 MB). To download, check and unpack them into `data/`:
+
+```bash
+python -m collect.dataset fetch
+```
+
+| Folder | Recordings | What |
+|---|---|---|
+| `data/radiohound/` | 630 (126 rows) | Saturday sweep: CW, BPSK, QPSK, 8PSK, 16QAM, 64QAM, FM, OFDM at -40/-30/-20 dBm |
+| `data/radiohound-room/` | 216 (72 rows) | Room-signal imitations: GFSK (Bluetooth-like), OOK (key-fob-like), OFDM bursts (Wi-Fi-like) |
+| `data/radiohound-ambient/` | 96 | Generator off, 8 everyday bands at gains 8 and 16. Nearly empty once the stale blocks are skipped |
+
+The archive stores samples as SigMF `ci8` (the HackRF's own 8-bit values;
+`argus:scale` is 127). Read them with `collect.dataset.read_recording(base)`, which
+returns complex64 exactly as the server sent them and skips the first 262,144
+samples by default. Maintainers rebuild the archive with `python -m collect.dataset pack`,
+then update `collect/release.json`.
+
 ## Output (`data/radiohound/`, not committed)
 
 One folder per plan row, containing:
 - `off_00`: a recording with RF off, made just before the signal. It shows what was already on the air.
 - `on_00` … `on_NN`: recordings with the signal on.
 
-Each recording is a SigMF pair. `.sigmf-data` holds complex float32 samples.
+Each recording is a SigMF pair. `.sigmf-data` holds complex float32 samples as
+recorded (`ci8` in the release archive).
 `.sigmf-meta` holds the labels, which are exactly what the generator sent, plus
 the server's fields.
 

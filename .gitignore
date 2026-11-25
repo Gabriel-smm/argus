@@ -10,3 +10,4 @@ data/radiohound-dryrun/
 data/radiohound*.log
 data/radiohound-ambient/
 data/radiohound-room/
+data/radiohound-*.tar.gz

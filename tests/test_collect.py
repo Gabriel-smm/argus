@@ -155,3 +155,40 @@ def test_ambient_records_every_band_with_rf_off(tmp_path):
     assert len(rows) == 2 * 2 * 2
     sweep.run_ambient(plan, gen, FakeClient(gen, n=512), tmp_path)  # resumes: nothing new
     assert len(list(csv.DictReader(open(tmp_path / "manifest.csv")))) == 8
+
+
+def _recording(folder, name, ints):
+    folder.mkdir(parents=True, exist_ok=True)
+    iq = ((ints[0::2] + 1j * ints[1::2]) / 127).astype(np.complex64)  # float64, as the server
+    iq.tofile(folder / f"{name}.sigmf-data")
+    meta = {"global": {"core:datatype": "cf32_le"}, "annotations": [{"core:label": "x"}]}
+    (folder / f"{name}.sigmf-meta").write_text(json.dumps(meta))
+    return iq
+
+
+def test_pack_is_lossless_and_fetch_checks_the_download(tmp_path):
+    from collect import dataset
+    ints = np.random.default_rng(0).integers(-128, 128, 4096).astype(np.float64)
+    iq = _recording(tmp_path / "src/data/radiohound/row", "on_00", ints)
+    (tmp_path / "src/data/radiohound/manifest.csv").write_text("row,file\n")
+    archive = tmp_path / "data.tar.gz"
+    assert dataset.pack(tmp_path / "src", ["data/radiohound"], archive) == 1
+
+    release = {"url": archive.as_uri(), "asset": "data.tar.gz", "bytes": 1,
+               "sha256": dataset.sha256(archive)}
+    out = tmp_path / "out"
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(dataset, "FOLDERS", ("data/radiohound",))
+        dataset.fetch(out, release)
+    back, meta = dataset.read_recording(out / "data/radiohound/row/on_00", skip=0)
+    assert meta["global"]["core:datatype"] == "ci8" and np.array_equal(back, iq)
+    assert (out / "data/radiohound/row/on_00.sigmf-data").stat().st_size == len(ints)
+
+    with pytest.raises(ValueError, match="checksum"):
+        dataset.fetch(tmp_path / "bad", dict(release, sha256="0" * 64))
+
+
+def test_pack_refuses_samples_that_are_not_8_bit():
+    from collect import dataset
+    with pytest.raises(ValueError, match="8-bit"):
+        dataset.to_ci8(np.array([0.5 / 127 + 0j], dtype=np.complex64))
